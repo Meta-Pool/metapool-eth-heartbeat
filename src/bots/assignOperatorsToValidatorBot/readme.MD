@@ -9,9 +9,11 @@ Para tener un validador hay que hacer 3 pasos
 1) La creación es netamente manual. Se hace con una mnemonic y esto genera 2 archivos por validador: el `keystore` y el `deposit_data`. 
 
 [PASOS AUTOMÁTICOS]
-2) Una vez creado el validador, se toma el `keystore` para poder asignarle operadores al validador, haciendo un split de la key en 4 partes. Esto da como resultado un archivo llamado `keyshares`. Este archivo `keyshares` se envía al contrato de ssv a través de una transacción. Con esto, el validador queda configurado, esperando a ser activado. Este paso sería automatizado.
+2) Una vez creado el validador, se toma el `keystore` para poder asignarle operadores al validador, haciendo un split de la key en 4 partes usando ssv-keys-lin o el que corresponda. Esto da como resultado un archivo llamado `keyshares`. Este archivo `keyshares` se envía al contrato de ssv a través de una transacción. Con esto, el validador queda configurado, esperando a ser activado. Este paso sería automatizado.
 
-3) Se realiza una transferencia de 32 ETH al contrato de depósito de ethereum con la información del archivo de `deposit_data`. 12 horas después, el validador está funcionando. Este paso también es automatizado.
+3) Llamar a update nodes del contrato de staking nuestro.
+
+4) Se realiza una transferencia de 32 ETH al contrato de depósito de ethereum con la información del archivo de `deposit_data`. 12 horas después, el validador está funcionando. Este paso también es automatizado.
 
 
 El paso 3, queda pendiente de revisar si se dispara automáticamente desde el contrato cuando se recibe un depósito o si es necesario que el contrato tenga una interacción con un bot que le de la orden (charlar con Lean)
