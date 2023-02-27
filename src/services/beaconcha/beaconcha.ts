@@ -1,7 +1,7 @@
 const VALIDATOR_ID_FINDER_BASE_URL = "https://prater.beaconcha.in/api/v1/validator/eth1/"
 const VALIDATOR_DATA_BASE_URL = "https://prater.beaconcha.in/api/v1/validator/"
 
-const DEPLOYER_ACCOUNT = "0xBA013e942AbbEb7c6a2d597C61d65fDC14c0FEE6"
+const DEPLOYER_ACCOUNT = "0x6f740267703D5E91F3a6937679c1d7Cb4b430a0F"
 
 export interface DeployerDataResponse {
     status: string
