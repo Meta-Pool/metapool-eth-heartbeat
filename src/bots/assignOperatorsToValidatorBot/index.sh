@@ -19,20 +19,25 @@ OPERATOR_IDS=$(/usr/bin/jq --argjson NEXT_GROUP_INDEX "$NEXT_GROUP_INDEX" '.[$NE
 # Get operators told by groups.json on operators.json
 IFS=',' read -r -a OPERATOR_IDS_ARRAY <<< "$OPERATOR_IDS"
 # FIX USE VALUES FROM ARRAY
-OPERATOR_KEYS_STRINGS=$(jq --argjson OPERATOR_IDS_ARRAY "$OPERATOR_IDS_ARRAY" '.[] | select( .id == 57 or .id == 211 or .id == 885 or .id == 10) | .pubkey' src/bots/assignOperatorsToValidatorBot/operators.json)
+echo $OPERATOR_IDS
+echo ${OPERATOR_IDS_ARRAY[@]}
+IFS="|"
+# OPERATOR_KEYS_STRINGS=$(jq --argjson OPERATOR_IDS_ARRAY "$OPERATOR_IDS_ARRAY" '.[] | select( .id == $OPERATOR_IDS_ARRAY[0] or .id == $OPERATOR_IDS_ARRAY[1] or .id == $OPERATOR_IDS_ARRAY[2] or .id == $OPERATOR_IDS_ARRAY[3]) | .pubkey' src/bots/assignOperatorsToValidatorBot/operators.json)
+OPERATOR_KEYS_STRINGS=$(jq --arg IDS "${OPERATOR_IDS[*]}" '($IDS | split(",") | map(tonumber)) as $PIDS | .[] | select( [.id] | index($PIDS[])).pubkey' $ALL_JSONS_PATH/operators.json)
 OPERATOR_KEYS=$(echo $OPERATOR_KEYS_STRINGS | /usr/bin/sed -z 's/\n/,/g;s/,$/\n/;s/"//g;s/ /,/g')
+echo $OPERATOR_KEYS
 
 # Run command below
-ssv-keys-lin ksh --ksv=3 --keystore=$KEYSTORE_PATH --password=$PASSWD --operator-ids=$OPERATOR_IDS --operator-keys=$OPERATOR_KEYS --ssv-token-amount=0 --output-folder=./src/validatorsData/keyshares
+# ssv-keys-lin ksh --ksv=3 --keystore=$KEYSTORE_PATH --password=$PASSWD --operator-ids=$OPERATOR_IDS --operator-keys=$OPERATOR_KEYS --ssv-token-amount=0 --output-folder=./src/validatorsData/keyshares
 
 # Update assigned.json adding validator pubkey from keystore
-PUB_KEY=$(jq '.pubkey' $KEYSTORE_PATH | /usr/bin/sed -z 's/"//g')
-ASSIGNED_GROUPS=$(/usr/bin/jq '. | length' $ALL_JSONS_PATH/assigned.json)
-if [[ $ASSIGNED_GROUPS -eq $NEXT_GROUP_INDEX ]]; then
-    # Creates new group with no validators assigned, ready to assign one on next step
-    echo $(/usr/bin/jq --arg OPERATOR_IDS "$OPERATOR_IDS" --arg ALL_JSONS_PATH "$ALL_JSONS_PATH" '.[.|length] |= . + {"ids":[$OPERATOR_IDS], "pubkeys":[]}' $ALL_JSONS_PATH/assigned.json) > $ALL_JSONS_PATH/assigned.json
-fi
-echo $(/usr/bin/jq --arg PUB_KEY "$PUB_KEY" --arg ALL_JSONS_PATH "$ALL_JSONS_PATH" '.[length-1].pubkeys |= . + [$PUB_KEY]' $ALL_JSONS_PATH/assigned.json) > $ALL_JSONS_PATH/assigned.json
+# PUB_KEY=$(jq '.pubkey' $KEYSTORE_PATH | /usr/bin/sed -z 's/"//g')
+# ASSIGNED_GROUPS=$(/usr/bin/jq '. | length' $ALL_JSONS_PATH/assigned.json)
+# if [[ $ASSIGNED_GROUPS -eq $NEXT_GROUP_INDEX ]]; then
+#     # Creates new group with no validators assigned, ready to assign one on next step
+#     echo $(/usr/bin/jq --arg OPERATOR_IDS "$OPERATOR_IDS" --arg ALL_JSONS_PATH "$ALL_JSONS_PATH" '.[.|length] |= . + {"ids":[$OPERATOR_IDS], "pubkeys":[]}' $ALL_JSONS_PATH/assigned.json) > $ALL_JSONS_PATH/assigned.json
+# fi
+# echo $(/usr/bin/jq --arg PUB_KEY "$PUB_KEY" --arg ALL_JSONS_PATH "$ALL_JSONS_PATH" '.[length-1].pubkeys |= . + [$PUB_KEY]' $ALL_JSONS_PATH/assigned.json) > $ALL_JSONS_PATH/assigned.json
 
 # Send the keyshare to the ssv contract via js
 # node dist/bots/assignOperatorsToValidatorBot/index.js $pubkey$ $OPERATOR_IDS
@@ -50,8 +55,8 @@ echo $(/usr/bin/jq --arg PUB_KEY "$PUB_KEY" --arg ALL_JSONS_PATH "$ALL_JSONS_PAT
 
 # echo $ASSIGNED_VALIDATORS
 # echo $NEXT_GROUP_INDEX
-echo $OPERATOR_IDS
-echo $OPERATOR_KEYS
+# echo $OPERATOR_IDS
+# echo $OPERATOR_KEYS
 # echo $PUB_KEY
 
 
