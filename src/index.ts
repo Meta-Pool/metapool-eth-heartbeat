@@ -1,6 +1,6 @@
 import { Contract, ethers } from "ethers";
-import abi from "./abi.json"
-import rodriAbi from "./rodriAbi.json"
+import abi from "./ethereum/abi/abi.json"
+import rodriAbi from "./ethereum/abi/rodriAbi.json"
 
 const RPC_URL = "https://goerli.infura.io/v3/"
 const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"

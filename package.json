@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@types/node": "^18.14.1",
     "typescript": "^4.9.4"
   },
   "name": "meta-pool-ssv-bots",
@@ -9,7 +10,8 @@
     "build": "npx tsc",
     "start": "npm run build && node dist/index.js",
     "start:balance:bot": "npm run build && node dist/bots/balancesBot/index.js",
-    "start:activatedValidators:bot": "npm run build && node dist/bots/createValidatorAlert/activatedValidators.js",
+    "start:createValidatorAlert:bot": "npm run build && node dist/bots/createValidatorAlert/activatedValidators.js",
+    "start:activateValidator:bot": "npm run build && node dist/bots/activateValidator/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -17,6 +19,9 @@
   "description": "",
   "dependencies": {
     "alchemy-sdk": "^2.4.3",
-    "ethers": "^6.0.3"
+    "commander": "^10.0.0",
+    "ethers": "^6.0.3",
+    "figlet": "^1.5.2",
+    "fs": "^0.0.1-security"
   }
 }
