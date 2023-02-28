@@ -11,6 +11,7 @@
     "start": "npm run build && node dist/index.js",
     "start:balance:bot": "npm run build && node dist/bots/balancesBot/index.js",
     "start:createValidatorAlert:bot": "npm run build && node dist/bots/createValidatorAlert/activatedValidators.js",
+    "start:assignOperators:bot": "npm run build && node dist/bots/assignOperatorsToValidatorBot/index.js",
     "start:activateValidator:bot": "npm run build && node dist/bots/activateValidator/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -23,6 +24,7 @@
     "dotenv": "^16.0.3",
     "ethers": "^6.0.3",
     "figlet": "^1.5.2",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "ssv-keys": "^0.0.7"
   }
 }
