@@ -32,7 +32,6 @@ export function getReadableContract(address: string, abi: ethers.InterfaceAbi) {
 export function getWritableContract(address: string, abi: ethers.InterfaceAbi) {
     const env: ENV = getConfig()
     const pk: string = env.ACCOUNT_PRIVATE_KEY as string
-    // console.log(pk)
     const wallet = getWallet(pk)
     return new Contract(address, abi, wallet)
 }

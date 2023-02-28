@@ -1,21 +1,18 @@
-import { DeployerDataResponse, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
+import { updateNodesBalance } from "../../ethereum/stakingContract"
+import { getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
 
+const ZEROS_9 = "0".repeat(9)
 
 async function run() {
-    // const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${DEPLOYER_ACCOUNT}`)
     const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
 
-    
-    console.log(validatorDataArray)
     const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
     const totalBalance = balances.reduce((p: number, c: number) => p + c, 0)
-    console.log("Total balance", totalBalance)
 
-    // This is wrong. We should take the following value from the contract
-    const mpEthTotalSupply = 32000000000
+    // Total balance comes with 9 decimals, so we add 9 zeros
+    const totalBalanceBigInt: string = totalBalance.toString() + ZEROS_9
 
-    const metaEthPrice = totalBalance / mpEthTotalSupply
-    console.log("Meth price", metaEthPrice)
+    await updateNodesBalance(totalBalanceBigInt)
 }
 
 run()

@@ -28,3 +28,11 @@ export function pushToBeacon(node: Node, ethFromLiq: BigInt) {
     return getWritableStakingContract().pushToBeacon([node], ethFromLiq)
     // return getWritableStakingContract().pushToBacon([node], ethFromLiq, {value: "0"})
 }
+
+export function totalSupply(): Promise<BigInt> {
+    return getReadableStakingContract().totalSupply()
+}
+
+export function updateNodesBalance(balance: String) {
+    return getWritableStakingContract().updateNodesBalance(balance)
+}

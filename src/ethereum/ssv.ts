@@ -11,6 +11,14 @@ function getWritableSsvContract() {
     return getWritableContract(SSV_CONTRACT_ADDRESS, ssvAbi)
 }
 
-export function registerValidator(pubkey: string, operatorIds: number[], sharesPubKeys: any[], sharesEncrypted: any[], amount: number) {
-    return getWritableSsvContract().registerValidator(pubkey, operatorIds, sharesPubKeys, sharesEncrypted, amount)
+export function registerValidator(pubkey: string, operatorIds: string, sharesPubKeys: string[], sharesEncrypted: string[], amount: number) {
+    return getWritableSsvContract().registerValidator(pubkey, operatorIds.split(",").map(Number), sharesPubKeys, sharesEncrypted, amount)
+}
+
+export function updateValidator(pubkey: string, operatorIds: string, sharesPubKeys: string[], sharesEncrypted: string[], amount: number) {
+    return getWritableSsvContract().updateValidator(pubkey, operatorIds.split(",").map(Number), sharesPubKeys, sharesEncrypted, amount)
+}
+
+export function getOperatorsByValidator(address: string): Promise<number[]> {
+    return getReadableSsvContract().getOperatorsByValidator(address)
 }
