@@ -5,6 +5,9 @@ import * as url from 'url';
 import * as os from 'os';
 import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
+import { writeFileSync } from "fs";
+import { LiquidityData, StakingData } from "./contractData";
+import { totalAssets, totalSupply } from "../../ethereum/stakingContract";
 
 export let globalPersistentData: PersistentData
 const hostname = os.hostname()
@@ -14,6 +17,8 @@ const MONITORING_PORT = 7000
 let serverStartedTimestamp: number;
 let executing: boolean = false
 let loopsExecuted = 0;
+let globalStakingData: StakingData
+let globalLiquidityData: LiquidityData
 
 //time in ms
 const SECONDS = 1000
@@ -31,11 +36,13 @@ const TotalCalls = {
   }
 
 export interface PriceData {
-    timestamp: number
+    dateISO: string
     price: string
 }
 
 export interface PersistentData {
+    lastSavedPriceDateISO: string
+    beatCount: number
     timestamp: number
     mpEthPrices: PriceData[]
     lpPrices: PriceData[]
@@ -496,17 +503,35 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
     return true;
 }
 
+async function refreshStakingData() {
+    const stakingTotalAssets = await totalAssets()
+    const stakingTotalSupply = await totalSupply()
+
+    globalStakingData = {
+        totalAssets: stakingTotalAssets,
+        totalSupply: stakingTotalSupply
+    }
+}
+
 //utility
 async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function loga(label:string, amount:number){
+    console.log(label.padEnd(26),":",amount.toFixed(5).padStart(16))
+}
+
+async function refreshMetrics() {
+    await refreshStakingData()
+}
+
 async function beat() {
 
-    // TotalCalls.beats++;
-    // console.log("-".repeat(80))
-    // console.log(new Date().toString());
-    // console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount})`);
+    TotalCalls.beats++;
+    console.log("-".repeat(80))
+    console.log(new Date().toString());
+    console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount})`);
 
     // globalLastBlock = await near.latestBlock()
     // epoch.update(globalLastBlock);
@@ -515,9 +540,9 @@ async function beat() {
 
     // console.log(`-------------------------------`)
     // console.log(`${OPERATOR_ACCOUNT} Balance ${yton(globalOperatorAccountInfo.amount)}`)
-    // //console.log(`last_block:${globalLastBlock.header.height}`)
+    //console.log(`last_block:${globalLastBlock.header.height}`)
 
-    // //if the epoch ended, compute the new one
+    //if the epoch ended, compute the new one
     // if (new Date().getTime() >= epoch.ends_dtm.getTime()) {
     //     //epoch ended
     //     console.log("COMPUTING NEW EPOCH")
@@ -525,298 +550,48 @@ async function beat() {
     //     console.log(JSON.stringify(epoch));
     // }
 
-    // //refresh contract state
-    // console.log("refresh metrics")
-    // await refreshMetrics();
+    //refresh contract state
+    console.log("refresh metrics")
+    await refreshMetrics();
 
-    // console.log("Epoch:", globalContractState.env_epoch_height, " hs.from start:", asHM(epoch.hours_from_start()), " hs.to end:", asHM(epoch.hours_to_end()));
-    // console.log("Epoch", globalContractState.env_epoch_height)
-    // loga("total_for_staking", yton(globalContractState.total_for_staking))
-    // loga("total_actually_staked", yton(globalContractState.total_actually_staked))
-    // const diff = BigInt(globalContractState.total_for_staking) - BigInt(globalContractState.total_actually_staked);
-    // loga("Differ", yton(diff.toString()))
-    // const epoch_stake_orders = BigInt(globalContractState.epoch_stake_orders)
-    // const epoch_unstake_orders = BigInt(globalContractState.epoch_unstake_orders)
-    // loga("Epoch Stake Orders", yton(globalContractState.epoch_stake_orders))
-    // loga("Epoch Unstake Orders", yton(globalContractState.epoch_unstake_orders))
-    // loga("Differ", yton((epoch_stake_orders - epoch_unstake_orders).toString()))
-    // let delta = 0n
-    // if (diff >= 0) {
-    //     delta = (epoch_stake_orders < diff) ? epoch_stake_orders : diff;
-    // }
-    // else {
-    //     delta = (epoch_unstake_orders < -diff) ? -epoch_unstake_orders : diff;
-    // }
-    // loga("Delta stake", yton(delta.toString()))
-    // // TODO CHECK correct sums to be performed
-    // // loga("contract_account_balance", yton(globalContractState.contract_account_balance));
-    // // loga("nslp_liquidity", yton(globalContractState.nslp_liquidity));
-    // // loga("reserve_for_unstake_claims", yton(globalContractState.reserve_for_unstake_claims));
-    // // loga("Epoch Stake Orders",yton(globalContractState.epoch_stake_orders))
-    // // loga("diff", yton((
-    // //   BigInt(globalContractState.contract_account_balance)
-    // //     -BigInt(globalContractState.nslp_liquidity)
-    // //     -BigInt(globalContractState.reserve_for_unstake_claims)
-    // //     -epoch_stake_orders
-    // //   ).toString()));
+    // keep record of stNEAR & LP price to compute APY%
+    const currentDateISO = new Date().toISOString().slice(0, 10)
+    if (globalPersistentData.lastSavedPriceDateISO != currentDateISO) {
+        if (!globalPersistentData.lpPrices) {
+            globalPersistentData.lpPrices = []
+        }
+        globalPersistentData.lpPrices.push({
+            dateISO: currentDateISO,
+            // price: globalContractState.nslp_share_price,
+            price: "0"
+        });
+        if (!globalPersistentData.mpEthPrices) {
+            globalPersistentData.mpEthPrices = []
+        }
+        globalPersistentData.mpEthPrices.push({
+            dateISO: currentDateISO,
+            price: "0"
+        });
+        globalPersistentData.lastSavedPriceDateISO = currentDateISO
+        if (globalPersistentData.mpEthPrices.length > 3 * 365) {
+            globalPersistentData.mpEthPrices.splice(0, 30);
+        }
+        if (globalPersistentData.lpPrices.length > 3 * 365) {
+            globalPersistentData.lpPrices.splice(0, 30);
+        }
 
-    // console.log(JSON.stringify(globalContractState));
+    } // if current date price not set
 
-    // // Force test price udpdate in Aurora
-    // // if (testnetMode) {
-    // //   const testPrice = "15"+"0".repeat(23)
-    // //   console.log("TEST auroraCopyStNearPrice",testPrice)
-    // //   await auroraCopyStNearPrice(testPrice)
-    // // }
-
-    // // 3 Tasks for end-of-epoch: 
-    // // *if the epoch is ending*, stake-unstake AND do end_of_epoch clearing
-    // if (epoch.hours_to_end() <= 1.5 || debugMode) {
-    //     //epoch is about to end (1.5 hours left)
-
-    //     //END_OF_EPOCH Task 1: check if there is the need to stake
-    //     if (BigInt(globalContractState.total_for_staking) > BigInt(globalContractState.total_actually_staked)) {
-    //         //loop staking
-    //         for (let i = 0; i < 50; i++) {
-    //             console.log("CALL distribute_staking")
-    //             TotalCalls.stake++;
-    //             try {
-    //                 const result = await metaPool.call("distribute_staking", {});
-    //                 consoleLogLastTxEvents()
-    //                 console.log("more Staking to do? ", result);
-    //                 if (result === false) break;
-    //             }
-    //             catch (ex) {
-    //                 console.error(ex);
-    //             }
-    //             await sleep(3 * SECONDS)
-    //         }
-    //     }
-
-    //     //END_OF_EPOCH Task 2: check if there is the need to un-stake
-    //     if (BigInt(globalContractState.total_actually_staked) > BigInt(globalContractState.total_for_staking)) {
-    //         //loop unstaking 
-    //         for (let i = 0; i < 50; i++) {
-    //             console.log("CALL distribute_unstaking")
-    //             TotalCalls.unstake++;
-    //             try {
-    //                 const result = await metaPool.call("distribute_unstaking", {});
-    //                 consoleLogLastTxEvents()
-    //                 console.log("more Unstaking to do? ", result);
-    //                 if (result === false || metaPool.dryRun) break;
-    //             }
-    //             catch (ex) {
-    //                 console.error(ex);
-    //             }
-    //             await sleep(5 * SECONDS)
-    //         }
-    //     }
-
-    //     //END_OF_EPOCH Task 3:stake|unstake ORDERS CLEARING => reserve for unstake claims
-    //     //refresh contract state
-    //     await refreshGlobalContractState();
-    //     console.log(`end of epoch: epoch_stake_orders:${yton(globalContractState.epoch_stake_orders)} epoch_unstake_orders:${yton(globalContractState.epoch_unstake_orders)}`);
-    //     if (globalContractState.epoch_stake_orders != "0" || globalContractState.epoch_unstake_orders != "0") {
-    //         await metaPool.call("end_of_epoch_clearing", {}, 50);
-    //     }
-    // }
-
-    // // MIDDLE_EPOCH: 
-    // if (!debugMode && (epoch.hours_from_start() > 0.25 && epoch.hours_to_end() > 1)) {
-
-    //     //which epoch are we now
-    //     const epochNow = BigInt(globalContractState.env_epoch_height);
-
-    //     // get all the pools
-    //     const pools = await metaPool.get_staking_pool_list();
-    //     let poolsPinged = 0;
-    //     //console.log("MIDDLE_EPOCH, check ", pools.length, "pools")
-
-    //     //for each pool, ping and compute rewards if needed, and retrieve funds if waiting period is over
-    //     for (let inx = 0; inx < pools.length; inx++) {
-    //         const pool = pools[inx];
-
-    //         // MIDDLE_EPOCH Task 1: Check if we must ping & compute rewards (epoch started recently)
-    //         if (BigInt(pool.staked) >= ONE_NEAR / 100n && pool.last_asked_rewards_epoch_height != globalContractState.env_epoch_height) {
-    //             //The pool has some staked and we didn't ask & distribute rewards in this epoch yet
-    //             //ping on the pool so it calculates rewards
-    //             console.log(`about to call PING & DISTRIBUTE on pool[${inx}]:${JSON.stringify(pool)}`)
-    //             console.log(`pool.PING`)
-    //             TotalCalls.ping++;
-    //             poolsPinged++;
-    //             try {
-    //                 await near.call(pool.account_id, "ping", {}, OPERATOR_ACCOUNT, credentials.private_key, 200);
-    //                 //calculates rewards now in the meta for that pool
-    //                 //pub fn distribute_rewards(&mut self, sp_inx: u16) -> void 
-    //                 console.log(`meta.DISTR`)
-    //                 TotalCalls.distribute_rewards++;
-    //                 await metaPool.call("distribute_rewards", { sp_inx: inx });
-    //                 // distribute_rewards returns -> void
-    //                 // if distribute_rewards executes ok, let's extract from the logs the amounts: prev, after and rewards 
-    //                 // fs.writeFileSync("tx-results.txt", JSON.stringify(near.last_tx_result)+',\n',{flag:'a+'})
-    //                 let logs = near.extractLogsAndErrorsFromTxResult(near.last_tx_result)
-    //                 for (let line of logs) {
-    //                     if (line.startsWith("sp:")) {
-    //                         // line-example: `sp:dexagon.poolv1.near old_balance:114164485558789007071764711806 new_balance:114186493485904339552607427902 rewards:22007927115332480842716096` 
-    //                         console.log(line)
-    //                         // save also in a file per epoch
-    //                         fs.writeFileSync(`${globalContractState.env_epoch_height.padStart(6, "0")}-rewards.txt`, line + '\n', { flag: 'a+' })
-    //                     }
-    //                 }
-    //                 //----------
-    //                 // distribute_rewards cause a price-update, so we update stNear-in-Aurora swap-contract too
-    //                 globalContractState = await metaPool.get_contract_state();
-    //                 await auroraCopyStNearPrice(globalContractState.st_near_price)
-    //             }
-    //             catch (ex) {
-    //                 console.error(ex);
-    //             }
-    //             await sleep(5 * SECONDS)
-    //         }
-
-    //         // MIDDLE_EPOCH Task 2, for the same pool, check if we must RETRIEVE UNSTAKED FUNDS
-    //         // that is if the unstake-wait-period has ended
-    //         //only the the amount unstaked justified tx-cost, only if amount > 10Tgas
-    //         if (BigInt(pool.unstaked) > TEN_TGAS && pool.unstaked_requested_epoch_height != "0") {
-    //             let whenRequested = BigInt(pool.unstaked_requested_epoch_height);
-    //             if (whenRequested > epochNow) whenRequested = 0n; //pool.unstaked_requested_epoch_height has bad data or there was a *hard-fork*
-    //             if (epochNow >= whenRequested + NUM_EPOCHS_TO_UNLOCK) {
-    //                 //try RETRIEVE UNSTAKED FUNDS
-    //                 console.log(`about to try RETRIEVE UNSTAKED FUNDS on pool[${inx}]:${JSON.stringify(pool)}`)
-    //                 TotalCalls.retrieve++;
-    //                 try {
-    //                     console.log("first sync unstaked balance")
-    //                     await metaPool.sync_unstaked_balance(inx);
-    //                     //now retrieve unstaked
-    //                     const result = await metaPool.retrieve_funds_from_a_pool(inx);
-    //                     if (result == undefined) {
-    //                         console.log(`retrieve_funds_from_a_pool RESULT is undefined`)
-    //                     }
-    //                     else {
-    //                         console.log(`retrieve_funds_from_a_pool RESULT:${yton(result)}N`)
-    //                     }
-    //                 }
-    //                 catch (ex) {
-    //                     console.error(ex);
-    //                 }
-    //                 await sleep(5 * SECONDS)
-    //             }
-    //         }
-
-    //     } //end loop for each pool
-
-    //     //console.log("poolsPinged ", poolsPinged)
-    //     if (poolsPinged == 0) {
-    //         // all pools ok, check if we need to realize_meta_massive this epoch
-    //         await try_realize_meta_massive();
-    //     }
-
-    // } //end middle-epoch tasks
-
-
-    // const summary = await linearProtocol.get_summary()
-    // console.log(ytonFull(summary.ft_price))
-
-    // // keep record of stNEAR & LP price to compute APY%
-    // const currentDateISO = new Date().toISOString().slice(0, 10)
-    // if (globalPersistentData.lastSavedPriceDateISO != currentDateISO) {
-    //     if (!globalPersistentData.LpPrices) {
-    //         globalPersistentData.LpPrices = []
-    //     }
-    //     globalPersistentData.LpPrices.push({
-    //         dateISO: currentDateISO,
-    //         priceYocto: globalContractState.nslp_share_price
-    //     });
-    //     if (!globalPersistentData.stNearPrices) {
-    //         globalPersistentData.stNearPrices = []
-    //     }
-    //     globalPersistentData.stNearPrices.push({
-    //         dateISO: currentDateISO,
-    //         priceYocto: globalContractState.st_near_price
-    //     });
-    //     globalPersistentData.lastSavedPriceDateISO = currentDateISO
-    //     if (globalPersistentData.stNearPrices.length > 3 * 365) {
-    //         globalPersistentData.stNearPrices.splice(0, 30);
-    //     }
-    //     if (globalPersistentData.LpPrices.length > 3 * 365) {
-    //         globalPersistentData.LpPrices.splice(0, 30);
-    //     }
-
-    //     // get & store historic liNEAR price
-    //     try {
-    //         if (!globalPersistentData.linearPrices) {
-    //             globalPersistentData.linearPrices = []
-    //         }
-    //         const summary = await linearProtocol.get_summary()
-    //         // console.log(ytonFull(summary.ft_price))
-    //         globalPersistentData.linearPrices.push({
-    //             dateISO: currentDateISO,
-    //             priceYocto: summary.ft_price
-    //         });
-    //         if (globalPersistentData.linearPrices.length > 3 * 365) {
-    //             globalPersistentData.linearPrices.splice(0, 30);
-    //         }
-    //     } catch (ex) {
-    //         console.error("reading linear prices")
-    //         console.error(ex)
-    //     }
-
-    // } // if current date price not set
-
-    // // save epoch info
-    // if (!globalPersistentData.epochs) {
-    //     globalPersistentData.epochs = []
-    // }
-    // let currentEpoch = Number(globalContractState.env_epoch_height);
-    // if (currentEpoch > 0) {
-    //     // make sure current epoch record exists
-    //     if (globalPersistentData.epochs.length == 0 || globalPersistentData.epochs[globalPersistentData.epochs.length - 1].epoch != currentEpoch) {
-    //         globalPersistentData.epochs.push({
-    //             epoch: currentEpoch,
-    //             start_ts: epoch.start_timestamp,
-    //             duration_ms: epoch.prev_epoch_duration_ms // initial valur
-    //         });
-    //     }
-    //     // if prev epoch record exists, update exact duration
-    //     if (globalPersistentData.epochs.length > 1) {
-    //         let prevEpochRecord = globalPersistentData.epochs[globalPersistentData.epochs.length - 2]
-    //         if (prevEpochRecord.epoch == currentEpoch - 1) {
-    //             prevEpochRecord.duration_ms = epoch.prev_epoch_duration_ms
-    //         }
-    //     }
-    //     // keep size controlled
-    //     if (globalPersistentData.epochs.length > 3 * 365) {
-    //         globalPersistentData.epochs.splice(0, 30);
-    //     }
-
-    // }
-
-    // // ------------------------------
-    // // stNEAR-in-Aurora Conveyor belt
-    // // ------------------------------
-    // console.log("--CONVEYOR BELT Start")
-    // // refresh settings from toml file
-    // readAndParseGlobalSettingsToml();
-    // // update price in Aurora if needed
+    // ------------------------------
+    // stNEAR-in-Aurora Conveyor belt
+    // ------------------------------
+    console.log("--CONVEYOR BELT Start")
+    // update price in Aurora if needed
     // await refreshGlobalContractState();
-    // await auroraCopyStNearPrice(globalContractState.st_near_price)
-    // await auroraCopyGetWnearFee(globalContractState.nslp_current_discount_basis_points)
-    // // informative: check stBalance in Aurora
-    // await auroaGetSwapContractPriceAndBalances();
-
-    // // Direct, high traffic route: move wNEAR thru the bridge, stake in Metapool and bridge stNEAR back to aurora
-    // await auroraConvertwNEARintoStNEAR()
-    // // Inverse, no-high traffic expected route: move stNEAR thru the bridge, liquid-unstake in Metapool and bridge NEAR back to aurora
-    // await auroraRefillwNEARifNeeded()
-    // console.log("--CONVEYOR BELT End")
-
-    // //every 10 minutes try skywards batched transfers
-    // // COMMENTED WE NO LONGER USE SKYWARDS
-    // // await try_skyward_transfers_massive();
-
-    // //END OF BEAT
-    // globalPersistentData.beatCount++;
-    // saveJSON(globalPersistentData);
+    
+    //END OF BEAT
+    globalPersistentData.beatCount++;
+    saveJSON(globalPersistentData);
 
 }
 

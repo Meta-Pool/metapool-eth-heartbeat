@@ -33,6 +33,10 @@ export function totalSupply(): Promise<BigInt> {
     return getReadableStakingContract().totalSupply()
 }
 
+export function totalAssets(): Promise<BigInt> {
+    return getReadableStakingContract().totalAssets()
+}
+
 export function updateNodesBalance(balance: String) {
     return getWritableStakingContract().updateNodesBalance(balance)
 }
