@@ -6,6 +6,7 @@ validator_keys.rar
 validator_keys
 .env
 
+assigned.json
 src/bots/assignOperatorsToValidatorBot/assigned.json
 src/bots/assignOperatorsToValidatorBot/groups.json
 src/bots/assignOperatorsToValidatorBot/operators.json
