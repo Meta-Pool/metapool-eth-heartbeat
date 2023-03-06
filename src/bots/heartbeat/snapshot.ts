@@ -27,6 +27,15 @@ export type Snapshot = {
 
     mpethPrice: number
     lpPrice: number
+    mp_eth_3_day_apy: number
+    mp_eth_7_day_apy: number
+    mp_eth_15_day_apy: number
+    mp_eth_30_day_apy: number
+    lp_3_day_apy: number
+    lp_7_day_apy: number
+    lp_15_day_apy: number
+    lp_30_day_apy: number
+
     // env_epoch_height: number,
     // prev_epoch_duration_ms: number,
     // contract_account_balance: number,
@@ -150,12 +159,17 @@ export type Snapshot = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    // const stNearPrice = Number(ytonFull(globalContractState.st_near_price))
-    // const stNearPriceUsd = stNearPrice * globalPersistentData.lastNearUsdPrice;
-
     let snap: Snapshot = {
         mpethPrice: globalPersistentData.mpethPrice,
-        lpPrice: globalPersistentData.lpPrice
+        lpPrice: globalPersistentData.lpPrice,
+        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3),
+        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7),
+        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15),
+        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30),
+        lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
+        lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
+        lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
+        lp_30_day_apy: computeRollingApy(globalPersistentData.lpPrices, 30),
         // env_epoch_height: Number(globalContractState.env_epoch_height),
         // prev_epoch_duration_ms: epoch.prev_epoch_duration_ms,
         // contract_account_balance: yton(globalContractState.contract_account_balance),

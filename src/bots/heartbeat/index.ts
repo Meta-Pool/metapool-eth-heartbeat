@@ -12,6 +12,7 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 
 export let globalPersistentData: PersistentData
+const NETWORK = "goerli"
 const hostname = os.hostname()
 let server: BareWebServer;
 let server80: BareWebServer;
@@ -55,11 +56,8 @@ export interface PersistentData {
 }
 
 function showWho(resp: http.ServerResponse) {
-    resp.write("Show who not implemented yet")
-    // resp.write(`<div class="top-info">Network:<b>${network.current}</b> - contract:<b>${CONTRACT_ID}</b> - ` +
-    //   `operator:<b>${OPERATOR_ACCOUNT}</b> Balance ${globalOperatorAccountInfo ? yton(globalOperatorAccountInfo.amount) : null} - ` +
-    //   `Aurora: admin:${globalPersistentData.auroraSwapContractData.adminBalanceEth} direct/withd:${globalPersistentData.auroraSwapContractData.withdrawBalanceEth} inverse/refill:${globalPersistentData.auroraSwapContractData.refillBalanceEth}` +
-    //   `</div>`)
+    // resp.write("Show who not implemented yet")
+    resp.write(`<div class="top-info">Network:<b>${NETWORK}</b></div>`)
 }
 
 function showStats(resp: http.ServerResponse) {
@@ -552,14 +550,14 @@ function divide(a: string, b: string): string {
 }
 
 function calculateLpPrice() {
-    return divide(globalLiquidityData.totalAssets.toString(), globalLiquidityData.totalSupply.toString())
+    return ethers.parseEther(divide(globalLiquidityData.totalAssets.toString(), globalLiquidityData.totalSupply.toString()))
 }
 
 function calculateMpEthPrice() {
     const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
     const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
 
-    return divide(totalAssets, totalSupply)
+    return ethers.parseEther(divide(totalAssets, totalSupply))
 }
 
 async function beat() {
@@ -599,14 +597,14 @@ async function beat() {
         globalPersistentData.lpPrices.push({
             dateISO: currentDateISO,
             // price: globalContractState.nslp_share_price,
-            price: calculateLpPrice()
+            price: calculateLpPrice().toString()
         });
         if (!globalPersistentData.mpEthPrices) {
             globalPersistentData.mpEthPrices = []
         }
         globalPersistentData.mpEthPrices.push({
             dateISO: currentDateISO,
-            price: calculateMpEthPrice()
+            price: calculateMpEthPrice().toString()
         });
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
         if (globalPersistentData.mpEthPrices.length > 3 * 365) {
