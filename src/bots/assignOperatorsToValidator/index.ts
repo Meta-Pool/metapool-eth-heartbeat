@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync } from "fs"
 import { ISharesKeyPairs, SSVKeys } from "ssv-keys"
-import { getOperatorsByValidator, registerValidator, updateValidator } from "../../ethereum/ssv"
 import { generateKeyshare } from "../commons/commons"
 import groups from "./groups.json"
 import operators from "./operators.json"

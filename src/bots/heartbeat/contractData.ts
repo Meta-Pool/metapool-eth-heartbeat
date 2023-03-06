@@ -7,4 +7,7 @@ export interface StakingData {
 
 export interface LiquidityData {
     
+    totalAssets: BigInt
+    totalSupply: BigInt
+    
 }

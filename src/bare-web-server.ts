@@ -103,7 +103,7 @@ export class BareWebServer {
     //  helper function findPath(pathname) // return full path / undefined if not found
     // ---------------------------
     findPathAndFilename(url:string):string {
-
+        console.log("Www root", this.wwwRoot)
         let result:string;
         //console.log("findPath %s",pathname);
         if (url === path.sep) {

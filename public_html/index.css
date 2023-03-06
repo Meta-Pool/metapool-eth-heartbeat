@@ -1,0 +1,118 @@
+html, body, input {
+    font-family: "Avant Garde","Century Gothic","AppleGothic", Candara, Tahoma, sans-serif;
+    font-size:15px;
+}
+
+body {
+    padding: 20px;
+}
+
+.top-info {
+    font-size: 18px;
+    padding: 4px;
+}
+
+nav {
+    display: flex;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    margin-bottom: 10px;
+    padding: 4px;
+    text-align: center;
+}
+
+nav a {
+    width: 400px;
+}
+
+dl {
+    display: grid;
+    grid-template-columns: 20% 80%;
+  }
+dt {
+    text-align: right;
+}
+dt,dd{ padding: 2px}
+dt::after{
+    content: ":";
+}
+.progress {
+    border: 1px solid black;
+    display: flex;
+    border-radius:6px;
+}
+.elapsed,.remaining {
+    border-radius:6px;
+    padding: 4px;
+    text-align:center;
+}
+.elapsed {
+    background: #cdeccd;
+    border-right: 1px solid green;
+}
+.remaining {
+    background: #ffffc5;
+}
+
+.table-wrapper {
+    position:absolute;
+    top: 100px;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+    font-size:11px;
+}
+
+
+table  {
+    border-spacing:0;
+  }
+
+  table  tbody tr td{
+    border-top-width:0;
+    border-right-width:0;
+  }
+
+  table thead{
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    }
+table thead:nth-child(1) th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-right-width:0;
+}
+table thead tr:nth-child(2) th {
+    position: sticky;
+    top: 2em;
+    z-index: 9;
+    background: #fff;
+    border-right-width:0;
+  }
+  
+  th, td {
+      padding: 4px;
+      text-align: right;
+      font-weight: 400;
+      border: 1px solid black;
+  }
+  
+  th {
+      text-align: center;
+  }
+  
+  tr.DIFF{
+      font-style: italic;
+      font-size: smaller;
+  }
+  tr.POST{
+      background: #0080002e;
+  }
+  tr.selected{
+      background: #c4b95d7a;
+  }
+  

@@ -1,5 +1,5 @@
-import { getReadableContract, getWritableContract } from "./contracts";
 import stakingAbi from "./abi/Staking.json"
+import { EthContract } from "./contracts"
 
 export interface Node {
     pubkey: string
@@ -7,36 +7,37 @@ export interface Node {
     signature: string
     depositDataRoot: string
 }
-
 export const STAKING_CONTRACT_ADDRESS = "0xd2275C1bc599BcDf21985a9cF810eFB0fEe0CE5f"
 
-export function getReadableStakingContract() {
-    return getReadableContract(STAKING_CONTRACT_ADDRESS, stakingAbi.abi)
+export class StakingContract extends EthContract {
+
+    constructor() {
+        super(STAKING_CONTRACT_ADDRESS, stakingAbi.abi)
+    }
+
+    balanceOf(address: string) {
+        return this.getReadableContract().balanceOf(address)
+    }
+    
+    pushToBeacon(node: Node, ethFromLiq: BigInt) {
+        console.log(Object.values(node))
+        // return getWritableStakingContract().pushToBeacon([Object.values(node)], ethFromLiq)
+        return this.getWritableContract().pushToBeacon([node], ethFromLiq)
+        // return getWritableStakingContract().pushToBacon([node], ethFromLiq, {value: "0"})
+    }
+    
+    totalSupply(): Promise<BigInt> {
+        return this.getReadableContract().totalSupply()
+    }
+    
+    totalAssets(): Promise<BigInt> {
+        return this.getReadableContract().totalAssets()
+    }
+    
+    updateNodesBalance(balance: String) {
+        return this.getWritableContract().updateNodesBalance(balance)
+    }
 }
 
-export function getWritableStakingContract() {
-    return getWritableContract(STAKING_CONTRACT_ADDRESS, stakingAbi.abi)
-}
 
-export function balanceOf(address: string) {
-    return getReadableStakingContract().balanceOf(address)
-}
 
-export function pushToBeacon(node: Node, ethFromLiq: BigInt) {
-    console.log(Object.values(node))
-    // return getWritableStakingContract().pushToBeacon([Object.values(node)], ethFromLiq)
-    return getWritableStakingContract().pushToBeacon([node], ethFromLiq)
-    // return getWritableStakingContract().pushToBacon([node], ethFromLiq, {value: "0"})
-}
-
-export function totalSupply(): Promise<BigInt> {
-    return getReadableStakingContract().totalSupply()
-}
-
-export function totalAssets(): Promise<BigInt> {
-    return getReadableStakingContract().totalAssets()
-}
-
-export function updateNodesBalance(balance: String) {
-    return getWritableStakingContract().updateNodesBalance(balance)
-}

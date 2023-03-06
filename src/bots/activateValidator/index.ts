@@ -1,19 +1,20 @@
 import { ethers } from "ethers"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { getValidatorsData } from "../../services/beaconcha/beaconcha"
-import { getWallet, getWalletBalance } from "../../ethereum/contracts"
-import { LIQUIDITY_CONTRACT_ADDRESS } from "../../ethereum/liquidity"
-import { balanceOf, getWritableStakingContract, Node, pushToBeacon, STAKING_CONTRACT_ADDRESS } from "../../ethereum/stakingContract"
+import { LiquidityContract, LIQUIDITY_CONTRACT_ADDRESS } from "../../ethereum/liquidity"
+import { Node, StakingContract, STAKING_CONTRACT_ADDRESS } from "../../ethereum/stakingContract"
 import depositData from "../../validator_keys/deposit_data-1677016004.json"
 
 const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
+const stakingContract: StakingContract = new StakingContract()
+const liquidityContract: LiquidityContract = new LiquidityContract()
 
 async function run() {    
     try {
-        const stakingBalance = await getWalletBalance(STAKING_CONTRACT_ADDRESS)
-        const liqBalance = await getWalletBalance(LIQUIDITY_CONTRACT_ADDRESS)
-        const liqMpEthBalance = await balanceOf(LIQUIDITY_CONTRACT_ADDRESS)
+        const stakingBalance = await stakingContract.getWalletBalance(STAKING_CONTRACT_ADDRESS)
+        const liqBalance = await stakingContract.getWalletBalance(LIQUIDITY_CONTRACT_ADDRESS)
+        const liqMpEthBalance = await stakingContract.balanceOf(LIQUIDITY_CONTRACT_ADDRESS)
 
         const availableLiqEth = liqBalance - liqMpEthBalance > 0 ? liqBalance - liqMpEthBalance : BigInt(0)
         
@@ -26,7 +27,7 @@ async function run() {
             console.log("Can create validator")
             const node = await getNodeData()
             console.log("Node", node)
-            await pushToBeacon(node, ethNecesaryFromLiq)
+            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq)
             // Read deposit data json and get data from index activatedValidators
             if(!isStakingBalanceEnough) {
                 await writeFileSync(liqLastUsageFilename, new Date().getTime().toString())

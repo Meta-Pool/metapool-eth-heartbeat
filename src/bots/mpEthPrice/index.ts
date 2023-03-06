@@ -1,4 +1,4 @@
-import { updateNodesBalance } from "../../ethereum/stakingContract"
+import { StakingContract } from "../../ethereum/stakingContract"
 import { getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
 
 const ZEROS_9 = "0".repeat(9)
@@ -12,7 +12,9 @@ async function run() {
     // Total balance comes with 9 decimals, so we add 9 zeros
     const totalBalanceBigInt: string = totalBalance.toString() + ZEROS_9
 
-    await updateNodesBalance(totalBalanceBigInt)
+    const stakingContract: StakingContract = new StakingContract()
+
+    await stakingContract.updateNodesBalance(totalBalanceBigInt)
 }
 
 run()

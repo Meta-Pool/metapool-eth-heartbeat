@@ -25,6 +25,8 @@ function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: numbe
 
 export type Snapshot = {
 
+    mpethPrice: number
+    lpPrice: number
     // env_epoch_height: number,
     // prev_epoch_duration_ms: number,
     // contract_account_balance: number,
@@ -152,6 +154,8 @@ export function fromGlobalState(): Record<string,any> {
     // const stNearPriceUsd = stNearPrice * globalPersistentData.lastNearUsdPrice;
 
     let snap: Snapshot = {
+        mpethPrice: globalPersistentData.mpethPrice,
+        lpPrice: globalPersistentData.lpPrice
         // env_epoch_height: Number(globalContractState.env_epoch_height),
         // prev_epoch_duration_ms: epoch.prev_epoch_duration_ms,
         // contract_account_balance: yton(globalContractState.contract_account_balance),

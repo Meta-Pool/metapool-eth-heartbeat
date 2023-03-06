@@ -1,5 +1,5 @@
 import { BareWebServer, respond_error } from "../../bare-web-server";
-import { loadJSON } from "./save-load-JSON"
+import { loadJSON, saveJSON } from "./save-load-JSON"
 import * as http from 'http';
 import * as url from 'url';
 import * as os from 'os';
@@ -7,7 +7,9 @@ import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
 import { writeFileSync } from "fs";
 import { LiquidityData, StakingData } from "./contractData";
-import { totalAssets, totalSupply } from "../../ethereum/stakingContract";
+import { ethers } from "ethers";
+import { StakingContract } from "../../ethereum/stakingContract";
+import { LiquidityContract } from "../../ethereum/liquidity";
 
 export let globalPersistentData: PersistentData
 const hostname = os.hostname()
@@ -19,6 +21,8 @@ let executing: boolean = false
 let loopsExecuted = 0;
 let globalStakingData: StakingData
 let globalLiquidityData: LiquidityData
+const stakingContract: StakingContract = new StakingContract()
+const liquidityContract: LiquidityContract = new LiquidityContract()
 
 //time in ms
 const SECONDS = 1000
@@ -46,6 +50,8 @@ export interface PersistentData {
     timestamp: number
     mpEthPrices: PriceData[]
     lpPrices: PriceData[]
+    mpethPrice: number
+    lpPrice: number
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -449,7 +455,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
             //--------------
 
             //base header
-            server.writeFileContents('index1-head.html', resp, { hostname });
+            server.writeFileContents('./index1-head.html', resp, { hostname });
 
             //config info
             showWho(resp)
@@ -504,13 +510,27 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 }
 
 async function refreshStakingData() {
-    const stakingTotalAssets = await totalAssets()
-    const stakingTotalSupply = await totalSupply()
+    const stakingTotalAssets = await stakingContract.totalAssets()
+    const stakingTotalSupply = await stakingContract.totalSupply()
 
     globalStakingData = {
         totalAssets: stakingTotalAssets,
         totalSupply: stakingTotalSupply
     }
+
+    globalPersistentData.mpethPrice = Number(calculateMpEthPrice())
+}
+
+async function refreshLiquidityData() {
+    const liquidityTotalAssets = await liquidityContract.totalAssets()
+    const liquidityTotalSupply = await liquidityContract.totalSupply()
+
+    globalLiquidityData = {
+        totalAssets: liquidityTotalAssets,
+        totalSupply: liquidityTotalSupply
+    }
+
+    globalPersistentData.lpPrice = Number(calculateLpPrice())
 }
 
 //utility
@@ -524,6 +544,22 @@ function loga(label:string, amount:number){
 
 async function refreshMetrics() {
     await refreshStakingData()
+    await refreshLiquidityData()
+}
+
+function divide(a: string, b: string): string {
+    return (Number(a) / Number(b)).toString()
+}
+
+function calculateLpPrice() {
+    return divide(globalLiquidityData.totalAssets.toString(), globalLiquidityData.totalSupply.toString())
+}
+
+function calculateMpEthPrice() {
+    const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
+    const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
+
+    return divide(totalAssets, totalSupply)
 }
 
 async function beat() {
@@ -563,14 +599,14 @@ async function beat() {
         globalPersistentData.lpPrices.push({
             dateISO: currentDateISO,
             // price: globalContractState.nslp_share_price,
-            price: "0"
+            price: calculateLpPrice()
         });
         if (!globalPersistentData.mpEthPrices) {
             globalPersistentData.mpEthPrices = []
         }
         globalPersistentData.mpEthPrices.push({
             dateISO: currentDateISO,
-            price: "0"
+            price: calculateMpEthPrice()
         });
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
         if (globalPersistentData.mpEthPrices.length > 3 * 365) {
@@ -649,15 +685,14 @@ async function run() {
 
     if (process.argv.includes("also-80")) {
         try {
-            server80 = new BareWebServer('../public_html', appHandler, 80) // also start one on port 80 to be able to grab stats from a PHP script in narwallets.com
+            server80 = new BareWebServer('public_html', appHandler, 80) // also start one on port 80 to be able to grab stats from a PHP script in narwallets.com
             server80.start()
         } catch (ex) {
             console.error(ex)
         }
     }
-    server = new BareWebServer('../public_html', appHandler, MONITORING_PORT)
+    server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
-
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
     await heartLoop();
