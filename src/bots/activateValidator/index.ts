@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs"
 import { getValidatorsData } from "../../services/beaconcha/beaconcha"
 import { LiquidityContract, LIQUIDITY_CONTRACT_ADDRESS } from "../../ethereum/liquidity"
 import { Node, StakingContract, STAKING_CONTRACT_ADDRESS } from "../../ethereum/stakingContract"
-import depositData from "../../validator_keys/deposit_data-1677016004.json"
+import depositData from "../../validator_data/deposit_data-1677016004.json"
 
 const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
