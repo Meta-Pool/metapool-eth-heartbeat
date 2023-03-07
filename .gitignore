@@ -3,7 +3,7 @@ node_modules/
 src/validatorsData/
 
 validator_keys.rar
-validator_keys
+validator_keys/
 .env
 
 assigned.json
