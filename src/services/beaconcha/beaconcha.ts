@@ -20,28 +20,42 @@ export interface ValidatorDataResponse {
 }
 
 export interface ValidatorData {
-    activationeligibilityepoch: number
-    activationepoch: number
+    activationeligibilityepoch?: number
+    activationepoch?: number
     balance: number
     effectivebalance: number
-    exitepoch: number
-    lastattestationslot: number
-    name: string | null
+    exitepoch?: number
+    lastattestationslot?: number
+    name?: string | null
     pubkey: string
-    slashed: boolean
-    status: string
-    validatorindex: number
-    withdrawableepoch: number
-    withdrawalcredentials: string
+    slashed?: boolean
+    status?: string
+    validatorindex?: number
+    withdrawableepoch?: number
+    withdrawalcredentials?: string
 }
 
 export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
     const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${DEPLOYER_ACCOUNT}`)
     const validatorData: DeployerDataResponse = await validatorsDataResponse.json()
 
-    const validatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex)
-    const responses = await Promise.all(validatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
+    // When a validator is getting activated, the validator id is temporary null, so it has the 32 ETH
+    const nonNullValidatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex).filter(id => id != null)
+    const nullValidatorsData: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
+
+    const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
     const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
 
-    return jsons
+    return [jsons, nullValidatorsData].flat()
+}
+
+function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
+    return {
+        status: 'Pending',
+        data: {
+            effectivebalance: 32000000000,
+            balance: 32000000000,
+            pubkey: basicData.publickey
+        }
+    }
 }
