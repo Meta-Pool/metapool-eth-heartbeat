@@ -1,16 +1,15 @@
 import { ethers } from "ethers"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { getValidatorsData } from "../../services/beaconcha/beaconcha"
-import { LiquidityContract, LIQUIDITY_CONTRACT_ADDRESS } from "../../ethereum/liquidity"
+import { LIQUIDITY_CONTRACT_ADDRESS } from "../../ethereum/liquidity"
 import { Node, StakingContract, STAKING_CONTRACT_ADDRESS } from "../../ethereum/stakingContract"
 import depositData from "../../validator_data/deposit_data-1677016004.json"
 
 const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
 const stakingContract: StakingContract = new StakingContract()
-const liquidityContract: LiquidityContract = new LiquidityContract()
 
-async function run() {    
+export async function activateValidator() {    
     try {
         const stakingBalance = await stakingContract.getWalletBalance(STAKING_CONTRACT_ADDRESS)
         const liqBalance = await stakingContract.getWalletBalance(LIQUIDITY_CONTRACT_ADDRESS)
@@ -21,17 +20,15 @@ async function run() {
         const isStakingBalanceEnough = stakingBalance > ETH_32
         const availableBalanceToCreateValidator = await canUseLiqEth() ? stakingBalance + availableLiqEth : stakingBalance 
         const ethNecesaryFromLiq = ETH_32 - stakingBalance > 0 ? ETH_32 - stakingBalance : BigInt(0)
-        console.log(stakingBalance, availableLiqEth)
-        console.log(liqBalance, liqMpEthBalance)
+        
         if(availableBalanceToCreateValidator > ETH_32) {
-            console.log("Can create validator")
+            console.log("Creating validator")
             const node = await getNodeData()
             console.log("Node", node)
             await stakingContract.pushToBeacon(node, ethNecesaryFromLiq)
             // Read deposit data json and get data from index activatedValidators
             if(!isStakingBalanceEnough) {
                 await writeFileSync(liqLastUsageFilename, new Date().getTime().toString())
-                console.log("Should edit last liquidity usage")
             }
         } else {
             console.log(`Not enough balance. ${ethers.formatEther(ETH_32 - stakingBalance)} ETH needed`)
@@ -70,5 +67,3 @@ async function getNodeData(): Promise<Node> {
         depositDataRoot: "0x" + node.deposit_data_root
     } 
 }
-
-run()

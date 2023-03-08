@@ -3,7 +3,8 @@ import { getValidatorsData, ValidatorDataResponse } from "../../services/beaconc
 
 const ZEROS_9 = "0".repeat(9)
 
-async function run() {
+export async function updateMpEthPrice() {
+    console.log("Updating mpeth price")
     const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
 
     const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
@@ -15,6 +16,7 @@ async function run() {
     const stakingContract: StakingContract = new StakingContract()
 
     await stakingContract.updateNodesBalance(totalBalanceBigInt)
+    console.log("MpEth price updated")
 }
 
-run()
+// run()

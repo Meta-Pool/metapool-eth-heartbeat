@@ -20,10 +20,7 @@ export class StakingContract extends EthContract {
     }
     
     pushToBeacon(node: Node, ethFromLiq: BigInt) {
-        console.log(Object.values(node))
-        // return getWritableStakingContract().pushToBeacon([Object.values(node)], ethFromLiq)
         return this.getWritableContract().pushToBeacon([node], ethFromLiq)
-        // return getWritableStakingContract().pushToBacon([node], ethFromLiq, {value: "0"})
     }
     
     totalSupply(): Promise<BigInt> {

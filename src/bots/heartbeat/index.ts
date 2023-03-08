@@ -10,13 +10,15 @@ import { LiquidityData, StakingData } from "./contractData";
 import { ethers } from "ethers";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
+import { updateMpEthPrice } from "../mpEthPrice";
+import { activateValidator } from "../activateValidator";
 
 export let globalPersistentData: PersistentData
 const NETWORK = "goerli"
 const hostname = os.hostname()
 let server: BareWebServer;
 let server80: BareWebServer;
-const MONITORING_PORT = 7000
+const MONITORING_PORT = process.argv[2] != "debug" ? 7000 : 7001
 let serverStartedTimestamp: number;
 let executing: boolean = false
 let loopsExecuted = 0;
@@ -453,7 +455,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
             //--------------
 
             //base header
-            server.writeFileContents('./index1-head.html', resp, { hostname });
+            server.writeFileContents('index1-head.html', resp, { hostname });
 
             //config info
             showWho(resp)
@@ -567,23 +569,6 @@ async function beat() {
     console.log(new Date().toString());
     console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount})`);
 
-    // globalLastBlock = await near.latestBlock()
-    // epoch.update(globalLastBlock);
-
-    // globalOperatorAccountInfo = await near.queryAccount(OPERATOR_ACCOUNT)
-
-    // console.log(`-------------------------------`)
-    // console.log(`${OPERATOR_ACCOUNT} Balance ${yton(globalOperatorAccountInfo.amount)}`)
-    //console.log(`last_block:${globalLastBlock.header.height}`)
-
-    //if the epoch ended, compute the new one
-    // if (new Date().getTime() >= epoch.ends_dtm.getTime()) {
-    //     //epoch ended
-    //     console.log("COMPUTING NEW EPOCH")
-    //     await computeCurrentEpoch();
-    //     console.log(JSON.stringify(epoch));
-    // }
-
     //refresh contract state
     console.log("refresh metrics")
     await refreshMetrics();
@@ -614,12 +599,15 @@ async function beat() {
             globalPersistentData.lpPrices.splice(0, 30);
         }
 
+        await updateMpEthPrice().catch(err => console.error(`Error updating mpeth price ${err.message}`))
+
     } // if current date price not set
 
     // ------------------------------
-    // stNEAR-in-Aurora Conveyor belt
+    // Check if a validator can be activated an do it
     // ------------------------------
-    console.log("--CONVEYOR BELT Start")
+    console.log("--Checking if a validator can be activated")
+    await activateValidator()
     // update price in Aurora if needed
     // await refreshGlobalContractState();
     

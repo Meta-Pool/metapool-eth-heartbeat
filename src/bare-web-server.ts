@@ -105,7 +105,7 @@ export class BareWebServer {
     findPathAndFilename(url:string):string {
         console.log("Www root", this.wwwRoot)
         let result:string;
-        //console.log("findPath %s",pathname);
+        // console.log("findPath %s",pathname);
         if (url === path.sep) {
             result = this.wwwRoot;
         }
@@ -128,7 +128,7 @@ export class BareWebServer {
     //method writeFileContents(filename)
     // ---------------------------
     writeFileContents(filename:string, resp:http.ServerResponse, replaceData?:Record<string,any>) {
-
+        console.log(this.wwwRoot)
         const fullPath = this.findPathAndFilename(filename)
         if (!fullPath) {
             respond_error(404, `FNF:${filename}`, resp)
