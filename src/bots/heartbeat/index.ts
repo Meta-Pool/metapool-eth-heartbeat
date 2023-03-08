@@ -12,6 +12,7 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { updateMpEthPrice } from "../mpEthPrice";
 import { activateValidator } from "../activateValidator";
+import { alertCreateValidators } from "../createValidatorAlert";
 
 export let globalPersistentData: PersistentData
 const NETWORK = "goerli"
@@ -575,7 +576,8 @@ async function beat() {
 
     // keep record of stNEAR & LP price to compute APY%
     const currentDateISO = new Date().toISOString().slice(0, 10)
-    if (globalPersistentData.lastSavedPriceDateISO != currentDateISO) {
+    const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
+    if (isFirstCallOfTheDay) {
         if (!globalPersistentData.lpPrices) {
             globalPersistentData.lpPrices = []
         }
@@ -607,9 +609,13 @@ async function beat() {
     // Check if a validator can be activated an do it
     // ------------------------------
     console.log("--Checking if a validator can be activated")
-    await activateValidator()
-    // update price in Aurora if needed
-    // await refreshGlobalContractState();
+    const wasValidatorCreated = await activateValidator()
+
+    // ------------------------------
+    // Check if should alert for creating validators
+    // ------------------------------
+    console.log("--Checking if validators should be created")
+    await alertCreateValidators(isFirstCallOfTheDay || wasValidatorCreated)
     
     //END OF BEAT
     globalPersistentData.beatCount++;

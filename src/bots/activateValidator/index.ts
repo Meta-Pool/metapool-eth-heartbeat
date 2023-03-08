@@ -9,7 +9,8 @@ const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
 const stakingContract: StakingContract = new StakingContract()
 
-export async function activateValidator() {    
+export async function activateValidator(): Promise<boolean> {    
+    let wasValidatorCreated = false
     try {
         const stakingBalance = await stakingContract.getWalletBalance(STAKING_CONTRACT_ADDRESS)
         const liqBalance = await stakingContract.getWalletBalance(LIQUIDITY_CONTRACT_ADDRESS)
@@ -26,7 +27,9 @@ export async function activateValidator() {
             const node = await getNodeData()
             console.log("Node", node)
             await stakingContract.pushToBeacon(node, ethNecesaryFromLiq)
+            wasValidatorCreated = true
             // Read deposit data json and get data from index activatedValidators
+            console.log("ETH taken from liquidity", ethNecesaryFromLiq)
             if(!isStakingBalanceEnough) {
                 await writeFileSync(liqLastUsageFilename, new Date().getTime().toString())
             }
@@ -36,7 +39,8 @@ export async function activateValidator() {
     } catch(err: any) {
         console.error("There was a problem activating a validator " + err.message)
         // Send email appending err.message
-    }
+    } 
+    return wasValidatorCreated
 }
 
 async function canUseLiqEth(): Promise<boolean> {
