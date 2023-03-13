@@ -15,6 +15,9 @@ export async function activateValidator(): Promise<boolean> {
         const stakingBalance = await stakingContract.getWalletBalance(STAKING_CONTRACT_ADDRESS)
         const liqBalance = await stakingContract.getWalletBalance(LIQUIDITY_CONTRACT_ADDRESS)
         const liqMpEthBalance = await stakingContract.balanceOf(LIQUIDITY_CONTRACT_ADDRESS)
+        console.log("Staking ETH balance:", ethers.formatEther(stakingBalance))
+        console.log("Liquidity ETH balance:", ethers.formatEther(liqBalance))
+        console.log("Liquidity mpETH balance:", ethers.formatEther(liqMpEthBalance))
 
         const availableLiqEth = liqBalance - liqMpEthBalance > 0 ? liqBalance - liqMpEthBalance : BigInt(0)
         

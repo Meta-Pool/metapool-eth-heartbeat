@@ -7,11 +7,13 @@ export async function updateMpEthPrice() {
     console.log("Updating mpeth price")
     const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
 
-    const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
+    const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data[0].balance)
+    console.log("Validators balances", balances)
     const totalBalance = balances.reduce((p: number, c: number) => p + c, 0)
-
+    
     // Total balance comes with 9 decimals, so we add 9 zeros
     const totalBalanceBigInt: string = totalBalance.toString() + ZEROS_9
+    console.log("Total balance", totalBalanceBigInt)
 
     const stakingContract: StakingContract = new StakingContract()
 

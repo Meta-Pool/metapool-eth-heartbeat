@@ -8,7 +8,7 @@ const THRESHOLD: number = 5
 const responsibles = [
     "danieljseidler@gmail.com"
 ]
-let mailOptions: MailOptions
+
 const env: ENV = getConfig()
 
 export async function alertCreateValidators(shouldSendReport: boolean = false) {
@@ -17,8 +17,9 @@ export async function alertCreateValidators(shouldSendReport: boolean = false) {
     const activatedValidatorsAmount = validatorsData.length
 
     const createdValidatorsAmount = depositData.length
-
+    let mailOptions: MailOptions | undefined = undefined
     if(createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD) {
+        console.log("Sending email alerting to create new validators")
         mailOptions = {
             from: env.MAIL_USER,
             cc: responsibles,
@@ -26,6 +27,7 @@ export async function alertCreateValidators(shouldSendReport: boolean = false) {
             text: `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
         }
     } else if(shouldSendReport) {
+        console.log("Sending daily report")
         mailOptions = {
             from: env.MAIL_USER,
             cc: responsibles,
@@ -34,4 +36,5 @@ export async function alertCreateValidators(shouldSendReport: boolean = false) {
         }
     }
     if(mailOptions) sendEmail(mailOptions)
+    
 }

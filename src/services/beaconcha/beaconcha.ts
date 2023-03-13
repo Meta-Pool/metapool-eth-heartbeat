@@ -16,7 +16,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData
+    data: ValidatorData[]
 }
 
 export interface ValidatorData {
@@ -52,10 +52,10 @@ export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
     return {
         status: 'Pending',
-        data: {
+        data: [{
             effectivebalance: 32000000000,
             balance: 32000000000,
             pubkey: basicData.publickey
-        }
+        }]
     }
 }

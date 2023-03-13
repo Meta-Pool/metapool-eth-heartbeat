@@ -46,6 +46,8 @@ const TotalCalls = {
 export interface PriceData {
     dateISO: string
     price: string
+    assets: string
+    supply: string
 }
 
 export interface PersistentData {
@@ -577,23 +579,30 @@ async function beat() {
     // keep record of stNEAR & LP price to compute APY%
     const currentDateISO = new Date().toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
+    console.log(globalPersistentData.lastSavedPriceDateISO, currentDateISO, isFirstCallOfTheDay)
     if (isFirstCallOfTheDay) {
+        globalPersistentData.lastSavedPriceDateISO = currentDateISO
+
         if (!globalPersistentData.lpPrices) {
             globalPersistentData.lpPrices = []
         }
         globalPersistentData.lpPrices.push({
             dateISO: currentDateISO,
             // price: globalContractState.nslp_share_price,
-            price: calculateLpPrice().toString()
+            price: calculateLpPrice().toString(),
+            assets: globalLiquidityData.totalAssets.toString(),
+            supply: globalLiquidityData.totalSupply.toString(),
         });
         if (!globalPersistentData.mpEthPrices) {
             globalPersistentData.mpEthPrices = []
         }
         globalPersistentData.mpEthPrices.push({
             dateISO: currentDateISO,
-            price: calculateMpEthPrice().toString()
+            price: calculateMpEthPrice().toString(),
+            assets: globalStakingData.totalAssets.toString(),
+            supply: globalStakingData.totalSupply.toString(),
         });
-        globalPersistentData.lastSavedPriceDateISO = currentDateISO
+
         if (globalPersistentData.mpEthPrices.length > 3 * 365) {
             globalPersistentData.mpEthPrices.splice(0, 30);
         }
@@ -610,11 +619,11 @@ async function beat() {
     // ------------------------------
     console.log("--Checking if a validator can be activated")
     const wasValidatorCreated = await activateValidator()
-
+    console.log("Was validator created?", wasValidatorCreated)
     // ------------------------------
     // Check if should alert for creating validators
     // ------------------------------
-    console.log("--Checking if validators should be created")
+    console.log("--Checking if validators should be created", isFirstCallOfTheDay || wasValidatorCreated)
     await alertCreateValidators(isFirstCallOfTheDay || wasValidatorCreated)
     
     //END OF BEAT

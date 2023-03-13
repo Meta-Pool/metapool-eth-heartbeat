@@ -1,9 +1,8 @@
-import { createTransport } from "nodemailer"
+import { createTransport, SentMessageInfo } from "nodemailer"
 import { MailOptions } from "nodemailer/lib/json-transport"
 import { ENV, getConfig } from "../entities/env"
 
 export function sendEmail(options: MailOptions) {
-    console.log("Sending email")
     const env: ENV = getConfig()
 
     const transporter = createTransport({
@@ -14,7 +13,7 @@ export function sendEmail(options: MailOptions) {
         }
     })
 
-    transporter.sendMail(options, function(error, info) {
+    transporter.sendMail(options, function(error: Error | null, info: SentMessageInfo) {
         if(error) {
             console.error(error)
         } else {

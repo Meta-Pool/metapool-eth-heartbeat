@@ -9,11 +9,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc",
-    "start": "npm run build && node dist/index.js",
-    "start:balance:bot": "npm run build && node dist/bots/mpEthPriceBot/index.js",
-    "start:createValidatorAlert:bot": "npm run build && node dist/bots/createValidatorAlert/activatedValidators.js",
-    "start:assignOperators:bot": "npm run build && node dist/bots/assignOperatorsToValidatorBot/index.js",
-    "start:activateValidator:bot": "npm run build && node dist/bots/activateValidator/index.js",
+    "start": "npm run build && pm2 start ecosystem.config.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
