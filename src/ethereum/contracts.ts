@@ -1,5 +1,5 @@
 import { Contract, ethers } from "ethers";
-import { ENV, getConfig } from "../entities/env";
+import { ENV, getEnv } from "../entities/env";
 
 const NETWORK = 'goerli'
 const RPC_URL = "https://goerli.infura.io/v3/"
@@ -38,7 +38,7 @@ export class EthContract {
     }
     
     getWritableContract() {
-        const env: ENV = getConfig()
+        const env: ENV = getEnv()
         const pk: string = env.ACCOUNT_PRIVATE_KEY as string
         const wallet = this.getWallet(pk)
         return new Contract(this.address, this.abi, wallet)

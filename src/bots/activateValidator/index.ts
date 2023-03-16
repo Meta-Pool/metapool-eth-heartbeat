@@ -1,9 +1,10 @@
 import { ethers } from "ethers"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { getValidatorsData } from "../../services/beaconcha/beaconcha"
-import { LIQUIDITY_CONTRACT_ADDRESS } from "../../ethereum/liquidity"
-import { Node, StakingContract, STAKING_CONTRACT_ADDRESS } from "../../ethereum/stakingContract"
+import { Node, StakingContract } from "../../ethereum/stakingContract"
 import depositData from "../../validator_data/deposit_data-1677016004.json"
+import { ENV, getEnv } from "../../entities/env"
+import { EthConfig, getConfig } from "../../ethereum/config"
 
 const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
@@ -11,10 +12,11 @@ const stakingContract: StakingContract = new StakingContract()
 
 export async function activateValidator(): Promise<boolean> {    
     let wasValidatorCreated = false
+    const config: EthConfig = getConfig()
     try {
-        const stakingBalance = await stakingContract.getWalletBalance(STAKING_CONTRACT_ADDRESS)
-        const liqBalance = await stakingContract.getWalletBalance(LIQUIDITY_CONTRACT_ADDRESS)
-        const liqMpEthBalance = await stakingContract.balanceOf(LIQUIDITY_CONTRACT_ADDRESS)
+        const stakingBalance = await stakingContract.getWalletBalance(config.stakingContractAddress)
+        const liqBalance = await stakingContract.getWalletBalance(config.liquidityContractAddress)
+        const liqMpEthBalance = await stakingContract.balanceOf(config.liquidityContractAddress)
         console.log("Staking ETH balance:", ethers.formatEther(stakingBalance))
         console.log("Liquidity ETH balance:", ethers.formatEther(liqBalance))
         console.log("Liquidity mpETH balance:", ethers.formatEther(liqMpEthBalance))

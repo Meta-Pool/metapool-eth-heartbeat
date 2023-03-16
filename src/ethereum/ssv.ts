@@ -1,12 +1,11 @@
 import ssvAbi from "./abi/ssvAbi.json"
+import { getConfig } from "./config"
 import { EthContract } from "./contracts"
-
-export const SSV_CONTRACT_ADDRESS = "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04"
 
 export class SsvContract extends EthContract {
 
     constructor() {
-        super(SSV_CONTRACT_ADDRESS, ssvAbi)
+        super(getConfig().ssvContractAddress, ssvAbi)
     }
     
     registerValidator(pubkey: string, operatorIds: string, sharesPubKeys: string[], sharesEncrypted: string[], amount: number) {

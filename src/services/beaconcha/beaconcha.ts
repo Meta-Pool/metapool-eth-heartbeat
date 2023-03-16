@@ -1,7 +1,7 @@
+import { getConfig } from "../../ethereum/config"
+
 const VALIDATOR_ID_FINDER_BASE_URL = "https://prater.beaconcha.in/api/v1/validator/eth1/"
 const VALIDATOR_DATA_BASE_URL = "https://prater.beaconcha.in/api/v1/validator/"
-
-const DEPLOYER_ACCOUNT = "0x6f740267703D5E91F3a6937679c1d7Cb4b430a0F"
 
 export interface DeployerDataResponse {
     status: string
@@ -36,7 +36,8 @@ export interface ValidatorData {
 }
 
 export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
-    const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${DEPLOYER_ACCOUNT}`)
+    const validatorOwnerAddress = getConfig().validatorOwnerAddress
+    const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}`)
     const validatorData: DeployerDataResponse = await validatorsDataResponse.json()
 
     // When a validator is getting activated, the validator id is temporary null, so it has the 32 ETH

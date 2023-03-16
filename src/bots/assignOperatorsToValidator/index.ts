@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from "fs"
 import { ISharesKeyPairs, SSVKeys } from "ssv-keys"
+import { SsvContract } from "../../ethereum/ssv"
 import { generateKeyshare } from "../commons/commons"
 import groups from "./groups.json"
 import operators from "./operators.json"
@@ -29,15 +30,14 @@ const EXPECTED_ARGS = 1
 // Call the corresponding ssv function to confirm the operators, sending the keyshare file
 async function run() {
     if(process.argv.length != 2 + EXPECTED_ARGS) throw new Error(`Should send ${EXPECTED_ARGS} parameters`)
+    const keystorePath = process.argv[2]
+
     const operator: Operator[] = await getOperators()
     let operatorIds: number[] = operator.map((o: Operator) => o.id)
     if(operatorIds.length != 4) throw new Error(`There should be 4 operators. ${operatorIds.length} found`)
 
     const operatorKeys = getOperatorsKeys(operatorIds)
-    if(operatorKeys.length != 4) throw new Error(`There should be 4 operator keys. ${operatorKeys.length} found`)
-
-    
-    const keystorePath = process.argv[2]
+    if(operatorKeys.length != 4) throw new Error(`There should be 4 operator keys. ${operatorKeys.length} found`)    
     
     // const keystore = JSON.parse(await readFileSync(keystorePath, "utf-8"))
     
@@ -53,29 +53,30 @@ async function run() {
     //     shares,
     //     0
     // )
+    console.log("Generating keyshare")
     const keyshare = await generateKeyshare(keystorePath, operatorIds, operatorKeys)
     const validatorPublicKey = keyshare[0]
     
-    // let operatorsInValidator = await getOperatorsByValidator(validatorPublicKey)
-    // console.log(operatorsInValidator)
-    // console.log(operatorIds)
-    // if([...operatorsInValidator].sort().join(",") !== [...operatorIds].sort().join(",")) {
-    //     console.log("Assigning group")
-    //     if(operatorsInValidator.length) {
-    //         console.log("Updating")
-    //         await updateValidator(keyshare[0], keyshare[1], keyshare[2], keyshare[3], keyshare[4])
-    //     } else {
-    //         console.log("Registering")
-    //         await registerValidator(keyshare[0], keyshare[1], keyshare[2], keyshare[3], keyshare[4])
-    //     }
-    // } else {
-    //     console.log("Group unchanged")
-    // }
+    const ssvContract = new SsvContract()
+    let operatorsInValidator = await ssvContract.getOperatorsByValidator(validatorPublicKey)
+    console.log(operatorsInValidator)
+    console.log(operatorIds)
+    if([...operatorsInValidator].sort().join(",") !== [...operatorIds].sort().join(",")) {
+        console.log("Assigning group")
+        if(operatorsInValidator.length) {
+            console.log("Updating")
+            await ssvContract.updateValidator(keyshare[0], keyshare[1], keyshare[2], keyshare[3], keyshare[4])
+        } else {
+            console.log("Registering")
+            await ssvContract.registerValidator(keyshare[0], keyshare[1], keyshare[2], keyshare[3], keyshare[4])
+        }
+    } else {
+        console.log("Group unchanged")
+    }
+    console.log("Assigning operators to validator")
     await registerAssignedValidator(operatorIds, validatorPublicKey, keystorePath)
 
 }
-
-
 
 async function getOperators(): Promise<Operator[]> {
     const operatorsData: AssignedOperatorsData[] = await readAssignedOperators()
@@ -95,6 +96,7 @@ function getOperatorsKeys(operatorsIds: number[]) {
 
 async function registerAssignedValidator(operatorIds: number[], validatorPubkey: string, keystoreFilename: string) {
     const assignedOperatorsJson: AssignedOperatorsData[] = await readAssignedOperators()
+    console.log(`There are ${assignedOperatorsJson.length} assigned operator groups so far`)
     let groupAlreadyAssigned = false
     for(let i = 0; i < assignedOperatorsJson.length; i++) {
         let operatorsWithValidators = assignedOperatorsJson[i]
@@ -112,6 +114,7 @@ async function registerAssignedValidator(operatorIds: number[], validatorPubkey:
         }
     }
     if(!groupAlreadyAssigned) {
+
         // @ts-ignore
         assignedOperatorsJson.push({
             ids: operatorIds,

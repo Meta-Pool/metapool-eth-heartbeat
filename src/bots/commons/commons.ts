@@ -1,6 +1,6 @@
 import { readFileSync } from "fs"
 import { ISharesKeyPairs, SSVKeys } from "ssv-keys"
-import { ENV, getConfig } from "../../entities/env"
+import { ENV, getEnv } from "../../entities/env"
 import { Operator } from "../assignOperatorsToValidator"
 
 /**
@@ -12,7 +12,7 @@ import { Operator } from "../assignOperatorsToValidator"
  */
 export async function generateKeyshare(keystorePath: string, operatorIds: number[], operatorKeys: Operator[]): Promise<any[]> {
     const ssvKeys = new SSVKeys()
-    const env: ENV = getConfig()
+    const env: ENV = getEnv()
 
     const keystore = JSON.parse(await readFileSync(keystorePath, "utf-8"))
     

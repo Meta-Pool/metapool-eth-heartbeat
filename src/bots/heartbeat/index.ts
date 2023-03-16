@@ -13,9 +13,10 @@ import { LiquidityContract } from "../../ethereum/liquidity";
 import { updateMpEthPrice } from "../mpEthPrice";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators } from "../createValidatorAlert";
+import { getEnv } from "../../entities/env";
 
 export let globalPersistentData: PersistentData
-const NETWORK = "goerli"
+const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
 let server: BareWebServer;
 let server80: BareWebServer;
@@ -515,7 +516,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 async function refreshStakingData() {
     const stakingTotalAssets = await stakingContract.totalAssets()
     const stakingTotalSupply = await stakingContract.totalSupply()
-
+    console.log(1, stakingTotalAssets, stakingTotalSupply)
     globalStakingData = {
         totalAssets: stakingTotalAssets,
         totalSupply: stakingTotalSupply
@@ -555,10 +556,13 @@ function divide(a: string, b: string): string {
 }
 
 function calculateLpPrice() {
+    if(globalLiquidityData.totalSupply == 0n) return 1
     return ethers.parseEther(divide(globalLiquidityData.totalAssets.toString(), globalLiquidityData.totalSupply.toString()))
 }
 
 function calculateMpEthPrice() {
+    if(globalStakingData.totalSupply == 0n) return 1
+
     const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
     const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
 
@@ -573,8 +577,9 @@ async function beat() {
     console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount})`);
 
     //refresh contract state
-    console.log("refresh metrics")
+    console.log("Refresh metrics")
     await refreshMetrics();
+    console.log("Metrics refreshed successfully")
 
     // keep record of stNEAR & LP price to compute APY%
     const currentDateISO = new Date().toISOString().slice(0, 10)

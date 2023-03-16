@@ -2,6 +2,7 @@ import dotenv from "dotenv"
 import path from "path"
 
 export interface ENV {
+    NETWORK: string
     ACCOUNT_PRIVATE_KEY: string;
     KEYSTORE_PASSWORD: string;
     MAIL_USER: string;
@@ -10,8 +11,9 @@ export interface ENV {
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-export function getConfig(): ENV {
+export function getEnv(): ENV {
     return {
+        NETWORK: process.env.NETWORK!,
         ACCOUNT_PRIVATE_KEY: process.env.ACCOUNT_PRIVATE_KEY!,
         KEYSTORE_PASSWORD: process.env.KEYSTORE_PASSWORD!,
         MAIL_USER: process.env.MAIL_USER!,

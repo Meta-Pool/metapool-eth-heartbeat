@@ -1,9 +1,9 @@
 import { createTransport, SentMessageInfo } from "nodemailer"
 import { MailOptions } from "nodemailer/lib/json-transport"
-import { ENV, getConfig } from "../entities/env"
+import { ENV, getEnv } from "../entities/env"
 
 export function sendEmail(options: MailOptions) {
-    const env: ENV = getConfig()
+    const env: ENV = getEnv()
 
     const transporter = createTransport({
         service: 'gmail',

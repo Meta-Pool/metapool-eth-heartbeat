@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { PersistentData } from '.'
 
 export function saveJSON<T>(data: T): void {
@@ -7,6 +7,10 @@ export function saveJSON<T>(data: T): void {
 
 export function loadJSON(): PersistentData {
     try {
+        if(!existsSync("persistent.json")) {
+            writeFileSync("persistent.json", "{}")
+        }
+        
         const buff = readFileSync("persistent.json")
         return JSON.parse(buff.toString()) as PersistentData
     }

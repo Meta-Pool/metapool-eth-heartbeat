@@ -1,15 +1,16 @@
 import { MailOptions } from 'nodemailer/lib/json-transport'
-import { ENV, getConfig } from '../../entities/env'
+import { ENV, getEnv } from '../../entities/env'
 import { getValidatorsData } from '../../services/beaconcha/beaconcha'
 import { sendEmail } from '../../utils/mailUtils'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 
 const THRESHOLD: number = 5
 const responsibles = [
-    "danieljseidler@gmail.com"
+    "danieljseidler@gmail.com",
+    "arkuhk@gmail.com"
 ]
 
-const env: ENV = getConfig()
+const env: ENV = getEnv()
 
 export async function alertCreateValidators(shouldSendReport: boolean = false) {
 

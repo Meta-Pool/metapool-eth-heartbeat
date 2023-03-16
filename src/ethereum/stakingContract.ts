@@ -1,4 +1,5 @@
 import stakingAbi from "./abi/Staking.json"
+import { getConfig } from "./config"
 import { EthContract } from "./contracts"
 
 export interface Node {
@@ -7,12 +8,11 @@ export interface Node {
     signature: string
     depositDataRoot: string
 }
-export const STAKING_CONTRACT_ADDRESS = "0xd2275C1bc599BcDf21985a9cF810eFB0fEe0CE5f"
 
 export class StakingContract extends EthContract {
 
     constructor() {
-        super(STAKING_CONTRACT_ADDRESS, stakingAbi.abi)
+        super(getConfig().stakingContractAddress, stakingAbi.abi)
     }
 
     balanceOf(address: string) {
