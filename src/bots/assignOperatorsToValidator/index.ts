@@ -1,5 +1,4 @@
 import { readFileSync, writeFileSync } from "fs"
-import { ISharesKeyPairs, SSVKeys } from "ssv-keys"
 import { SsvContract } from "../../ethereum/ssv"
 import { generateKeyshare } from "../commons/commons"
 import groups from "./groups.json"
@@ -13,10 +12,6 @@ export interface AssignedOperatorsData {
 export interface ValidatorsData {
     pubkey: string
     keystore_file_name: string
-}
-
-interface Group {
-    ids: number[]
 }
 
 export interface Operator {
@@ -39,20 +34,6 @@ async function run() {
     const operatorKeys = getOperatorsKeys(operatorIds)
     if(operatorKeys.length != 4) throw new Error(`There should be 4 operator keys. ${operatorKeys.length} found`)    
     
-    // const keystore = JSON.parse(await readFileSync(keystorePath, "utf-8"))
-    
-    // const privateKey = await ssvKeys.getPrivateKeyFromKeystoreData(keystore, env.KEYSTORE_PASSWORD)
-
-    // const threshold: ISharesKeyPairs = await ssvKeys.createThreshold(privateKey, operatorIds)
-    // const operatorsPubKeys = operatorKeys.map((o: Operator) => o.pubkey)
-    // const shares = await ssvKeys.encryptShares(operatorsPubKeys, threshold.shares)
-    
-    // const keyshare = await ssvKeys.buildPayload(
-    //     threshold.validatorPublicKey,
-    //     operatorIds,
-    //     shares,
-    //     0
-    // )
     console.log("Generating keyshare")
     const keyshare = await generateKeyshare(keystorePath, operatorIds, operatorKeys)
     const validatorPublicKey = keyshare[0]
@@ -100,7 +81,6 @@ async function registerAssignedValidator(operatorIds: number[], validatorPubkey:
     let groupAlreadyAssigned = false
     for(let i = 0; i < assignedOperatorsJson.length; i++) {
         let operatorsWithValidators = assignedOperatorsJson[i]
-        // operatorsWithValidators = removeValidatorFromOperatorGroup(operatorsWithValidators, threshold.validatorPublicKey)
         // @ts-ignore
         if(operatorsWithValidators.ids.sort().join(",") === operatorIds.sort().join(",")) {
             groupAlreadyAssigned = true
@@ -131,11 +111,5 @@ async function readAssignedOperators(): Promise<AssignedOperatorsData[]> {
     const assignedOperators = await readFileSync("assigned.json")
     return JSON.parse(assignedOperators.toString())
 }
-
-// function removeValidatorFromOperatorGroup(operatorsWithValidators: AssignedOperatorsData, publicKey: string) {
-//     const index = operatorsWithValidators.pubkeys.indexOf(publicKey)
-//     if(index != -1) operatorsWithValidators.pubkeys.splice(index, 1)
-//     return operatorsWithValidators
-// }
 
 run()

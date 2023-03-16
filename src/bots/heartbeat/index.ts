@@ -516,7 +516,6 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 async function refreshStakingData() {
     const stakingTotalAssets = await stakingContract.totalAssets()
     const stakingTotalSupply = await stakingContract.totalSupply()
-    console.log(1, stakingTotalAssets, stakingTotalSupply)
     globalStakingData = {
         totalAssets: stakingTotalAssets,
         totalSupply: stakingTotalSupply

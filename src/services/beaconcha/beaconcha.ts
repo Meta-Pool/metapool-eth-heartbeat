@@ -36,17 +36,18 @@ export interface ValidatorData {
 }
 
 export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
+    console.log(1)
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}`)
     const validatorData: DeployerDataResponse = await validatorsDataResponse.json()
-
+    console.log(2)
     // When a validator is getting activated, the validator id is temporary null, so it has the 32 ETH
     const nonNullValidatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex).filter(id => id != null)
     const nullValidatorsData: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
-
+    console.log(3)
     const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
     const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
-
+    console.log(4)
     return [jsons, nullValidatorsData].flat()
 }
 
