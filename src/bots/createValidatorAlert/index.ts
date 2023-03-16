@@ -13,12 +13,14 @@ const responsibles = [
 const env: ENV = getEnv()
 
 export async function alertCreateValidators(shouldSendReport: boolean = false) {
-
+    console.log("Getting validators data")
     const validatorsData = await getValidatorsData()
     const activatedValidatorsAmount = validatorsData.length
 
     const createdValidatorsAmount = depositData.length
     let mailOptions: MailOptions | undefined = undefined
+    console.log("Should send alert?", createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD)
+    console.log("Should send report?", shouldSendReport)
     if(createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD) {
         console.log("Sending email alerting to create new validators")
         mailOptions = {

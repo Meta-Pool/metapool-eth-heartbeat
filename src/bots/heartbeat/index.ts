@@ -628,7 +628,7 @@ async function beat() {
     // ------------------------------
     // Check if should alert for creating validators
     // ------------------------------
-    console.log("--Checking if validators should be created", isFirstCallOfTheDay || wasValidatorCreated)
+    console.log("--Checking if validators should be created")
     await alertCreateValidators(isFirstCallOfTheDay || wasValidatorCreated)
     
     //END OF BEAT
