@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 import { globalPersistentData, PriceData } from "./index"
 
 //---------------------------------------------------
@@ -158,10 +159,10 @@ export type Snapshot = {
 }
 
 export function fromGlobalState(): Record<string,any> {
-
+    
     let snap: Snapshot = {
-        mpethPrice: globalPersistentData.mpethPrice,
-        lpPrice: globalPersistentData.lpPrice,
+        mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
+        lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3),
         mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7),
         mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15),

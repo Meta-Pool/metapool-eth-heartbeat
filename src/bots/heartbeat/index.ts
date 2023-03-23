@@ -57,8 +57,8 @@ export interface PersistentData {
     timestamp: number
     mpEthPrices: PriceData[]
     lpPrices: PriceData[]
-    mpethPrice: number
-    lpPrice: number
+    mpethPrice: string
+    lpPrice: string
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -521,7 +521,7 @@ async function refreshStakingData() {
         totalSupply: stakingTotalSupply
     }
 
-    globalPersistentData.mpethPrice = Number(calculateMpEthPrice())
+    globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
 }
 
 async function refreshLiquidityData() {
@@ -533,7 +533,7 @@ async function refreshLiquidityData() {
         totalSupply: liquidityTotalSupply
     }
 
-    globalPersistentData.lpPrice = Number(calculateLpPrice())
+    globalPersistentData.lpPrice = calculateLpPrice().toString()
 }
 
 //utility
@@ -554,13 +554,13 @@ function divide(a: string, b: string): string {
     return (Number(a) / Number(b)).toString()
 }
 
-function calculateLpPrice() {
-    if(globalLiquidityData.totalSupply == 0n) return 1
+function calculateLpPrice(): BigInt {
+    if(globalLiquidityData.totalSupply == 0n) return ethers.parseEther("1")
     return ethers.parseEther(divide(globalLiquidityData.totalAssets.toString(), globalLiquidityData.totalSupply.toString()))
 }
 
-function calculateMpEthPrice() {
-    if(globalStakingData.totalSupply == 0n) return 1
+function calculateMpEthPrice(): BigInt {
+    if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
 
     const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
     const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
