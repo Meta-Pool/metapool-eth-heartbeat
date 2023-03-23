@@ -26,8 +26,8 @@ export async function activateValidator(): Promise<boolean> {
         const isStakingBalanceEnough = stakingBalance > ETH_32
         const availableBalanceToCreateValidator = await canUseLiqEth() ? stakingBalance + availableLiqEth : stakingBalance 
         const ethNecesaryFromLiq = ETH_32 - stakingBalance > 0 ? ETH_32 - stakingBalance : BigInt(0)
-        
-        if(availableBalanceToCreateValidator > ETH_32) {
+        console.log("Available balance to create validators", availableBalanceToCreateValidator)
+        if(availableBalanceToCreateValidator >= ETH_32) {
             console.log("Creating validator")
             const node = await getNodeData()
             console.log("Node", node)

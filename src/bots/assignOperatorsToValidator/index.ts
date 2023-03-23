@@ -35,6 +35,8 @@ async function run() {
     if(operatorKeys.length != 4) throw new Error(`There should be 4 operator keys. ${operatorKeys.length} found`)    
     
     console.log("Generating keyshare")
+    console.log("Ids", operatorIds)
+    console.log("Keys", operatorKeys)
     const keyshare = await generateKeyshare(keystorePath, operatorIds, operatorKeys)
     const validatorPublicKey = keyshare[0]
     

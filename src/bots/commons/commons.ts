@@ -19,8 +19,10 @@ export async function generateKeyshare(keystorePath: string, operatorIds: number
     const privateKey = await ssvKeys.getPrivateKeyFromKeystoreData(keystore, env.KEYSTORE_PASSWORD)
 
     const threshold: ISharesKeyPairs = await ssvKeys.createThreshold(privateKey, operatorIds)
+    console.log("Threshold", threshold)
     const operatorsPubKeys = operatorKeys.map((o: Operator) => o.pubkey)
     const shares = await ssvKeys.encryptShares(operatorsPubKeys, threshold.shares)
+    console.log("Shares", shares)
     
     const keyshare = await ssvKeys.buildPayload(
         threshold.validatorPublicKey,
@@ -28,6 +30,6 @@ export async function generateKeyshare(keystorePath: string, operatorIds: number
         shares,
         0
     )
-
+    console.log("Keyshare", keyshare)
     return keyshare
 }
