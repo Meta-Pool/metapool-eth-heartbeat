@@ -30,7 +30,7 @@ export async function activateValidator(): Promise<boolean> {
         console.log("Available balance to create validators", availableBalanceToCreateValidator)
         if(availableBalanceToCreateValidator >= ETH_32) {
             console.log("Creating validator")
-            const node = await getNodeData()
+            const node = await getNextNodeToActivateData()
             console.log("Node", node)
             await stakingContract.pushToBeacon(node, ethNecesaryFromLiq)
             wasValidatorCreated = true
@@ -64,7 +64,6 @@ async function canUseLiqEth(): Promise<boolean> {
 
 async function getValidatorToActivate(): Promise<any> {
     const validatorsDataResponse: ValidatorDataResponse[] = await getValidatorsData()
-    validatorsDataResponse.forEach((v) => console.log(v.data))
     return depositData.find((depData: any) => {
         return validatorsDataResponse.every((v: ValidatorDataResponse) => {
             return v.data.every((d) => d.pubkey !== `0x${depData.pubkey}`)
@@ -72,7 +71,7 @@ async function getValidatorToActivate(): Promise<any> {
     })
 }
 
-async function getNodeData(): Promise<Node> {
+async function getNextNodeToActivateData(): Promise<Node> {
     const node = await getValidatorToActivate()
     return {
         pubkey: "0x" + node.pubkey,
