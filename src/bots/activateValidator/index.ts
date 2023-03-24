@@ -3,12 +3,13 @@ import { existsSync, readFileSync, writeFileSync } from "fs"
 import { getValidatorsData } from "../../services/beaconcha/beaconcha"
 import { Node, StakingContract } from "../../ethereum/stakingContract"
 import depositData from "../../validator_data/deposit_data-1677016004.json"
-import { ENV, getEnv } from "../../entities/env"
 import { EthConfig, getConfig } from "../../ethereum/config"
+import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 
 const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
 const stakingContract: StakingContract = new StakingContract()
+const HOURS_TO_WAIT_BEFORE_REUSING_LIQ_ETH = 6
 
 export async function activateValidator(): Promise<boolean> {    
     let wasValidatorCreated = false
@@ -52,23 +53,27 @@ async function canUseLiqEth(): Promise<boolean> {
     const liqLastUsageFileExists = await existsSync(liqLastUsageFilename)
     if(!liqLastUsageFileExists) {
         let timeToSet = new Date()
-        timeToSet.setHours(timeToSet.getHours() - 6)
+        timeToSet.setHours(timeToSet.getHours() - HOURS_TO_WAIT_BEFORE_REUSING_LIQ_ETH)
         await writeFileSync(liqLastUsageFilename, timeToSet.getTime().toString())
     }
 
     const lastUsageTimestamp = await readFileSync(liqLastUsageFilename)
     const elapsedMsSinceLastLiqUse = new Date().getTime() - Number(lastUsageTimestamp)
-    return elapsedMsSinceLastLiqUse / 1000 / 60 / 60 > 6
+    return elapsedMsSinceLastLiqUse / 1000 / 60 / 60 > HOURS_TO_WAIT_BEFORE_REUSING_LIQ_ETH
 }
 
-async function getActivatedValidatorQty(): Promise<number> {
-    const validatorsDataResponse = await getValidatorsData()
-    return validatorsDataResponse.length
+async function getValidatorToActivate(): Promise<any> {
+    const validatorsDataResponse: ValidatorDataResponse[] = await getValidatorsData()
+    validatorsDataResponse.forEach((v) => console.log(v.data))
+    return depositData.find((depData: any) => {
+        return validatorsDataResponse.every((v: ValidatorDataResponse) => {
+            return v.data.every((d) => d.pubkey !== `0x${depData.pubkey}`)
+        })
+    })
 }
 
 async function getNodeData(): Promise<Node> {
-    const activatedValidators = await getActivatedValidatorQty()
-    const node = depositData[activatedValidators]
+    const node = await getValidatorToActivate()
     return {
         pubkey: "0x" + node.pubkey,
         withdrawCredentials: "0x" + node.withdrawal_credentials,

@@ -13,3 +13,6 @@ src/bots/assignOperatorsToValidatorBot/groups.json
 src/bots/assignOperatorsToValidatorBot/operators.json
 
 src/index.ts
+
+src/validator_data/old_deposit_data-1677016004.json
+ssv-keys-0.0.5.tar.gz
