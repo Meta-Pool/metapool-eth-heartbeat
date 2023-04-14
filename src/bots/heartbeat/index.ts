@@ -5,12 +5,11 @@ import * as url from 'url';
 import * as os from 'os';
 import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
-import { writeFileSync } from "fs";
 import { LiquidityData, StakingData } from "./contractData";
 import { ethers } from "ethers";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
-import { updateMpEthPrice } from "../mpEthPrice";
+import { updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators } from "../createValidatorAlert";
 import { getEnv } from "../../entities/env";
@@ -614,7 +613,7 @@ async function beat() {
             globalPersistentData.lpPrices.splice(0, 30);
         }
 
-        await updateMpEthPrice().catch(err => console.error(`Error updating mpeth price ${err.message}`))
+        await updateNodesBalance().catch(err => console.error(`Error updating mpeth price ${err.message}`))
 
     } // if current date price not set
 

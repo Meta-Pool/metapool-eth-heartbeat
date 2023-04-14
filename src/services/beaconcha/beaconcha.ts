@@ -1,7 +1,10 @@
 import { getConfig } from "../../ethereum/config"
 
-const VALIDATOR_ID_FINDER_BASE_URL = "https://prater.beaconcha.in/api/v1/validator/eth1/"
-const VALIDATOR_DATA_BASE_URL = "https://prater.beaconcha.in/api/v1/validator/"
+const BASE_URL = "https://prater.beaconcha.in/api/v1/"
+const VALIDATOR_ID_FINDER_BASE_URL = BASE_URL + "validator/eth1/"
+const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
+
+const VALIDATOR_HISTORY_URL = BASE_URL + "validator/{index_or_pubkey}/balancehistory"
 
 export interface DeployerDataResponse {
     status: string
@@ -16,7 +19,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData[]
+    data: ValidatorData
 }
 
 export interface ValidatorData {
@@ -33,6 +36,21 @@ export interface ValidatorData {
     validatorindex?: number
     withdrawableepoch?: number
     withdrawalcredentials?: string
+}
+
+export interface BalanceHistory {
+    status: string
+    data: BalanceHistoryData[]
+}
+
+export interface BalanceHistoryData {
+    balance: number
+    effectivebalance: number
+    epoch: number
+    validatorindex: number
+    week: number
+    week_start: string
+    week_end: string
 }
 
 export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
@@ -53,10 +71,15 @@ export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
     return {
         status: 'Pending',
-        data: [{
+        data: {
             effectivebalance: 32000000000,
             balance: 32000000000,
             pubkey: basicData.publickey
-        }]
+        }
     }
+}
+
+export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<BalanceHistoryData[]> {
+    const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
+    return fetch(url).then(r => r.json().then(json => json.data))
 }

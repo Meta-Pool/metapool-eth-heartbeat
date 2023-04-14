@@ -27,15 +27,15 @@ export async function activateValidator(): Promise<boolean> {
         const isStakingBalanceEnough = stakingBalance > ETH_32
         const availableBalanceToCreateValidator = await canUseLiqEth() ? stakingBalance + availableLiqEth : stakingBalance 
         const ethNecesaryFromLiq = ETH_32 - stakingBalance > 0 ? ETH_32 - stakingBalance : BigInt(0)
-        console.log("Available balance to create validators", availableBalanceToCreateValidator)
+        console.log("Available balance to create validators", ethers.formatEther(availableBalanceToCreateValidator))
+        console.log("ETH necessary from liquidity", ethNecesaryFromLiq)
         if(availableBalanceToCreateValidator >= ETH_32) {
             console.log("Creating validator")
             const node = await getNextNodeToActivateData()
             console.log("Node", node)
             await stakingContract.pushToBeacon(node, ethNecesaryFromLiq)
             wasValidatorCreated = true
-            // Read deposit data json and get data from index activatedValidators
-            console.log("ETH taken from liquidity", ethNecesaryFromLiq)
+            
             if(!isStakingBalanceEnough) {
                 await writeFileSync(liqLastUsageFilename, new Date().getTime().toString())
             }
@@ -66,7 +66,7 @@ async function getValidatorToActivate(): Promise<any> {
     const validatorsDataResponse: ValidatorDataResponse[] = await getValidatorsData()
     return depositData.find((depData: any) => {
         return validatorsDataResponse.every((v: ValidatorDataResponse) => {
-            return v.data.every((d) => d.pubkey !== `0x${depData.pubkey}`)
+            return v.data.pubkey !== `0x${depData.pubkey}`
         })
     })
 }
