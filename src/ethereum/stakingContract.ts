@@ -23,11 +23,11 @@ export class StakingContract extends EthContract {
         return this.getWritableContract().pushToBeacon([node], ethFromLiq)
     }
     
-    totalSupply(): Promise<BigInt> {
+    totalSupply(): Promise<bigint> {
         return this.getReadableContract().totalSupply()
     }
     
-    totalAssets(): Promise<BigInt> {
+    totalAssets(): Promise<bigint> {
         return this.getReadableContract().totalAssets()
     }
     

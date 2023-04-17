@@ -4,6 +4,7 @@ export interface EthConfig {
     network: string
     stakingContractAddress: string
     liquidityContractAddress: string
+    withdrawContractAddress: string
     ssvContractAddress: string
     validatorOwnerAddress: string
 }
@@ -12,6 +13,7 @@ const GOERLI_CONFIG: EthConfig = {
     network: 'goerli',
     stakingContractAddress: "0x1AE3B4577Af51A6A1aBf376d952D10eAfe9B9eaC",
     liquidityContractAddress: "0xf069Acbda35eBd65F7D53639e839D4a4b54A7807",
+    withdrawContractAddress: "0x111111111111111111111111111111111111111",
     ssvContractAddress: "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04",
     validatorOwnerAddress: "0x3a48D9b035A13d4eE77171DfEf9f219892bc9DCb",
 }
