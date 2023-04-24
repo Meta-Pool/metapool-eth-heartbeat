@@ -8,6 +8,7 @@ import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
+import { max } from "../../utils/numberUtils"
 
 const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
@@ -35,11 +36,13 @@ export async function activateValidator(): Promise<boolean> {
             console.log("There is no balance in staking. Shouldn't create validator")
             return false
         }
-        const availableLiqEth = balances.liquidity - balances.liquidityMpEthInEth > 0 ? balances.liquidity - balances.liquidityMpEthInEth : BigInt(0)
+        // const availableLiqEth = balances.liquidity - balances.liquidityMpEthInEth > 0 ? balances.liquidity - balances.liquidityMpEthInEth : BigInt(0)
+        const availableLiqEth = max(balances.liquidity - balances.liquidityMpEthInEth, 0n)
         
         const isStakingBalanceEnough = realStakingBalance > ETH_32
         const availableBalanceToCreateValidator = await canUseLiqEth() ? realStakingBalance + availableLiqEth : realStakingBalance 
-        const ethNecesaryFromLiq = ETH_32 - realStakingBalance > 0 ? ETH_32 - realStakingBalance : BigInt(0)
+        // const ethNecesaryFromLiq = ETH_32 - realStakingBalance > 0 ? ETH_32 - realStakingBalance : BigInt(0)
+        const ethNecesaryFromLiq = max(ETH_32 - realStakingBalance, 0n)
         console.log("Available balance to create validators", ethers.formatEther(availableBalanceToCreateValidator))
         console.log("ETH necessary from liquidity", ethNecesaryFromLiq)
         if(availableBalanceToCreateValidator >= ETH_32) {

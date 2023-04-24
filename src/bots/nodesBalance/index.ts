@@ -70,5 +70,5 @@ function reportPenalizedValidators(penalizedValidators: BalanceHistoryData[][]) 
         sendEmail(subject, body)
 }
 
-checkValidatorsPenalization()
+// checkValidatorsPenalization()
 
