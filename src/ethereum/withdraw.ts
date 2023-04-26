@@ -21,6 +21,10 @@ export class WithdrawContract extends EthContract {
 
         return difference > 0n ? difference : 0n
     }
+
+    ethRemaining(): Promise<bigint> {
+        return this.getReadableContract().ethRemaining()
+    }
 }
 
 

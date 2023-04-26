@@ -105,7 +105,7 @@ async function getBalances(): Promise<Balances> {
     const stakingBalance = stakingContract.getWalletBalance(config.stakingContractAddress)
     const liqBalance = stakingContract.getWalletBalance(config.liquidityContractAddress)
     const liqMpEthBalance = stakingContract.balanceOf(config.liquidityContractAddress)
-    const withdrawContractStakingBalance = withdrawContract.getAvailableStakingBalance()
+    const withdrawContractStakingBalance = withdrawContract.ethRemaining()
 
     console.log("Real Staking ETH balance:", ethers.formatEther(await stakingBalance + await withdrawContractStakingBalance))
     console.log("Liquidity ETH balance:", ethers.formatEther(await liqBalance))
