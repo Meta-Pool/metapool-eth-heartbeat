@@ -613,7 +613,7 @@ async function beat() {
             globalPersistentData.lpPrices.splice(0, 30);
         }
 
-        await updateNodesBalance().catch(err => console.error(`Error updating mpeth price ${err.message}`))
+        await updateNodesBalance()
 
     } // if current date price not set
 

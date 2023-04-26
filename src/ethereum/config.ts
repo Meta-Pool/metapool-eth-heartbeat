@@ -15,7 +15,7 @@ const GOERLI_CONFIG: EthConfig = {
     liquidityContractAddress: "0xef46F998303E8B67DAe5722123662e2B28180FF5",
     withdrawContractAddress: "0x5A4966a4ecf7E2200657cE15F15Bc236d00731aA",
     ssvContractAddress: "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04",
-    validatorOwnerAddress: "0x3a48D9b035A13d4eE77171DfEf9f219892bc9DCb",
+    validatorOwnerAddress: "0x7d8e91b6C393c02Ef83473E8000b3883e655a761",
 }
 
 export function getConfig(network?: string): EthConfig {

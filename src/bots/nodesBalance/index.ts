@@ -22,6 +22,8 @@ export async function updateNodesBalance() {
         await stakingContract.updateNodesBalance(totalBalanceBigInt)
         console.log("MpEth price updated")
     } catch (err: any) {
+        console.error(`Error updating mpeth price ${err.message}`)
+        
         const subject = "[ERROR] update nodes balance"
         const body = err.message
         sendEmail(subject, body)

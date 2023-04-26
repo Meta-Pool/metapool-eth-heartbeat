@@ -9,13 +9,13 @@ export class WithdrawContract extends EthContract {
         super(getConfig().withdrawContractAddress, withdrawAbi.abi)
     }
 
-    getTotalPendingWithdraw() {
-        return this.getReadableContract().totalPendingWithdraw()
+    pendingWithdraws() {
+        return this.getReadableContract().pendingWithdraws()
     }
     
     async getAvailableStakingBalance(): Promise<bigint> {
         const balance = await this.getWalletBalance(this.address)
-        const pendingWithdrawals = await this.getTotalPendingWithdraw()
+        const pendingWithdrawals = await this.pendingWithdraws()
 
         const difference = balance - pendingWithdrawals
 
