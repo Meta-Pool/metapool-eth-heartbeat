@@ -4,7 +4,7 @@ import { ENV, getEnv } from "../entities/env"
 
 const responsibles = [
     "danieljseidler@gmail.com",
-    // "arkuhk@gmail.com"
+    "arkuhk@gmail.com"
 ]
 
 export function sendEmail(subject: string, body: string) {
