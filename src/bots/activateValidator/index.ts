@@ -49,7 +49,7 @@ export async function activateValidator(): Promise<boolean> {
             console.log("Creating validator")
             const node = await getNextNodeToActivateData()
             console.log("Node", node)
-            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq)
+            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.withdraw)
             wasValidatorCreated = true
             
             if(!isStakingBalanceEnough) {

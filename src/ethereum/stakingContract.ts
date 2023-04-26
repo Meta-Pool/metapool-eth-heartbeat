@@ -19,8 +19,8 @@ export class StakingContract extends EthContract {
         return this.getReadableContract().balanceOf(address)
     }
     
-    pushToBeacon(node: Node, ethFromLiq: BigInt) {
-        return this.getWritableContract().pushToBeacon([node], ethFromLiq)
+    pushToBeacon(node: Node, ethFromLiq: BigInt, withdrawEthAvailableForStaking: BigInt) {
+        return this.getWritableContract().pushToBeacon([node], ethFromLiq, withdrawEthAvailableForStaking)
     }
     
     totalSupply(): Promise<bigint> {
