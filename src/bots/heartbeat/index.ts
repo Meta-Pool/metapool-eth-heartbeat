@@ -13,6 +13,7 @@ import { updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators } from "../createValidatorAlert";
 import { getEnv } from "../../entities/env";
+import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -628,6 +629,10 @@ async function beat() {
     // ------------------------------
     console.log("--Checking if validators should be created")
     await alertCreateValidators(isFirstCallOfTheDay || wasValidatorCreated)
+
+    console.log("--Checking if order queue should be moved")
+    const wasDelayedUnstakeOrderQueueRun = await checkAuroraDelayedUnstakeOrders()
+    console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRun)
     
     //END OF BEAT
     globalPersistentData.beatCount++;
