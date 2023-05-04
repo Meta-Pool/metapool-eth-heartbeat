@@ -1,7 +1,7 @@
 import { ethers } from "ethers"
 import withdrawAbi from "./abi/withdrawAbi.json"
 import { getConfig } from "./config"
-import { EthContract } from "./contracts"
+import { EthContract } from "./ethContracts"
 
 export class WithdrawContract extends EthContract {
 

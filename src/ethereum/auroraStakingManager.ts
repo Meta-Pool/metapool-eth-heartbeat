@@ -1,12 +1,14 @@
-import { ethers } from "ethers"
 import stakingManagerAbi from "./abi/StakingManager.json"
 import { getConfig } from "./config"
-import { EthContract } from "./contracts"
+import { AurContract } from "./aurContracts"
 
-export class StakingManagerContract extends EthContract {
+export class StakingManagerContract extends AurContract {
+    // auroraProvider:new ethers.providers.JsonRpcProvider("https://mainnet.aurora.dev"),
 
     constructor() {
-        super(getConfig("mainnet").stakingManagerAddress, stakingManagerAbi.abi)
+        // Network is hardcoded here since ETH is not in prod, but Aur is
+        super(getConfig("mainnet").stakingManagerAddress, stakingManagerAbi.abi, "mainnet")
+        console.log("STAKING MANAGER", this.address)
     }
 
     nextCleanOrderQueue() {

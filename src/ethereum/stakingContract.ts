@@ -1,6 +1,6 @@
 import stakingAbi from "./abi/Staking.json"
 import { getConfig } from "./config"
-import { EthContract } from "./contracts"
+import { EthContract } from "./ethContracts"
 
 export interface Node {
     pubkey: string

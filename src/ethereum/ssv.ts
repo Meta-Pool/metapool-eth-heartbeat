@@ -1,6 +1,6 @@
 import ssvAbi from "./abi/ssvAbi.json"
 import { getConfig } from "./config"
-import { EthContract } from "./contracts"
+import { EthContract } from "./ethContracts"
 
 export class SsvContract extends EthContract {
 

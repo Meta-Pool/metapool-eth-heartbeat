@@ -1,7 +1,7 @@
 import { ENV, getEnv } from "../entities/env"
 import liquidityAbi from "./abi/LiquidUnstakePool.json"
 import { EthConfig, getConfig } from "./config"
-import { EthContract } from "./contracts"
+import { EthContract } from "./ethContracts"
 
 export class LiquidityContract extends EthContract {
 

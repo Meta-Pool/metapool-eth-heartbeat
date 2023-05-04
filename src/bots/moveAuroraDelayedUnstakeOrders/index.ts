@@ -19,6 +19,7 @@ export async function checkAuroraDelayedUnstakeOrders(): Promise<boolean> {
             return true
         }
     } catch(err: any) {
+        console.error(err.message)
         const subject = "[ERR] Aurora clean orders queue"
         const body = "There was an error cleaning the aurora's orders queue: " + err.message
         sendEmail(subject, body)
