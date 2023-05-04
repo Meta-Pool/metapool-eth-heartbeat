@@ -6,7 +6,7 @@ import { EthContract } from "./contracts"
 export class StakingManagerContract extends EthContract {
 
     constructor() {
-        super(getConfig().stakingManagerAddress, stakingManagerAbi.abi)
+        super(getConfig("mainnet").stakingManagerAddress, stakingManagerAbi.abi)
     }
 
     nextCleanOrderQueue() {

@@ -128,7 +128,7 @@ export class BareWebServer {
     //method writeFileContents(filename)
     // ---------------------------
     writeFileContents(filename:string, resp:http.ServerResponse, replaceData?:Record<string,any>) {
-        console.log(this.wwwRoot)
+        console.log(1, this.wwwRoot)
         const fullPath = this.findPathAndFilename(filename)
         if (!fullPath) {
             respond_error(404, `FNF:${filename}`, resp)
