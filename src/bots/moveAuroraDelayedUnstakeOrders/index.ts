@@ -12,7 +12,7 @@ export async function checkAuroraDelayedUnstakeOrders(): Promise<boolean> {
         const nextRunTimestampInMs: number = Number(nextRunTimestampInSeconds.toString()) * 1000
         const now = new Date().getTime()
         console.log("Next clean orders queue", new Date(nextRunTimestampInMs))
-        console.log("Time remaining to next run", nextRunTimestampInMs - now, "seconds")
+        console.log("Time remaining to next run", (nextRunTimestampInMs - now) / 1000, "seconds")
         if(now >= nextRunTimestampInMs) {
             console.log("Running clean orders queue")
             await stakingManagerContract.cleanOrdersQueue()

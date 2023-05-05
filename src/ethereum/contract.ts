@@ -31,7 +31,6 @@ export abstract class GenericContract {
     
     getReadableContract() {
         const provider = this.getProvider(this.network, API_KEY)
-        console.log(2, this.network, this.address)
         return new Contract(this.address, this.abi, provider)
     }
     
