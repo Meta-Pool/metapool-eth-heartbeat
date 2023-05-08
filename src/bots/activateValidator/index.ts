@@ -47,7 +47,7 @@ export async function activateValidator(): Promise<boolean> {
         console.log("ETH necessary from liquidity", ethNecesaryFromLiq)
         if(availableBalanceToCreateValidator >= ETH_32) {
             console.log("Creating validator")
-            const node = await getNextNodeToActivateData()
+            const node: Node = await getNextNodeToActivateData()
             console.log("Node", node)
             await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.withdraw)
             wasValidatorCreated = true

@@ -9,11 +9,14 @@ import { LiquidityData, StakingData } from "./contractData";
 import { ethers } from "ethers";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
-import { updateNodesBalance } from "../nodesBalance";
+import { ZEROS_9, updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators } from "../createValidatorAlert";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
+import { WithdrawContract } from "../../ethereum/withdraw";
+import { getValidatorsData } from "../../services/beaconcha/beaconcha";
+import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -28,6 +31,7 @@ let globalStakingData: StakingData
 let globalLiquidityData: LiquidityData
 const stakingContract: StakingContract = new StakingContract()
 const liquidityContract: LiquidityContract = new LiquidityContract()
+const withdrawContract: WithdrawContract = new WithdrawContract()
 
 //time in ms
 const SECONDS = 1000
@@ -51,6 +55,16 @@ export interface PriceData {
     supply: string
 }
 
+export interface BalanceData {
+    dateISO: string
+    balance: string
+}
+
+export interface NodeBalance {
+    validatorIndex: number
+    balanceData: BalanceData[]
+}
+
 export interface PersistentData {
     lastSavedPriceDateISO: string
     beatCount: number
@@ -59,6 +73,13 @@ export interface PersistentData {
     lpPrices: PriceData[]
     mpethPrice: string
     lpPrice: string
+
+    stakingBalance: BalanceData[]
+    withdrawBalance: BalanceData[]
+    liquidityBalance: BalanceData[]
+    liquidityMpEthBalance: BalanceData[]
+    // Key is node pub key
+    nodesBalances: Record<string, BalanceData[]>
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -536,6 +557,78 @@ async function refreshLiquidityData() {
     globalPersistentData.lpPrice = calculateLpPrice().toString()
 }
 
+async function refreshBalances() {
+    const [
+        stakingBalance,
+
+        liquidityBalance,
+        liquidityMpEthBalance,
+
+        withdrawBalance,
+
+        nodesBalances
+    ] = await Promise.all([
+        // Staking balances
+        stakingContract.getWalletBalance(stakingContract.address),
+
+        // Liquidity balances
+        liquidityContract.getWalletBalance(liquidityContract.address),
+        stakingContract.balanceOf(liquidityContract.address),
+
+        // Withdraw balances
+        withdrawContract.getWalletBalance(withdrawContract.address),
+
+        // Nodes balances
+        getValidatorsData()
+    ])
+
+    if(!globalPersistentData.stakingBalance) globalPersistentData.stakingBalance = []
+    if(!globalPersistentData.liquidityBalance) globalPersistentData.liquidityBalance = []
+    if(!globalPersistentData.liquidityMpEthBalance) globalPersistentData.liquidityMpEthBalance = []
+    if(!globalPersistentData.withdrawBalance) globalPersistentData.withdrawBalance = []
+    if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
+
+    const date = new Date().toISOString()
+    globalPersistentData.stakingBalance.push({
+        dateISO: date,
+        balance: stakingBalance.toString()
+    })
+    globalPersistentData.liquidityBalance.push({
+        dateISO: date,
+        balance: liquidityBalance.toString()
+    })
+    globalPersistentData.liquidityMpEthBalance.push({
+        dateISO: date,
+        balance: liquidityMpEthBalance.toString()
+    })
+    globalPersistentData.withdrawBalance.push({
+        dateISO: date,
+        balance: withdrawBalance.toString()
+    })
+    
+
+    // console.log("Nodes balances", globalPersistentData.nodesBalances.has(nodesBalances[0].data.pubkey))
+    nodesBalances.forEach((node: ValidatorDataResponse) => {
+        console.log(1)
+        if(!globalPersistentData.nodesBalances[node.data.pubkey]) {
+            console.log(2)
+            globalPersistentData.nodesBalances[node.data.pubkey] = []
+        }
+        console.log(3)
+        const nodeBalances = globalPersistentData.nodesBalances[node.data.pubkey]!
+        console.log(4)
+        nodeBalances.push({
+            dateISO: date,
+            balance: node.data.balance.toString() + ZEROS_9
+        })
+        console.log(5)
+
+        globalPersistentData.nodesBalances[node.data.pubkey] = nodeBalances
+    })
+
+    
+}
+
 //utility
 async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -546,8 +639,12 @@ function loga(label:string, amount:number){
 }
 
 async function refreshMetrics() {
-    await refreshStakingData()
-    await refreshLiquidityData()
+    await Promise.all([
+        refreshStakingData(),
+        refreshLiquidityData(),
+        refreshBalances(),
+    ])
+    
 }
 
 function divide(a: string, b: string): string {

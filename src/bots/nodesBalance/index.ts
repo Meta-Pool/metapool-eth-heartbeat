@@ -1,9 +1,9 @@
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
-import { BalanceHistory, BalanceHistoryData, getValidatorBalanceHistory, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
+import { BalanceHistoryData, getValidatorBalanceHistory, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
 import { sendEmail } from "../../utils/mailUtils"
 
-const ZEROS_9 = "0".repeat(9)
+export const ZEROS_9 = "0".repeat(9)
 
 /**
  * Updates nodes balance in the contract. Since validators transfer rewards automatically, there might be a 
