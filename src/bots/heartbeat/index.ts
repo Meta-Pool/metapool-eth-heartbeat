@@ -609,19 +609,14 @@ async function refreshBalances() {
 
     // console.log("Nodes balances", globalPersistentData.nodesBalances.has(nodesBalances[0].data.pubkey))
     nodesBalances.forEach((node: ValidatorDataResponse) => {
-        console.log(1)
         if(!globalPersistentData.nodesBalances[node.data.pubkey]) {
-            console.log(2)
             globalPersistentData.nodesBalances[node.data.pubkey] = []
         }
-        console.log(3)
         const nodeBalances = globalPersistentData.nodesBalances[node.data.pubkey]!
-        console.log(4)
         nodeBalances.push({
             dateISO: date,
             balance: node.data.balance.toString() + ZEROS_9
         })
-        console.log(5)
 
         globalPersistentData.nodesBalances[node.data.pubkey] = nodeBalances
     })
