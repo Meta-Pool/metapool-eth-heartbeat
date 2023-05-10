@@ -9,22 +9,17 @@ const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
 
 export class AurContract extends GenericContract {
 
-    // address: string
-    // abi: ethers.InterfaceAbi
-    // network: string
-
     constructor(address: string, abi: ethers.InterfaceAbi, network: string = "goerli") {
         super(address, abi, network)
-        // this.address = addess
-        // this.abi = abi
-        // this.network = network
     }
 
     getProvider(network: string, apiKey: string) {
         switch(network) {
             case 'mainnet':
+                console.log("Getting provider from mainnet")
                 return new ethers.JsonRpcProvider("https://mainnet.aurora.dev")
             case 'goerli':
+                console.log("Getting provider from goerli")
                 return new ethers.AlchemyProvider(
                     network,
                     apiKey

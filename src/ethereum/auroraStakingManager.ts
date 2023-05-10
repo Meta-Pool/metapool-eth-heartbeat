@@ -15,7 +15,7 @@ export class StakingManagerContract extends AurContract {
         return this.getReadableContract().nextCleanOrderQueue()
     }
 
-    cleanOrdersQueue(): Promise<bigint> {
+    cleanOrdersQueue(): Promise<any> {                                
         return this.getWritableContract().cleanOrdersQueue()
     }
 }
