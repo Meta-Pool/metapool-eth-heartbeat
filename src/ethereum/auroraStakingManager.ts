@@ -1,9 +1,9 @@
 import stakingManagerAbi from "./abi/StakingManager.json"
 import { getConfig } from "./config"
 import { AurContract } from "./aurContracts"
+import { ENV, getEnv } from "../entities/env"
 
 export class StakingManagerContract extends AurContract {
-    // auroraProvider:new ethers.providers.JsonRpcProvider("https://mainnet.aurora.dev"),
 
     constructor() {
         // Network is hardcoded here since ETH is not in prod, but Aur is
@@ -12,11 +12,13 @@ export class StakingManagerContract extends AurContract {
     }
 
     nextCleanOrderQueue() {
-        return this.getReadableContract().nextCleanOrderQueue()
+        return this.contract.nextCleanOrderQueue()
     }
 
-    cleanOrdersQueue(): Promise<any> {                                
-        return this.getWritableContract().cleanOrdersQueue()
+    cleanOrdersQueue(): Promise<any> {   
+        // const env: ENV = getEnv()
+        // const pk: string = env.AURORA_ACCOUNT_PRIVATE_KEY as string                             
+        return this.contract.cleanOrdersQueue()
     }
 }
 

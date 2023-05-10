@@ -16,23 +16,23 @@ export class StakingContract extends EthContract {
     }
 
     balanceOf(address: string) {
-        return this.getReadableContract().balanceOf(address)
+        return this.contract.balanceOf(address)
     }
     
     pushToBeacon(node: Node, ethFromLiq: BigInt, withdrawEthAvailableForStaking: BigInt) {
-        return this.getWritableContract().pushToBeacon([node], ethFromLiq, withdrawEthAvailableForStaking)
+        return this.contract.pushToBeacon([node], ethFromLiq, withdrawEthAvailableForStaking)
     }
     
     totalSupply(): Promise<bigint> {
-        return this.getReadableContract().totalSupply()
+        return this.contract.totalSupply()
     }
     
     totalAssets(): Promise<bigint> {
-        return this.getReadableContract().totalAssets()
+        return this.contract.totalAssets()
     }
     
     updateNodesBalance(balance: String) {
-        return this.getWritableContract().updateNodesBalance(balance)
+        return this.contract.updateNodesBalance(balance)
     }
 }
 

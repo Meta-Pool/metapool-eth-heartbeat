@@ -10,7 +10,7 @@ export class WithdrawContract extends EthContract {
     }
 
     pendingWithdraws() {
-        return this.getReadableContract().pendingWithdraws()
+        return this.contract.pendingWithdraws()
     }
     
     async getAvailableStakingBalance(): Promise<bigint> {
@@ -23,7 +23,7 @@ export class WithdrawContract extends EthContract {
     }
 
     ethRemaining(): Promise<bigint> {
-        return this.getReadableContract().ethRemaining()
+        return this.contract.ethRemaining()
     }
 }
 

@@ -8,9 +8,7 @@ import { sendEmail } from "../../utils/mailUtils"
 export async function checkAuroraDelayedUnstakeOrders(): Promise<boolean> {
     try {
         const stakingManagerContract = new StakingManagerContract()
-        const writableContract = stakingManagerContract.getWritableContract()
-        const nextRunTimestampInSeconds: BigInt = await writableContract.nextCleanOrderQueue()
-        // const nextRunTimestampInSeconds: BigInt = await stakingManagerContract.nextCleanOrderQueue()
+        const nextRunTimestampInSeconds: BigInt = await stakingManagerContract.nextCleanOrderQueue()
         const nextRunTimestampInMs: number = Number(nextRunTimestampInSeconds.toString()) * 1000
         const now = new Date().getTime()
         console.log("Next clean orders queue", new Date(nextRunTimestampInMs))
@@ -18,7 +16,7 @@ export async function checkAuroraDelayedUnstakeOrders(): Promise<boolean> {
         if(now >= nextRunTimestampInMs) {
             console.log("Running clean orders queue")
             // const tx = await stakingManagerContract.cleanOrdersQueue()
-            const tx = await writableContract.cleanOrdersQueue()
+            const tx = await stakingManagerContract.cleanOrdersQueue()
             console.log("tx", tx)
             const waitResult = await tx.wait()
             console.log("waitResult", waitResult)

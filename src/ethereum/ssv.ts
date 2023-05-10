@@ -9,15 +9,15 @@ export class SsvContract extends EthContract {
     }
     
     registerValidator(pubkey: string, operatorIds: string, sharesPubKeys: string[], sharesEncrypted: string[], amount: number) {
-        return this.getWritableContract().registerValidator(pubkey, operatorIds.split(",").map(Number), sharesPubKeys, sharesEncrypted, amount)
+        return this.contract.registerValidator(pubkey, operatorIds.split(",").map(Number), sharesPubKeys, sharesEncrypted, amount)
     }
     
     updateValidator(pubkey: string, operatorIds: string, sharesPubKeys: string[], sharesEncrypted: string[], amount: number) {
-        return this.getWritableContract().updateValidator(pubkey, operatorIds.split(",").map(Number), sharesPubKeys, sharesEncrypted, amount)
+        return this.contract.updateValidator(pubkey, operatorIds.split(",").map(Number), sharesPubKeys, sharesEncrypted, amount)
     }
     
     getOperatorsByValidator(address: string): Promise<number[]> {
-        return this.getReadableContract().getOperatorsByValidator(address)
+        return this.contract.getOperatorsByValidator(address)
     }
     
 }

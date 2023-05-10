@@ -11,11 +11,11 @@ export class LiquidityContract extends EthContract {
     }
 
     totalSupply(): Promise<BigInt> {
-        return this.getReadableContract().totalSupply()
+        return this.contract.totalSupply()
     }
     
     totalAssets(): Promise<BigInt> {
-        return this.getReadableContract().totalAssets()
+        return this.contract.totalAssets()
     }
     
 }

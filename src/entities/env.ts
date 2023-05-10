@@ -4,6 +4,7 @@ import path from "path"
 export interface ENV {
     NETWORK: string
     ACCOUNT_PRIVATE_KEY: string;
+    AURORA_ACCOUNT_PRIVATE_KEY: string;
     KEYSTORE_PASSWORD: string;
     MAIL_USER: string;
     MAIL_PASSWD: string
@@ -15,6 +16,7 @@ export function getEnv(): ENV {
     return {
         NETWORK: process.env.NETWORK!,
         ACCOUNT_PRIVATE_KEY: process.env.ACCOUNT_PRIVATE_KEY!,
+        AURORA_ACCOUNT_PRIVATE_KEY: process.env.AURORA_ACCOUNT_PRIVATE_KEY!,
         KEYSTORE_PASSWORD: process.env.KEYSTORE_PASSWORD!,
         MAIL_USER: process.env.MAIL_USER!,
         MAIL_PASSWD: process.env.MAIL_PASSWD!,

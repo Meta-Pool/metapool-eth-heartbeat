@@ -11,11 +11,14 @@ export abstract class GenericContract {
     address: string
     abi: ethers.InterfaceAbi
     network: string
+    contract: Contract
 
-    constructor(addess: string, abi: ethers.InterfaceAbi, network: string = "goerli") {
+    constructor(addess: string, abi: ethers.InterfaceAbi, pk: string, network: string = "goerli") {
         this.address = addess
         this.abi = abi
         this.network = network
+        const wallet = this.getWallet(pk)
+        this.contract = new Contract(this.address, this.abi, wallet)
     }
 
     abstract getProvider(network: string, apiKey: string): Provider;
@@ -29,17 +32,17 @@ export abstract class GenericContract {
         return new ethers.Wallet(privateKey, provider)
     }
     
-    getReadableContract() {
-        const provider = this.getProvider(this.network, API_KEY)
-        return new Contract(this.address, this.abi, provider)
-    }
+    // contract {
+    //     const provider = this.getProvider(this.network, API_KEY)
+    //     return new Contract(this.address, this.abi, provider)
+    // }
     
-    getWritableContract() {
-        const env: ENV = getEnv()
-        const pk: string = env.ACCOUNT_PRIVATE_KEY as string
-        const wallet = this.getWallet(pk)
-        return new Contract(this.address, this.abi, wallet)
-    }
+    // getWritableContract(pk: string) {
+    //     // const env: ENV = getEnv()
+    //     // const pk: string = env.ACCOUNT_PRIVATE_KEY as string
+    //     const wallet = this.getWallet(pk)
+    //     return new Contract(this.address, this.abi, wallet)
+    // }
     
 }
 
