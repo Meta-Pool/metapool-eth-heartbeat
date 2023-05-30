@@ -1,5 +1,5 @@
-import { Contract, ethers } from "ethers";
-import { ENV, getEnv } from "../entities/env";
+import { ethers } from "ethers";
+import { getEnv } from "../entities/env";
 import { GenericContract } from "./contract";
 
 export class EthContract extends GenericContract {

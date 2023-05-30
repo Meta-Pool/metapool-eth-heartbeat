@@ -15,9 +15,9 @@ export interface EthConfig {
 const MAINNET_CONFIG: EthConfig = {
     network: 'mainnet',
     // Ethereum
-    stakingContractAddress: "0x1e3Ad098876d6619f3741D489456Da283891E814",
-    liquidityContractAddress: "0x122975b3E5282d76F6d4F5564cC7b22b836107a1",
-    withdrawContractAddress: "0xda4BbaA32dF0002614fd1155B6e0463a55CB9126",
+    stakingContractAddress: "0xB38694ce9504eC3aB5D2d78c3a3E7bf41Dd1D76a",
+    liquidityContractAddress: "0xE111B9617D5313aD074FdA6CE3F351aB47551783",
+    withdrawContractAddress: "0xc03c4CeE4113d9BAFE899c67FDEB5ebc02184B18",
     ssvContractAddress: "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04",
     validatorOwnerAddress: "0x7d8e91b6C393c02Ef83473E8000b3883e655a761",
     // Aurora
@@ -27,9 +27,9 @@ const MAINNET_CONFIG: EthConfig = {
 const GOERLI_CONFIG: EthConfig = {
     network: 'goerli',
     // Ethereum
-    stakingContractAddress: "0x1e3Ad098876d6619f3741D489456Da283891E814",
-    liquidityContractAddress: "0x122975b3E5282d76F6d4F5564cC7b22b836107a1",
-    withdrawContractAddress: "0xda4BbaA32dF0002614fd1155B6e0463a55CB9126",
+    stakingContractAddress: "0xB38694ce9504eC3aB5D2d78c3a3E7bf41Dd1D76a",
+    liquidityContractAddress: "0xE111B9617D5313aD074FdA6CE3F351aB47551783",
+    withdrawContractAddress: "0xc03c4CeE4113d9BAFE899c67FDEB5ebc02184B18",
     ssvContractAddress: "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04",
     validatorOwnerAddress: "0x7d8e91b6C393c02Ef83473E8000b3883e655a761",
     // Aurora

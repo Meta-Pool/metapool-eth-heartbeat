@@ -796,15 +796,12 @@ function processArgs() {
     for(let i = 2; i < process.argv.length; i++) {
         switch(process.argv[i]) {
             case "--debug":
-                console.log(1)
                 isDebug = true
                 break
             default:
-                console.log(2)
                 throw new Error(`Unknown arg ${process.argv[i]}`)
         }
     }
-    console.log(process.argv.length)
 }
 
 async function run() {

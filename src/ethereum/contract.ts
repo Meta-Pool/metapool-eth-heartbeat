@@ -13,8 +13,8 @@ export abstract class GenericContract {
     network: string
     contract: Contract
 
-    constructor(addess: string, abi: ethers.InterfaceAbi, pk: string, network: string = "goerli") {
-        this.address = addess
+    constructor(address: string, abi: ethers.InterfaceAbi, pk: string, network: string = "goerli") {
+        this.address = address
         this.abi = abi
         this.network = network
         const wallet = this.getWallet(pk)
@@ -31,18 +31,6 @@ export abstract class GenericContract {
         const provider = this.getProvider(this.network, API_KEY)
         return new ethers.Wallet(privateKey, provider)
     }
-    
-    // contract {
-    //     const provider = this.getProvider(this.network, API_KEY)
-    //     return new Contract(this.address, this.abi, provider)
-    // }
-    
-    // getWritableContract(pk: string) {
-    //     // const env: ENV = getEnv()
-    //     // const pk: string = env.ACCOUNT_PRIVATE_KEY as string
-    //     const wallet = this.getWallet(pk)
-    //     return new Contract(this.address, this.abi, wallet)
-    // }
     
 }
 

@@ -1,4 +1,3 @@
-import { ethers } from "ethers"
 import withdrawAbi from "./abi/withdrawAbi.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
