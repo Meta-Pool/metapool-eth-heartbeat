@@ -37,6 +37,13 @@ export type Snapshot = {
     lp_15_day_apy: number
     lp_30_day_apy: number
 
+    stakingBalance: string
+    liquidityEthBalance: string
+    liquidityMpethBalance: string
+    withdrawBalance: string
+    totalPendingWithdraws: string
+    nodesBalances: string
+
     // env_epoch_height: number,
     // prev_epoch_duration_ms: number,
     // contract_account_balance: number,
@@ -159,6 +166,12 @@ export type Snapshot = {
 }
 
 export function fromGlobalState(): Record<string,any> {
+
+    const nodesBalanceSum = Object.keys(globalPersistentData.nodesBalances).reduce((acc: bigint, key: string) => {
+        const balanceArray = globalPersistentData.nodesBalances[key]
+        return acc + BigInt(balanceArray[balanceArray.length - 1].balance)
+    }, 0n)
+
     
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
@@ -171,6 +184,13 @@ export function fromGlobalState(): Record<string,any> {
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
         lp_30_day_apy: computeRollingApy(globalPersistentData.lpPrices, 30),
+
+        stakingBalance: globalPersistentData.stakingBalances[globalPersistentData.stakingBalances.length - 1].balance,
+        liquidityEthBalance: globalPersistentData.liquidityBalances[globalPersistentData.liquidityBalances.length - 1].balance,
+        liquidityMpethBalance: globalPersistentData.liquidityMpEthBalances[globalPersistentData.liquidityMpEthBalances.length - 1].balance,
+        withdrawBalance: globalPersistentData.withdrawBalances[globalPersistentData.withdrawBalances.length - 1].balance,
+        totalPendingWithdraws: globalPersistentData.requestedDelayedUnstakeBalances[globalPersistentData.requestedDelayedUnstakeBalances.length - 1].balance,
+        nodesBalances: nodesBalanceSum.toString(),
         // env_epoch_height: Number(globalContractState.env_epoch_height),
         // prev_epoch_duration_ms: epoch.prev_epoch_duration_ms,
         // contract_account_balance: yton(globalContractState.contract_account_balance),

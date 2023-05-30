@@ -75,12 +75,13 @@ export interface PersistentData {
     mpethPrice: string
     lpPrice: string
 
-    stakingBalance: BalanceData[]
-    withdrawBalance: BalanceData[]
-    liquidityBalance: BalanceData[]
-    liquidityMpEthBalance: BalanceData[]
+    stakingBalances: BalanceData[]
+    withdrawBalances: BalanceData[]
+    liquidityBalances: BalanceData[]
+    liquidityMpEthBalances: BalanceData[]
     // Key is node pub key
     nodesBalances: Record<string, BalanceData[]>
+    requestedDelayedUnstakeBalances: BalanceData[]
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -566,6 +567,7 @@ async function refreshBalances() {
         liquidityMpEthBalance,
 
         withdrawBalance,
+        ethRemaining,
 
         nodesBalances
     ] = await Promise.all([
@@ -578,33 +580,40 @@ async function refreshBalances() {
 
         // Withdraw balances
         withdrawContract.getWalletBalance(withdrawContract.address),
+        withdrawContract.ethRemaining(),
 
         // Nodes balances
         getValidatorsData()
     ])
 
-    if(!globalPersistentData.stakingBalance) globalPersistentData.stakingBalance = []
-    if(!globalPersistentData.liquidityBalance) globalPersistentData.liquidityBalance = []
-    if(!globalPersistentData.liquidityMpEthBalance) globalPersistentData.liquidityMpEthBalance = []
-    if(!globalPersistentData.withdrawBalance) globalPersistentData.withdrawBalance = []
+    if(!globalPersistentData.stakingBalances) globalPersistentData.stakingBalances = []
+    if(!globalPersistentData.liquidityBalances) globalPersistentData.liquidityBalances = []
+    if(!globalPersistentData.liquidityMpEthBalances) globalPersistentData.liquidityMpEthBalances = []
+    if(!globalPersistentData.withdrawBalances) globalPersistentData.withdrawBalances = []
+    if(!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
     if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
 
     const date = new Date().toISOString()
-    globalPersistentData.stakingBalance.push({
+    globalPersistentData.stakingBalances.push({
         dateISO: date,
         balance: stakingBalance.toString()
     })
-    globalPersistentData.liquidityBalance.push({
+    globalPersistentData.liquidityBalances.push({
         dateISO: date,
         balance: liquidityBalance.toString()
     })
-    globalPersistentData.liquidityMpEthBalance.push({
+    globalPersistentData.liquidityMpEthBalances.push({
         dateISO: date,
         balance: liquidityMpEthBalance.toString()
     })
-    globalPersistentData.withdrawBalance.push({
+    globalPersistentData.withdrawBalances.push({
         dateISO: date,
         balance: withdrawBalance.toString()
+    })
+
+    globalPersistentData.requestedDelayedUnstakeBalances.push({
+        dateISO: date,
+        balance: ethRemaining.toString()
     })
     
 
@@ -621,6 +630,8 @@ async function refreshBalances() {
 
         globalPersistentData.nodesBalances[node.data.pubkey] = nodeBalances
     })
+
+
 
     
 }
