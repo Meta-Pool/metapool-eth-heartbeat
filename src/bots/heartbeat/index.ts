@@ -26,6 +26,7 @@ let server80: BareWebServer;
 const MONITORING_PORT = process.argv[2] != "debug" ? 7000 : 7001
 let serverStartedTimestamp: number;
 let executing: boolean = false
+export let isDebug: boolean = false
 let loopsExecuted = 0;
 let globalStakingData: StakingData
 let globalLiquidityData: LiquidityData
@@ -733,6 +734,7 @@ async function beat() {
 }
 
 async function heartLoop() {
+    console.log("Running heartLoop")
     if (executing) {
         console.error("heartLoop, executing=true, missing await")
         return; // in case there's a missing `await`
@@ -779,9 +781,23 @@ async function heartLoop() {
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }
 
+function processArgs() {
+    for(let i = 2; i < process.argv.length; i++) {
+        switch(process.argv[i]) {
+            case "--debug":
+                console.log(1)
+                isDebug = true
+                break
+            default:
+                console.log(2)
+                throw new Error(`Unknown arg ${process.argv[i]}`)
+        }
+    }
+    console.log(process.argv.length)
+}
 
 async function run() {
-
+    processArgs()
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {

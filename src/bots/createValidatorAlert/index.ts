@@ -1,16 +1,37 @@
 import { ENV, getEnv } from '../../entities/env'
-import { getValidatorsData } from '../../services/beaconcha/beaconcha'
+import { ValidatorDataResponse, getValidatorsData } from '../../services/beaconcha/beaconcha'
 import { sendEmail } from '../../utils/mailUtils'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 
 const THRESHOLD: number = 5
 
-const env: ENV = getEnv()
+enum PossibleValidatorStatuses {
+    ACTIVE_ONLINE = "active_online",
+    EXITED = "exited"
+}
+
+function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
+    let qty: { [key: string]: number } = {}
+    
+    Object.values(PossibleValidatorStatuses).forEach((v: string) => {
+        qty[v] = 0
+    })
+
+    validators.forEach((v: ValidatorDataResponse) => {
+        if(!v.data.status) return
+        qty[v.data.status] += 1
+    })
+
+    return qty
+}
 
 export async function alertCreateValidators(shouldSendReport: boolean = false) {
     console.log("Getting validators data")
-    const validatorsData = await getValidatorsData()
-    const activatedValidatorsAmount = validatorsData.length
+    const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
+
+    const validatorsQtyByType = getValidatorsQtyByType(validatorsData)
+    // const activatedValidatorsAmount = validatorsData.length
+    const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
 
     const createdValidatorsAmount = depositData.length
     let mailSubject: string = ""

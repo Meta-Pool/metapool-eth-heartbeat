@@ -16,10 +16,8 @@ export class AurContract extends GenericContract {
     getProvider(network: string, apiKey: string) {
         switch(network) {
             case 'mainnet':
-                console.log("Getting provider from mainnet")
                 return new ethers.JsonRpcProvider("https://mainnet.aurora.dev")
             case 'goerli':
-                console.log("Getting provider from goerli")
                 return new ethers.AlchemyProvider(
                     network,
                     apiKey

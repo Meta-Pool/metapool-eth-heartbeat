@@ -44,7 +44,7 @@ export async function activateValidator(): Promise<boolean> {
         // const ethNecesaryFromLiq = ETH_32 - realStakingBalance > 0 ? ETH_32 - realStakingBalance : BigInt(0)
         const ethNecesaryFromLiq = max(ETH_32 - realStakingBalance, 0n)
         console.log("Available balance to create validators", ethers.formatEther(availableBalanceToCreateValidator))
-        console.log("ETH necessary from liquidity", ethNecesaryFromLiq)
+        console.log("ETH necessary from liquidity", ethers.formatEther(ethNecesaryFromLiq))
         if(availableBalanceToCreateValidator >= ETH_32) {
             console.log("Creating validator")
             const node: Node = await getNextNodeToActivateData()

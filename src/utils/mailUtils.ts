@@ -1,11 +1,18 @@
 import { createTransport, SentMessageInfo } from "nodemailer"
 import { MailOptions } from "nodemailer/lib/json-transport"
 import { ENV, getEnv } from "../entities/env"
+import { isDebug } from "../bots/heartbeat"
 
-const responsibles = [
+const TESTNET_RESPONSIBLES = [
+    "danieljseidler@gmail.com",
+]
+
+const MAINNET_RESPONSIBLES = [
     "danieljseidler@gmail.com",
     "arkuhk@gmail.com"
 ]
+
+const responsibles = isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
 
 export function sendEmail(subject: string, body: string) {
     const env: ENV = getEnv()
