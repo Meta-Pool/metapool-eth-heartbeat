@@ -812,9 +812,7 @@ function processArgs() {
 
 async function run() {
     processArgs()
-
-    await alertDisassembleValidators()
-    return
+    
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {

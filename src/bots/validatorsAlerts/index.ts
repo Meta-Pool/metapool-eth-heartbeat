@@ -61,7 +61,7 @@ export async function alertDeactivateValidators(): Promise<boolean> {
 
     if(balances.ethAvailableForStakingInWithdraw > 0) return false
 
-    const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance) + 1n
+    const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance)
     const neededEth = Number(ethers.formatEther(neededWei.toString()))
     if(neededEth === 0) return false
 
