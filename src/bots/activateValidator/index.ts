@@ -10,18 +10,20 @@ import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max } from "../../utils/numberUtils"
 
-const ETH_32 = ethers.parseEther("32")
+export const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
 const stakingContract: StakingContract = new StakingContract()
 const withdrawContract: WithdrawContract = new WithdrawContract()
 const HOURS_TO_WAIT_BEFORE_REUSING_LIQ_ETH = 6
 
-interface Balances {
+export interface Balances {
     staking: bigint
     liquidity: bigint
     liquidityMpEth: bigint
     liquidityMpEthInEth: bigint
-    withdraw: bigint
+    withdrawBalance: bigint
+    ethAvailableForStakingInWithdraw: bigint
+    totalPendingWithdraw: bigint
 }
 
 export async function activateValidator(): Promise<boolean> {    
@@ -30,7 +32,7 @@ export async function activateValidator(): Promise<boolean> {
     try {
         const balances: Balances = await getBalances()
 
-        const realStakingBalance = balances.staking + balances.withdraw
+        const realStakingBalance = balances.staking + balances.ethAvailableForStakingInWithdraw
 
         if(realStakingBalance === 0n) {
             console.log("There is no balance in staking. Shouldn't create validator")
@@ -49,7 +51,7 @@ export async function activateValidator(): Promise<boolean> {
             console.log("Creating validator")
             const node: Node = await getNextNodeToActivateData()
             console.log("Node", node)
-            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.withdraw)
+            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.ethAvailableForStakingInWithdraw)
             wasValidatorCreated = true
             
             if(!isStakingBalanceEnough) {
@@ -99,13 +101,15 @@ async function getNextNodeToActivateData(): Promise<Node> {
     } 
 }
 
-async function getBalances(): Promise<Balances> {
+export async function getBalances(): Promise<Balances> {
     const config: EthConfig = getConfig()
 
     const stakingBalance = stakingContract.getWalletBalance(config.stakingContractAddress)
     const liqBalance = stakingContract.getWalletBalance(config.liquidityContractAddress)
     const liqMpEthBalance = stakingContract.balanceOf(config.liquidityContractAddress)
+    const withdrawBalance = stakingContract.getWalletBalance(config.withdrawContractAddress)
     const withdrawContractStakingBalance = withdrawContract.ethRemaining()
+    const totalPendingWithdraw = withdrawContract.totalPendingWithdraw()
 
     console.log("Real Staking ETH balance:", ethers.formatEther(await stakingBalance + await withdrawContractStakingBalance))
     console.log("Liquidity ETH balance:", ethers.formatEther(await liqBalance))
@@ -116,6 +120,8 @@ async function getBalances(): Promise<Balances> {
         liquidity: await liqBalance,
         liquidityMpEth: await liqMpEthBalance,
         liquidityMpEthInEth: await convertMpEthToEth(await liqMpEthBalance),
-        withdraw: await withdrawContractStakingBalance
+        withdrawBalance: await withdrawBalance,
+        ethAvailableForStakingInWithdraw: await withdrawContractStakingBalance,
+        totalPendingWithdraw: await totalPendingWithdraw,
     }
 }

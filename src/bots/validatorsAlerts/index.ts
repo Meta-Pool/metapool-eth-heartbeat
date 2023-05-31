@@ -1,7 +1,9 @@
+import { ethers } from 'ethers'
 import { ENV, getEnv } from '../../entities/env'
 import { ValidatorDataResponse, getValidatorsData } from '../../services/beaconcha/beaconcha'
 import { sendEmail } from '../../utils/mailUtils'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
+import { Balances, ETH_32, getBalances } from '../activateValidator'
 
 const THRESHOLD: number = 5
 
@@ -50,6 +52,32 @@ export async function alertCreateValidators(shouldSendReport: boolean = false) {
         mailSubject = "[OK] No need to create new validators"
         mailBody = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
     }
-    if(mailSubject && mailBody) sendEmail(mailSubject, mailBody)
-    
+    if(mailSubject && mailBody) sendEmail(mailSubject, mailBody)   
+}
+
+export async function alertDeactivateValidators(): Promise<boolean> {
+    // TODO validate close to withdraw date
+    const balances: Balances = await getBalances()
+
+    if(balances.ethAvailableForStakingInWithdraw > 0) return false
+
+    const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance) + 1n
+    const neededEth = Number(ethers.formatEther(neededWei.toString()))
+    if(neededEth === 0) return false
+
+    console.log("Calculating validators to disassemble")
+    console.log("Needed eth", neededEth)
+    const validatorsQtyToDisassemble = Math.ceil(neededEth / 32)
+
+    const subject = "[IMPORTANT] Disassemble validators"
+    const body = `
+        Staking balance: ${balances.staking}
+        Withdraw balance: ${balances.withdrawBalance}
+        Total pending withdraw: ${balances.totalPendingWithdraw}
+        Needed ETH: ${neededEth}
+        Validators to disassemble: ${validatorsQtyToDisassemble}
+    `
+
+    sendEmail(subject, body)
+    return true
 }

@@ -11,7 +11,7 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9, updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators } from "../createValidatorAlert";
+import { alertCreateValidators, alertDeactivateValidators as alertDisassembleValidators } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
@@ -567,7 +567,7 @@ async function refreshBalances() {
         liquidityMpEthBalance,
 
         withdrawBalance,
-        ethRemaining,
+        totalPendingWithdraw,
 
         nodesBalances
     ] = await Promise.all([
@@ -580,7 +580,7 @@ async function refreshBalances() {
 
         // Withdraw balances
         withdrawContract.getWalletBalance(withdrawContract.address),
-        withdrawContract.ethRemaining(),
+        withdrawContract.totalPendingWithdraw(),
 
         // Nodes balances
         getValidatorsData()
@@ -613,7 +613,7 @@ async function refreshBalances() {
 
     globalPersistentData.requestedDelayedUnstakeBalances.push({
         dateISO: date,
-        balance: ethRemaining.toString()
+        balance: totalPendingWithdraw.toString()
     })
     
 
@@ -720,7 +720,10 @@ async function beat() {
 
         await updateNodesBalance()
 
-    } // if current date price not set
+        console.log("--Checking if validators should be deactivated")
+        const disassembleValidators = await alertDisassembleValidators()
+        console.log("Should disassemble validators?", disassembleValidators)
+    } // Calls made once a day
 
     // ------------------------------
     // Check if a validator can be activated an do it
@@ -728,12 +731,15 @@ async function beat() {
     console.log("--Checking if a validator can be activated")
     const wasValidatorCreated = await activateValidator()
     console.log("Was validator created?", wasValidatorCreated)
+
     // ------------------------------
     // Check if should alert for creating validators
     // ------------------------------
     console.log("--Checking if validators should be created")
     await alertCreateValidators(isFirstCallOfTheDay || wasValidatorCreated)
 
+
+    // Aurora
     console.log("--Checking if order queue should be moved")
     const wasDelayedUnstakeOrderQueueRun = await checkAuroraDelayedUnstakeOrders()
     console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRun)
@@ -806,6 +812,9 @@ function processArgs() {
 
 async function run() {
     processArgs()
+
+    await alertDisassembleValidators()
+    return
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {

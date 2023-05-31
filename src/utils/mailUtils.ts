@@ -12,14 +12,18 @@ const MAINNET_RESPONSIBLES = [
     "arkuhk@gmail.com"
 ]
 
-const responsibles = isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
+// const responsibles = isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
+
+function getResponsibles() {
+    return isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
+}
 
 export function sendEmail(subject: string, body: string) {
     const env: ENV = getEnv()
 
     const options: MailOptions = {
         from: env.MAIL_USER,
-        cc: responsibles,
+        cc: getResponsibles(),
         subject,
     }
     if(body.includes("<")) {
