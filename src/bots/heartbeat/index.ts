@@ -868,8 +868,6 @@ function processArgs() {
 
 async function run() {
     processArgs()
-    runDailyActionsAndReport()
-    return
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {
