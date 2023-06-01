@@ -11,12 +11,14 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9, updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, alertDeactivateValidators as alertDisassembleValidators } from "../validatorsAlerts";
+import { alertCreateValidators, getDeactivateValidatorsReport as alertDisassembleValidators, getDeactivateValidatorsReport } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
 import { getValidatorsData } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { sendEmail } from "../../utils/mailUtils";
+import { IDailyReportHelper } from "../../entities/emailUtils";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -717,12 +719,10 @@ async function beat() {
         if (globalPersistentData.lpPrices.length > 3 * 365) {
             globalPersistentData.lpPrices.splice(0, 30);
         }
+        await runDailyActionsAndReport()
+        // await updateNodesBalance()
 
-        await updateNodesBalance()
-
-        console.log("--Checking if validators should be deactivated")
-        const disassembleValidators = await alertDisassembleValidators()
-        console.log("Should disassemble validators?", disassembleValidators)
+        
     } // Calls made once a day
 
     // ------------------------------
@@ -748,6 +748,62 @@ async function beat() {
     globalPersistentData.beatCount++;
     saveJSON(globalPersistentData);
 
+}
+
+async function runDailyActionsAndReport() {
+    console.log("Sending daily report")
+    const reportHelpersPromises: Promise<IDailyReportHelper>[] = [
+        updateNodesBalance(),
+        getDeactivateValidatorsReport()
+    ];
+
+    const reports: IDailyReportHelper[] = await Promise.all((await reportHelpersPromises).map((promise: Promise<IDailyReportHelper>, index: number) => {
+        return promise.catch((err: any) => {
+            return {
+                ok: false,
+                function: `Index ${index}`,
+                subject: `Error on index ${index}`,
+                body: `Error running function for daily action and report with index ${index}. ${err.message}`,
+                severity: 2
+            }
+        })
+    }))
+
+    buildDailyReport(reports)    
+}
+
+function buildDailyReport(reports: IDailyReportHelper[]) {
+    const body = reports.reduce((acc: string, curr: IDailyReportHelper) => {
+        return `
+            ${acc}
+            Function: ${curr.function}
+            Report: ${curr.body}
+            ${"-".repeat(100)}
+        `
+    }, "")
+
+    const severity: number = reports.reduce((max: number, currReport: IDailyReportHelper) => Math.max(max, currReport.severity), 0)
+    let subject: string = reports.reduce((acc: string, currReport: IDailyReportHelper) => {
+        if(currReport.ok) {
+            return acc 
+        } else {
+            return acc + " - " + currReport.subject
+        }
+    }, "Daily report")
+
+    switch(severity) {
+        case 0:
+            subject = `[OK] ${subject}`
+            break
+        case 1:
+            subject = `[IMPORTANT] ${subject}`
+            break
+        case 2:
+            subject = `[ERROR] ${subject}`
+            break
+    }
+
+    sendEmail(subject, body)
 }
 
 async function heartLoop() {
@@ -812,7 +868,8 @@ function processArgs() {
 
 async function run() {
     processArgs()
-    
+    runDailyActionsAndReport()
+    return
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {

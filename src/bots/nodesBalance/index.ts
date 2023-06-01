@@ -1,6 +1,7 @@
+import { IDailyReportHelper } from "../../entities/emailUtils"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
-import { BalanceHistoryData, getValidatorBalanceHistory, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
+import { IBalanceHistoryData, getValidatorBalanceHistory, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
 import { sendEmail } from "../../utils/mailUtils"
 
 export const ZEROS_9 = "0".repeat(9)
@@ -9,8 +10,10 @@ export const ZEROS_9 = "0".repeat(9)
  * Updates nodes balance in the contract. Since validators transfer rewards automatically, there might be a 
  * concurrence issue. Hence, we check there was no transfer validating ethRemaining is the same before
  * and after getting the nodesBalance.
+ * @returns An array with 4 values, telling whether has been any error, a sujested topic for an email and a body to append, and the error severity
  */
-export async function updateNodesBalance() {
+export async function updateNodesBalance(): Promise<IDailyReportHelper> {
+    const functionName = "updateNodesBalance"
     console.log("Updating mpeth price")
     let retries = 5
     const withdrawContract: WithdrawContract = new WithdrawContract()
@@ -40,12 +43,26 @@ export async function updateNodesBalance() {
     
         await stakingContract.updateNodesBalance(totalBalanceBigInt)
         console.log("MpEth price updated")
+        return {
+            ok: true, 
+            function: functionName,
+            subject: "", 
+            body: "MpEth price updated successfully", 
+            severity: 0
+        }
     } catch (err: any) {
         console.error(`Error updating mpeth price ${err.message}`)
         
-        const subject = "[ERROR] update nodes balance"
+        const subject = "Update nodes balance"
         const body = err.message
-        sendEmail(subject, body)
+        // sendEmail(subject, body)
+        return {
+            ok: false, 
+            function: functionName,
+            subject, 
+            body, 
+            severity: 2
+        }
     }
 }
 
@@ -66,10 +83,10 @@ export async function checkValidatorsPenalization() {
     console.log("Checking if a validator was penalized")
     const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
 
-    const validatorsBalanceHistory: BalanceHistoryData[][] = await Promise.all(validatorDataArray.map((v: ValidatorDataResponse) => getValidatorBalanceHistory(v.data.pubkey)))
+    const validatorsBalanceHistory: IBalanceHistoryData[][] = await Promise.all(validatorDataArray.map((v: ValidatorDataResponse) => getValidatorBalanceHistory(v.data.pubkey)))
 
     // BalanceHistoryData is ordered so the index 0 has the most recent epoch
-    const penalizedValidators = validatorsBalanceHistory.filter((history: BalanceHistoryData[]) => history[0].balance < history[1].balance)
+    const penalizedValidators = validatorsBalanceHistory.filter((history: IBalanceHistoryData[]) => history[0].balance < history[1].balance)
 
     if(penalizedValidators.length == 0) {
         console.log("There are no validators being penalized")
@@ -80,12 +97,12 @@ export async function checkValidatorsPenalization() {
     
 }
 
-function reportPenalizedValidators(penalizedValidators: BalanceHistoryData[][]) {
+function reportPenalizedValidators(penalizedValidators: IBalanceHistoryData[][]) {
     console.log("There are validators being penalized")
 
         const subject = "[ERROR] Penalized validators"
 
-        const bodyDetails: string[] = penalizedValidators.map((v: BalanceHistoryData[]) => 
+        const bodyDetails: string[] = penalizedValidators.map((v: IBalanceHistoryData[]) => 
         `
             <h3><u>Validator Index: ${v[0].validatorindex}</u></h3>
             

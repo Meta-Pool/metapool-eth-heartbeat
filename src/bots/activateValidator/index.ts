@@ -111,10 +111,6 @@ export async function getBalances(): Promise<Balances> {
     const withdrawContractStakingBalance = withdrawContract.ethRemaining()
     const totalPendingWithdraw = withdrawContract.totalPendingWithdraw()
 
-    console.log("Real Staking ETH balance:", ethers.formatEther(await stakingBalance + await withdrawContractStakingBalance))
-    console.log("Liquidity ETH balance:", ethers.formatEther(await liqBalance))
-    console.log("Liquidity mpETH balance:", ethers.formatEther(await liqMpEthBalance))
-
     return {
         staking: await stakingBalance,
         liquidity: await liqBalance,

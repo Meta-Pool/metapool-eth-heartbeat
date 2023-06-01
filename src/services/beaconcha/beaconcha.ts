@@ -40,10 +40,10 @@ export interface ValidatorData {
 
 export interface BalanceHistory {
     status: string
-    data: BalanceHistoryData[]
+    data: IBalanceHistoryData[]
 }
 
-export interface BalanceHistoryData {
+export interface IBalanceHistoryData {
     balance: number
     effectivebalance: number
     epoch: number
@@ -51,6 +51,35 @@ export interface BalanceHistoryData {
     week: number
     week_start: string
     week_end: string
+}
+
+export interface IEpochResponse {
+    status: string
+    data: IEpochData
+}
+
+export interface IEpochData {
+    attestationscount: number
+    attesterslashingscount: number
+    averagevalidatorbalance: number
+    blockscount: number
+    depositscount: number
+    eligibleether: number
+    epoch: number
+    finalized: boolean
+    globalparticipationrate: number
+    missedblocks: number
+    orphanedblocks: number
+    proposedblocks: number
+    proposerslashingscount: number
+    rewards_exported: boolean
+    scheduledblocks: number
+    totalvalidatorbalance: number
+    ts: string
+    validatorscount: number
+    voluntaryexitscount: number
+    votedether: number
+    withdrawalcount: number
 }
 
 export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
@@ -79,7 +108,16 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
     }
 }
 
-export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<BalanceHistoryData[]> {
+export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistoryData[]> {
     const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
+    return fetch(url).then(r => r.json().then(json => json.data))
+}
+
+/**
+ * 
+ * @param epoch Epoch number, the string latest or the string finalized
+ */
+export function getEpoch(epoch: string): Promise<any> {
+    const url = BASE_URL + "epoch/" + epoch
     return fetch(url).then(r => r.json().then(json => json.data))
 }

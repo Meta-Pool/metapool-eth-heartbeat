@@ -4,6 +4,7 @@ import { ValidatorDataResponse, getValidatorsData } from '../../services/beaconc
 import { sendEmail } from '../../utils/mailUtils'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
+import { IDailyReportHelper } from '../../entities/emailUtils'
 
 const THRESHOLD: number = 5
 
@@ -55,15 +56,40 @@ export async function alertCreateValidators(shouldSendReport: boolean = false) {
     if(mailSubject && mailBody) sendEmail(mailSubject, mailBody)   
 }
 
-export async function alertDeactivateValidators(): Promise<boolean> {
+export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelper> {
+    const functionName = "getDeactivateValidatorsReport"
     // TODO validate close to withdraw date
     const balances: Balances = await getBalances()
 
-    if(balances.ethAvailableForStakingInWithdraw > 0) return false
+    const balancesBody = `
+        Staking balance: ${balances.staking}
+        Withdraw balance: ${balances.withdrawBalance}
+        Total pending withdraw: ${balances.totalPendingWithdraw}
+    `
+
+    if(balances.ethAvailableForStakingInWithdraw > 0) {
+        return {
+            ok: true, 
+            function: functionName,
+            subject: "",
+            body: `Withdraw contract has enough to cover for delayed unstake.
+         ${balancesBody}`,
+            severity: 0
+        }
+    }
 
     const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance)
     const neededEth = Number(ethers.formatEther(neededWei.toString()))
-    if(neededEth === 0) return false
+    if(neededEth === 0) {
+        return {
+            ok: true, 
+            function: functionName,
+            subject: "",
+            body: `Staking and withdraw contracts have enough ETH to cover for delayed unstake.
+            ${balancesBody}`,
+            severity: 0
+        }
+    }
 
     console.log("Calculating validators to disassemble")
     console.log("Needed eth", neededEth)
@@ -71,13 +97,17 @@ export async function alertDeactivateValidators(): Promise<boolean> {
 
     const subject = "[IMPORTANT] Disassemble validators"
     const body = `
-        Staking balance: ${balances.staking}
-        Withdraw balance: ${balances.withdrawBalance}
-        Total pending withdraw: ${balances.totalPendingWithdraw}
+        ${balancesBody}
         Needed ETH: ${neededEth}
         Validators to disassemble: ${validatorsQtyToDisassemble}
     `
 
-    sendEmail(subject, body)
-    return true
+    sendEmail(subject, balancesBody)
+    return {
+        ok: false, 
+        function: functionName,
+        subject,
+        body,
+        severity: 1
+    }
 }
