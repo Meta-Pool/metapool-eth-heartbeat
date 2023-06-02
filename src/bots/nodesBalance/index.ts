@@ -1,4 +1,4 @@
-import { IDailyReportHelper } from "../../entities/emailUtils"
+import { IDailyReportHelper, Severity } from "../../entities/emailUtils"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { IBalanceHistoryData, getValidatorBalanceHistory, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
@@ -48,7 +48,7 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
             function: functionName,
             subject: "", 
             body: "MpEth price updated successfully", 
-            severity: 0
+            severity: Severity.OK
         }
     } catch (err: any) {
         console.error(`Error updating mpeth price ${err.message}`)
@@ -61,7 +61,7 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
             function: functionName,
             subject, 
             body, 
-            severity: 2
+            severity: Severity.ERROR
         }
     }
 }

@@ -63,6 +63,11 @@ export interface BalanceData {
     balance: string
 }
 
+export interface SimpleNumberRecord {
+    dateISO: string
+    number: number
+}
+
 export interface NodeBalance {
     validatorIndex: number
     balanceData: BalanceData[]
@@ -84,6 +89,10 @@ export interface PersistentData {
     // Key is node pub key
     nodesBalances: Record<string, BalanceData[]>
     requestedDelayedUnstakeBalances: BalanceData[]
+
+    stakingTotalSupplies: BalanceData[]
+    liqTotalSupplies: BalanceData[]
+    activeValidators: SimpleNumberRecord[]
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -561,30 +570,34 @@ async function refreshLiquidityData() {
     globalPersistentData.lpPrice = calculateLpPrice().toString()
 }
 
-async function refreshBalances() {
+async function refreshContractData() {
     const [
         stakingBalance,
+        stakingTotalSupply,
 
         liquidityBalance,
         liquidityMpEthBalance,
+        liqTotalSupply,
 
         withdrawBalance,
         totalPendingWithdraw,
 
         nodesBalances
     ] = await Promise.all([
-        // Staking balances
+        // Staking
         stakingContract.getWalletBalance(stakingContract.address),
+        stakingContract.totalSupply(),
 
-        // Liquidity balances
+        // Liquidity
         liquidityContract.getWalletBalance(liquidityContract.address),
         stakingContract.balanceOf(liquidityContract.address),
+        liquidityContract.totalSupply(),
 
-        // Withdraw balances
+        // Withdraw
         withdrawContract.getWalletBalance(withdrawContract.address),
         withdrawContract.totalPendingWithdraw(),
 
-        // Nodes balances
+        // Nodes
         getValidatorsData()
     ])
 
@@ -593,6 +606,10 @@ async function refreshBalances() {
     if(!globalPersistentData.liquidityMpEthBalances) globalPersistentData.liquidityMpEthBalances = []
     if(!globalPersistentData.withdrawBalances) globalPersistentData.withdrawBalances = []
     if(!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
+    if(!globalPersistentData.stakingTotalSupplies) globalPersistentData.stakingTotalSupplies = []
+    if(!globalPersistentData.liqTotalSupplies) globalPersistentData.liqTotalSupplies = []
+    if(!globalPersistentData.activeValidators) globalPersistentData.activeValidators = []
+    
     if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
 
     const date = new Date().toISOString()
@@ -616,6 +633,26 @@ async function refreshBalances() {
     globalPersistentData.requestedDelayedUnstakeBalances.push({
         dateISO: date,
         balance: totalPendingWithdraw.toString()
+    })
+
+    globalPersistentData.stakingTotalSupplies.push({
+        dateISO: date,
+        balance: stakingTotalSupply.toString()
+    })
+
+    globalPersistentData.liqTotalSupplies.push({
+        dateISO: date,
+        balance: liqTotalSupply.toString()
+    })
+    globalPersistentData.activeValidators.push({
+        dateISO: date,
+        number: nodesBalances.reduce((acc: number, curr: ValidatorDataResponse) => {
+            if(curr.data.status === "active" || curr.data.status === "active_offline") {
+                return acc + 1
+            } else {
+                return acc
+            }
+        }, 0)
     })
     
 
@@ -651,7 +688,7 @@ async function refreshMetrics() {
     await Promise.all([
         refreshStakingData(),
         refreshLiquidityData(),
-        refreshBalances(),
+        refreshContractData(),
     ])
     
 }
@@ -860,8 +897,6 @@ function processArgs() {
 
 async function run() {
     processArgs()
-    runDailyActionsAndReport()
-    return
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {
