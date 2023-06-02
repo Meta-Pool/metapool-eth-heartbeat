@@ -29,11 +29,14 @@ export interface Balances {
 export async function activateValidator(): Promise<boolean> {    
     let wasValidatorCreated = false
 
+    
     try {
+        const shouldSaveForDelayedUnstake = false
         const balances: Balances = await getBalances()
-
-        const realStakingBalance = balances.staking + balances.ethAvailableForStakingInWithdraw
-
+        
+        const amountToSaveForDelayedUnstake: bigint = shouldSaveForDelayedUnstake ? balances.totalPendingWithdraw : 0n
+        const realStakingBalance = balances.staking + balances.ethAvailableForStakingInWithdraw - amountToSaveForDelayedUnstake
+        
         if(realStakingBalance === 0n) {
             console.log("There is no balance in staking. Shouldn't create validator")
             return false
