@@ -18,7 +18,7 @@ import { WithdrawContract } from "../../ethereum/withdraw";
 import { getValidatorsData } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
-import { IDailyReportHelper } from "../../entities/emailUtils";
+import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -732,11 +732,10 @@ async function beat() {
     const wasValidatorCreated = await activateValidator()
     console.log("Was validator created?", wasValidatorCreated)
 
-    // ------------------------------
-    // Check if should alert for creating validators
-    // ------------------------------
-    console.log("--Checking if validators should be created")
-    await alertCreateValidators(isFirstCallOfTheDay || wasValidatorCreated)
+    if(wasValidatorCreated) {
+        await alertCreateValidators()
+    }
+    
 
 
     // Aurora
@@ -754,9 +753,11 @@ async function runDailyActionsAndReport() {
     console.log("Sending daily report")
     const reportHelpersPromises: Promise<IDailyReportHelper>[] = [
         updateNodesBalance(),
-        getDeactivateValidatorsReport()
+        getDeactivateValidatorsReport(),
+        alertCreateValidators(),
     ];
-
+    console.log("--Checking if validators should be created")
+    
     const reports: IDailyReportHelper[] = await Promise.all((await reportHelpersPromises).map((promise: Promise<IDailyReportHelper>, index: number) => {
         return promise.catch((err: any) => {
             return {
@@ -776,13 +777,13 @@ function buildDailyReport(reports: IDailyReportHelper[]) {
     const body = reports.reduce((acc: string, curr: IDailyReportHelper) => {
         return `
             ${acc}
+            ${"-".repeat(100)}
             Function: ${curr.function}
             Report: ${curr.body}
-            ${"-".repeat(100)}
         `
-    }, "")
+    }, "https://eth-stats.narwallets.com/metrics_json")
 
-    const severity: number = reports.reduce((max: number, currReport: IDailyReportHelper) => Math.max(max, currReport.severity), 0)
+    const severity: number = reports.reduce((max: number, currReport: IDailyReportHelper) => Math.max(max, currReport.severity), Severity.OK)
     let subject: string = reports.reduce((acc: string, currReport: IDailyReportHelper) => {
         if(currReport.ok) {
             return acc 
@@ -791,17 +792,8 @@ function buildDailyReport(reports: IDailyReportHelper[]) {
         }
     }, "Daily report")
 
-    switch(severity) {
-        case 0:
-            subject = `[OK] ${subject}`
-            break
-        case 1:
-            subject = `[IMPORTANT] ${subject}`
-            break
-        case 2:
-            subject = `[ERROR] ${subject}`
-            break
-    }
+    // Enum[Enum.value] returns the Enum key
+    subject = `[${Severity[severity]}] ${subject}`
 
     sendEmail(subject, body)
 }
@@ -868,6 +860,8 @@ function processArgs() {
 
 async function run() {
     processArgs()
+    runDailyActionsAndReport()
+    return
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {

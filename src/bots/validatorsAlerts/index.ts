@@ -4,7 +4,7 @@ import { ValidatorDataResponse, getValidatorsData } from '../../services/beaconc
 import { sendEmail } from '../../utils/mailUtils'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
-import { IDailyReportHelper } from '../../entities/emailUtils'
+import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
 
 const THRESHOLD: number = 5
 
@@ -28,7 +28,8 @@ function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
     return qty
 }
 
-export async function alertCreateValidators(shouldSendReport: boolean = false) {
+export async function alertCreateValidators(): Promise<IDailyReportHelper> {
+    let output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
     const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
 
@@ -37,23 +38,23 @@ export async function alertCreateValidators(shouldSendReport: boolean = false) {
     const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
 
     const createdValidatorsAmount = depositData.length
-    let mailSubject: string = ""
-    let mailBody: string = ""
     console.log("Should send alert?", createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD)
-    console.log("Should send report?", shouldSendReport)
     if(createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD) {
         // Send alert to create new validators if we have less than threshold
         console.log("Sending email alerting to create new validators")
-        mailSubject = "[ALERT] Create new validators"
-        mailBody = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
-    } else if(shouldSendReport) {
-        // Send daily report
-        console.log("Sending daily report")
-
-        mailSubject = "[OK] No need to create new validators"
-        mailBody = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
-    }
-    if(mailSubject && mailBody) sendEmail(mailSubject, mailBody)   
+        output.ok = false
+        output.subject = "Create new validators"
+        output.body = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
+        output.severity = Severity.IMPORTANT
+        return output
+    } 
+    
+    output.ok = true
+    output.subject = "No need to create new validators"
+    output.body = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
+    output.severity = Severity.OK
+    return output
+    
 }
 
 export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelper> {
