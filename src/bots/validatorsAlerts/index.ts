@@ -5,6 +5,8 @@ import { sendEmail } from '../../utils/mailUtils'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
 import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
+import { WithdrawContract } from '../../ethereum/withdraw'
+import { globalPersistentData } from '../heartbeat'
 
 const THRESHOLD: number = 5
 
@@ -58,37 +60,74 @@ export async function alertCreateValidators(): Promise<IDailyReportHelper> {
 }
 
 export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelper> {
+    const withdrawContract = new WithdrawContract()
+    const currentEpoch = await withdrawContract.getEpoch()
+    if(!globalPersistentData.delayedUnstakeEpoch) {
+        globalPersistentData.delayedUnstakeEpoch = currentEpoch
+    }
     const functionName = "getDeactivateValidatorsReport"
-    // TODO validate close to withdraw date
+    const output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: functionName}
+    console.log(1, currentEpoch, globalPersistentData.delayedUnstakeEpoch)
     const balances: Balances = await getBalances()
 
     const balancesBody = `
-        Staking balance: ${balances.staking}
-        Withdraw balance: ${balances.withdrawBalance}
-        Total pending withdraw: ${balances.totalPendingWithdraw}
+        Staking balance: ${ethers.formatEther(balances.staking)} ETH
+        Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
+        Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
     `
-
-    if(balances.ethAvailableForStakingInWithdraw > 0) {
+    // Epoch hasn't change, so there is nothing to do
+    if(currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
         return {
+            ...output,
             ok: true, 
-            function: functionName,
-            subject: "",
             body: `Withdraw contract has enough to cover for delayed unstake.
          ${balancesBody}`,
-            severity: 0
+            severity: Severity.OK
+        }   
+    }
+
+    // Epoch went backwards. This error should never happen
+    if(currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
+        return {
+            ...output,
+            ok: false, 
+            subject: "Withdrawal epoch backwards", 
+            body: `Withdraw contract went backwards from epoch ${globalPersistentData.delayedUnstakeEpoch} to ${currentEpoch}`,
+            severity: Severity.ERROR
+        }   
+    }
+    // Update epoch
+    const previousEpoch = globalPersistentData.delayedUnstakeEpoch
+    globalPersistentData.delayedUnstakeEpoch = currentEpoch
+
+    const epochInfoBody = `
+        Previous epoch: ${previousEpoch}
+        Current epoch: ${currentEpoch}
+    `
+
+    // Witdraw balance is enough to cover    
+    if(balances.ethAvailableForStakingInWithdraw > 0) {
+        return {
+            ...output,
+            ok: true, 
+            body: `Withdraw contract has enough to cover for delayed unstake.
+         ${balancesBody}
+         ${epochInfoBody}`,
+            severity: Severity.OK
         }
     }
 
     const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance)
     const neededEth = Number(ethers.formatEther(neededWei.toString()))
-    if(neededEth === 0) {
+    // Staking with withdraw are enough to cover
+    if(neededEth <= 0) {
         return {
+            ...output,
             ok: true, 
-            function: functionName,
-            subject: "",
             body: `Staking and withdraw contracts have enough ETH to cover for delayed unstake.
-            ${balancesBody}`,
-            severity: 0
+            ${balancesBody}
+            ${epochInfoBody}`,
+            severity: Severity.OK
         }
     }
 
@@ -99,16 +138,17 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
     const subject = "[IMPORTANT] Disassemble validators"
     const body = `
         ${balancesBody}
+        ${epochInfoBody}
         Needed ETH: ${neededEth}
         Validators to disassemble: ${validatorsQtyToDisassemble}
     `
 
-    sendEmail(subject, balancesBody)
+    // sendEmail(subject, balancesBody)
     return {
+        ...output,
         ok: false, 
-        function: functionName,
         subject,
         body,
-        severity: 1
+        severity: Severity.IMPORTANT
     }
 }

@@ -11,7 +11,7 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9, updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, getDeactivateValidatorsReport as alertDisassembleValidators, getDeactivateValidatorsReport } from "../validatorsAlerts";
+import { alertCreateValidators, getDeactivateValidatorsReport } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
@@ -84,6 +84,7 @@ export interface PersistentData {
     lpPrices: PriceData[]
     mpethPrice: string
     lpPrice: string
+    delayedUnstakeEpoch: number
 
     stakingBalances: BalanceData[]
     withdrawBalances: BalanceData[]
@@ -761,9 +762,11 @@ async function beat() {
         if (globalPersistentData.lpPrices.length > 3 * 365) {
             globalPersistentData.lpPrices.splice(0, 30);
         }
+        if(!globalPersistentData.delayedUnstakeEpoch) {
+            globalPersistentData.delayedUnstakeEpoch = await withdrawContract.getEpoch()
+        }
         await runDailyActionsAndReport()
         // await updateNodesBalance()
-
         
     } // Calls made once a day
 
@@ -916,8 +919,9 @@ function processArgs() {
 
 async function run() {
     processArgs()
-    
     globalPersistentData = loadJSON()
+    await runDailyActionsAndReport()
+    return 
 
     if (process.argv.includes("also-80")) {
         try {

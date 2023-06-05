@@ -30,8 +30,8 @@ export class WithdrawContract extends EthContract {
         return this.contract.totalPendingWithdraw()
     }
 
-    getEpoch(): Promise<bigint> {
-        return this.contract.getEpoch()
+    getEpoch(): Promise<number> {
+        return this.contract.getEpoch().then(e => Number(e))
     }
 
     getEpochTimeLeft(): Promise<bigint> {
