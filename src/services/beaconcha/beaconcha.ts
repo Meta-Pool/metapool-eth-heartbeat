@@ -1,4 +1,5 @@
 import { getConfig } from "../../ethereum/config"
+import { IValidatorProposal } from "./entities"
 
 const BASE_URL = "https://prater.beaconcha.in/api/v1/"
 const VALIDATOR_ID_FINDER_BASE_URL = BASE_URL + "validator/eth1/"
@@ -119,5 +120,10 @@ export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promis
  */
 export function getEpoch(epoch: string): Promise<any> {
     const url = BASE_URL + "epoch/" + epoch
+    return fetch(url).then(r => r.json().then(json => json.data))
+}
+
+export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
+    const url = BASE_URL + `/validator/${validatorIndex}/proposals`
     return fetch(url).then(r => r.json().then(json => json.data))
 }

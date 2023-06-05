@@ -1,3 +1,4 @@
+import { DAYS, SECONDS } from "../bots/heartbeat"
 import withdrawAbi from "./abi/withdrawAbi.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
@@ -11,6 +12,10 @@ export class WithdrawContract extends EthContract {
 
     constructor() {
         super(getConfig().withdrawContractAddress, withdrawAbi.abi)
+    }
+    
+    startTimestamp(): Promise<bigint> {
+        return this.contract.startTimestamp()
     }
 
     pendingWithdraws(address: string): Promise<WithdrawRequest> {
@@ -27,6 +32,10 @@ export class WithdrawContract extends EthContract {
 
     getEpoch(): Promise<bigint> {
         return this.contract.getEpoch()
+    }
+
+    getEpochTimeLeft(): Promise<bigint> {
+        return this.contract.getEpochTimeLeft()
     }
 }
 

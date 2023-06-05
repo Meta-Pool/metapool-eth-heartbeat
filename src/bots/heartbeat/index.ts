@@ -15,10 +15,11 @@ import { alertCreateValidators, getDeactivateValidatorsReport as alertDisassembl
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { getValidatorsData } from "../../services/beaconcha/beaconcha";
+import { getValidatorProposal, getValidatorsData } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
+import { IValidatorProposal } from "../../services/beaconcha/entities";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -35,11 +36,13 @@ let globalLiquidityData: LiquidityData
 const stakingContract: StakingContract = new StakingContract()
 const liquidityContract: LiquidityContract = new LiquidityContract()
 const withdrawContract: WithdrawContract = new WithdrawContract()
+let lastValidatorCheckProposalTimestamp = 0 // ms
 
 //time in ms
-const SECONDS = 1000
-const MINUTES = 60 * SECONDS
-const HOURS = 60 * MINUTES
+export const SECONDS = 1000
+export const MINUTES = 60 * SECONDS
+export const HOURS = 60 * MINUTES
+export const DAYS = 24 * HOURS
 const INTERVAL = 5 * MINUTES
 
 const TotalCalls = {
@@ -88,11 +91,13 @@ export interface PersistentData {
     liquidityMpEthBalances: BalanceData[]
     // Key is node pub key
     nodesBalances: Record<string, BalanceData[]>
+    validatorsLatestProposal: {[validatorIndex: number]: number}
     requestedDelayedUnstakeBalances: BalanceData[]
 
     stakingTotalSupplies: BalanceData[]
     liqTotalSupplies: BalanceData[]
     activeValidators: SimpleNumberRecord[]
+
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -762,6 +767,20 @@ async function beat() {
         
     } // Calls made once a day
 
+    if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * HOURS) {
+        if(!globalPersistentData.validatorsLatestProposal) globalPersistentData.validatorsLatestProposal = {}
+        lastValidatorCheckProposalTimestamp = Date.now()
+        const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
+        validatorsData.map(async (v: ValidatorDataResponse) => {
+            const index = v.data.validatorindex
+            if(!index) return
+            const proposalData: IValidatorProposal = await getValidatorProposal(index)
+            if(proposalData.data && proposalData.data.length > 0) {
+                globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
+            }
+        })
+    } // Calls made every 6 hours
+
     // ------------------------------
     // Check if a validator can be activated an do it
     // ------------------------------
@@ -897,6 +916,7 @@ function processArgs() {
 
 async function run() {
     processArgs()
+    
     globalPersistentData = loadJSON()
 
     if (process.argv.includes("also-80")) {

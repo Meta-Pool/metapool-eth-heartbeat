@@ -66,7 +66,7 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
     }
 }
 
-async function getNodesBalance(): Promise<string> {
+export async function getNodesBalance(): Promise<string> {
     const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
 
     const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)

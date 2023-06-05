@@ -9,6 +9,7 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max } from "../../utils/numberUtils"
+import { DAYS, HOURS, SECONDS } from "../heartbeat"
 
 export const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
@@ -31,13 +32,13 @@ export async function activateValidator(): Promise<boolean> {
 
     
     try {
-        const shouldSaveForDelayedUnstake = false
+        const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
+        const shouldSaveForDelayedUnstake = Number(secondsUntilNextEpoch.toString()) * SECONDS < 2 * DAYS
         const balances: Balances = await getBalances()
         
         const amountToSaveForDelayedUnstake: bigint = shouldSaveForDelayedUnstake ? balances.totalPendingWithdraw : 0n
         const realStakingBalance = balances.staking + balances.ethAvailableForStakingInWithdraw - amountToSaveForDelayedUnstake
-        
-        if(realStakingBalance === 0n) {
+        if(realStakingBalance <= 0n) {
             console.log("There is no balance in staking. Shouldn't create validator")
             return false
         }
