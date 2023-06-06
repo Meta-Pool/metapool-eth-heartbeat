@@ -8,7 +8,7 @@ import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
-import { max } from "../../utils/numberUtils"
+import { max, min } from "../../utils/numberUtils"
 import { DAYS, HOURS, SECONDS } from "../heartbeat"
 
 export const ETH_32 = ethers.parseEther("32")
@@ -37,13 +37,14 @@ export async function activateValidator(): Promise<boolean> {
         const balances: Balances = await getBalances()
         
         const amountToSaveForDelayedUnstake: bigint = shouldSaveForDelayedUnstake ? balances.totalPendingWithdraw : 0n
-        const realStakingBalance = balances.staking + balances.ethAvailableForStakingInWithdraw - amountToSaveForDelayedUnstake
-        if(realStakingBalance <= 0n) {
-            console.log("There is no balance in staking. Shouldn't create validator")
+        const realStakingBalance = balances.staking + balances.withdrawBalance - amountToSaveForDelayedUnstake
+        if(realStakingBalance < 0n) {
+            console.log("There is no balance to cover for delayed unstakes. Shouldn't create validator")
             return false
         }
-        // const availableLiqEth = balances.liquidity - balances.liquidityMpEthInEth > 0 ? balances.liquidity - balances.liquidityMpEthInEth : BigInt(0)
-        const availableLiqEth = max(balances.liquidity - balances.liquidityMpEthInEth, 0n)
+        
+        const maxLiqEthAvailable = max(balances.liquidity - ETH_32, 0n)
+        const availableLiqEth = max(0n, min(balances.liquidity - balances.liquidityMpEthInEth, maxLiqEthAvailable))
         
         const isStakingBalanceEnough = realStakingBalance > ETH_32
         const availableBalanceToCreateValidator = await canUseLiqEth() ? realStakingBalance + availableLiqEth : realStakingBalance 
