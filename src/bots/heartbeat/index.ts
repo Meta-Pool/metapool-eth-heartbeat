@@ -458,7 +458,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
                 for (const key in snap) {
                     let value = snap[key as keyof snapshot.Snapshot]
                     if (value == null || value == undefined) { value = 0 }
-                    resp.write(`metapool_${key} ${value}\n`)
+                    resp.write(`metapool_eth_${key} ${value}\n`)
                 }
                 resp.end()
                 return true;
