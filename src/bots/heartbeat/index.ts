@@ -578,6 +578,7 @@ async function refreshStakingData() {
     }
 
     globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
+    if(isDebug) console.log("Staking data refreshed")
 }
 
 async function refreshLiquidityData() {
@@ -590,6 +591,7 @@ async function refreshLiquidityData() {
     }
 
     globalPersistentData.lpPrice = calculateLpPrice().toString()
+    if(isDebug) console.log("Liq data refreshed")
 }
 
 async function refreshContractData() {
@@ -621,20 +623,7 @@ async function refreshContractData() {
 
         // Nodes
         getValidatorsData()
-    ])
-
-    if(!globalPersistentData.stakingBalances) globalPersistentData.stakingBalances = []
-    if(!globalPersistentData.liquidityBalances) globalPersistentData.liquidityBalances = []
-    if(!globalPersistentData.liquidityMpEthBalances) globalPersistentData.liquidityMpEthBalances = []
-    if(!globalPersistentData.withdrawBalances) globalPersistentData.withdrawBalances = []
-    if(!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
-    if(!globalPersistentData.stakingTotalSupplies) globalPersistentData.stakingTotalSupplies = []
-    if(!globalPersistentData.liqTotalSupplies) globalPersistentData.liqTotalSupplies = []
-    if(!globalPersistentData.historicalActiveValidators) globalPersistentData.historicalActiveValidators = []
-    
-    if(!globalPersistentData.historicalNodesBalances) globalPersistentData.historicalNodesBalances = {}
-
-    // const date = new Date().toISOString()
+    ])   
     globalPersistentData.stakingBalance = stakingBalance.toString()
     globalPersistentData.liqBalance = liquidityBalance.toString()
     globalPersistentData.liqMpEthBalance = liquidityMpEthBalance.toString()
@@ -649,13 +638,12 @@ async function refreshContractData() {
             return acc
         }
     }, 0)
-    console.log(2, "Active:", globalPersistentData.activeValidators)
-
-    // console.log("Nodes balances", globalPersistentData.nodesBalances.has(nodesBalances[0].data.pubkey))
+    
+    if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
     nodesBalances.forEach((node: ValidatorDataResponse) => {
         globalPersistentData.nodesBalances[node.data.pubkey] = node.data.balance.toString() + ZEROS_9
     })
-    
+    if(isDebug) console.log("Contract data refreshed")
 }
 
 //utility
@@ -676,12 +664,122 @@ async function refreshMetrics() {
     
 }
 
-async function beat() {
+async function initializeUninitializedGlobalData() {
+    if (!globalPersistentData.lpPrices) {
+        globalPersistentData.lpPrices = []
+    }
+    if (!globalPersistentData.mpEthPrices) {
+        globalPersistentData.mpEthPrices = []
+    }
+    if(!globalPersistentData.delayedUnstakeEpoch) {
+        globalPersistentData.delayedUnstakeEpoch = await withdrawContract.getEpoch()
+    }
+    if(!globalPersistentData.validatorsLatestProposal) {
+        globalPersistentData.validatorsLatestProposal = {}
+    }
 
+    if(!globalPersistentData.stakingBalances) globalPersistentData.stakingBalances = []
+    if(!globalPersistentData.liquidityBalances) globalPersistentData.liquidityBalances = []
+    if(!globalPersistentData.liquidityMpEthBalances) globalPersistentData.liquidityMpEthBalances = []
+    if(!globalPersistentData.withdrawBalances) globalPersistentData.withdrawBalances = []
+    if(!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
+    if(!globalPersistentData.stakingTotalSupplies) globalPersistentData.stakingTotalSupplies = []
+    if(!globalPersistentData.liqTotalSupplies) globalPersistentData.liqTotalSupplies = []
+    if(!globalPersistentData.historicalActiveValidators) globalPersistentData.historicalActiveValidators = []
+    
+    if(!globalPersistentData.historicalNodesBalances) globalPersistentData.historicalNodesBalances = {}
+
+    if(isDebug) console.log("Global state initialized successfully")
+}
+
+function updateGlobalData(currentDateISO: string) {
+    globalPersistentData.lpPrices.push({
+        dateISO: currentDateISO,
+        // price: globalContractState.nslp_share_price,
+        price: calculateLpPrice().toString(),
+        assets: globalLiquidityData.totalAssets.toString(),
+        supply: globalLiquidityData.totalSupply.toString(),
+    });
+    
+    globalPersistentData.mpEthPrices.push({
+        dateISO: currentDateISO,
+        price: calculateMpEthPrice().toString(),
+        assets: globalStakingData.totalAssets.toString(),
+        supply: globalStakingData.totalSupply.toString(),
+    });
+    
+    globalPersistentData.stakingBalances.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.stakingBalance
+    })
+    globalPersistentData.liquidityBalances.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.liqBalance
+    })
+    globalPersistentData.liquidityMpEthBalances.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.liqMpEthBalance
+    })
+    globalPersistentData.withdrawBalances.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.withdrawBalance
+    })
+    globalPersistentData.requestedDelayedUnstakeBalances.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.requestedDelayedUnstakeBalance
+    })
+    globalPersistentData.stakingTotalSupplies.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.stakingTotalSupply
+    })
+    
+    globalPersistentData.liqTotalSupplies.push({
+        dateISO: currentDateISO,
+        balance: globalPersistentData.liqTotalSupply
+    })
+    globalPersistentData.historicalActiveValidators.push({
+        dateISO: currentDateISO,
+        number: globalPersistentData.activeValidators
+    })
+    
+    Object.keys(globalPersistentData.nodesBalances).forEach((pubKey: string) => {
+        if(!globalPersistentData.historicalNodesBalances[pubKey]) globalPersistentData.historicalNodesBalances[pubKey] = []
+        globalPersistentData.historicalNodesBalances[pubKey].push({
+            dateISO: currentDateISO,
+            balance: globalPersistentData.nodesBalances[pubKey]    
+        })
+    });
+
+    if(isDebug) console.log("Global data refreshed successfully")
+}
+
+function trucateLongGlobalArrays() {
+    if (globalPersistentData.mpEthPrices.length > 3 * 365) {
+        globalPersistentData.mpEthPrices.splice(0, 30);
+    }
+    if (globalPersistentData.lpPrices.length > 3 * 365) {
+        globalPersistentData.lpPrices.splice(0, 30);
+    }
+}
+
+async function registerValidatorsProposals() {
+    lastValidatorCheckProposalTimestamp = Date.now()
+    const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
+    validatorsData.map(async (v: ValidatorDataResponse) => {
+        const index = v.data.validatorindex
+        if(!index) return
+        const proposalData: IValidatorProposal = await getValidatorProposal(index)
+        if(proposalData.data && proposalData.data.length > 0) {
+            globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
+        }
+    })
+}
+
+async function beat() {
     TotalCalls.beats++;
     console.log("-".repeat(80))
     console.log(new Date().toString());
-    console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount})`);
+    console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount ?? 0})`);
 
     //refresh contract state
     console.log("Refresh metrics")
@@ -694,52 +792,15 @@ async function beat() {
     if (isFirstCallOfTheDay) {
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
 
-        if (!globalPersistentData.lpPrices) {
-            globalPersistentData.lpPrices = []
-        }
-        globalPersistentData.lpPrices.push({
-            dateISO: currentDateISO,
-            // price: globalContractState.nslp_share_price,
-            price: calculateLpPrice().toString(),
-            assets: globalLiquidityData.totalAssets.toString(),
-            supply: globalLiquidityData.totalSupply.toString(),
-        });
-        if (!globalPersistentData.mpEthPrices) {
-            globalPersistentData.mpEthPrices = []
-        }
-        globalPersistentData.mpEthPrices.push({
-            dateISO: currentDateISO,
-            price: calculateMpEthPrice().toString(),
-            assets: globalStakingData.totalAssets.toString(),
-            supply: globalStakingData.totalSupply.toString(),
-        });
-
-        if (globalPersistentData.mpEthPrices.length > 3 * 365) {
-            globalPersistentData.mpEthPrices.splice(0, 30);
-        }
-        if (globalPersistentData.lpPrices.length > 3 * 365) {
-            globalPersistentData.lpPrices.splice(0, 30);
-        }
-        if(!globalPersistentData.delayedUnstakeEpoch) {
-            globalPersistentData.delayedUnstakeEpoch = await withdrawContract.getEpoch()
-        }
-        await runDailyActionsAndReport()
-        // await updateNodesBalance()
+        await initializeUninitializedGlobalData()
+        updateGlobalData(currentDateISO)
+        trucateLongGlobalArrays()       
         
+        await runDailyActionsAndReport()
     } // Calls made once a day
 
     if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * HOURS) {
-        if(!globalPersistentData.validatorsLatestProposal) globalPersistentData.validatorsLatestProposal = {}
-        lastValidatorCheckProposalTimestamp = Date.now()
-        const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
-        validatorsData.map(async (v: ValidatorDataResponse) => {
-            const index = v.data.validatorindex
-            if(!index) return
-            const proposalData: IValidatorProposal = await getValidatorProposal(index)
-            if(proposalData.data && proposalData.data.length > 0) {
-                globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
-            }
-        })
+        await registerValidatorsProposals()
     } // Calls made every 6 hours
 
     // ------------------------------
@@ -752,8 +813,6 @@ async function beat() {
     if(wasValidatorCreated) {
         await alertCreateValidators()
     }
-    
-
 
     // Aurora
     console.log("--Checking if order queue should be moved")
@@ -826,9 +885,9 @@ async function heartLoop() {
         executing = true;
         await beat();
     }
-    catch (ex) {
-        console.log("ERR", JSON.stringify(ex))
+    catch (ex: any) {
         console.error("ERR", JSON.stringify(ex))
+        console.error("ERR", ex.message)
     }
     finally {
         executing = false;
@@ -878,8 +937,8 @@ function processArgs() {
 
 async function run() {
     processArgs()
+
     globalPersistentData = loadJSON()
-    
 
     if (process.argv.includes("also-80")) {
         try {
