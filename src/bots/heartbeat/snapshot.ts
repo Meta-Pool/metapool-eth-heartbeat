@@ -171,8 +171,8 @@ export type Snapshot = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    const nodesBalanceSum = Object.keys(globalPersistentData.nodesBalances).reduce((acc: bigint, key: string) => {
-        const balanceArray = globalPersistentData.nodesBalances[key]
+    const nodesBalanceSum = Object.keys(globalPersistentData.historicalNodesBalances).reduce((acc: bigint, key: string) => {
+        const balanceArray = globalPersistentData.historicalNodesBalances[key]
         return acc + BigInt(balanceArray[balanceArray.length - 1].balance)
     }, 0n)
 
@@ -189,16 +189,16 @@ export function fromGlobalState(): Record<string,any> {
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
         lp_30_day_apy: computeRollingApy(globalPersistentData.lpPrices, 30),
 
-        stakingBalance: globalPersistentData.stakingBalances[globalPersistentData.stakingBalances.length - 1].balance,
-        liquidityEthBalance: globalPersistentData.liquidityBalances[globalPersistentData.liquidityBalances.length - 1].balance,
-        liquidityMpethBalance: globalPersistentData.liquidityMpEthBalances[globalPersistentData.liquidityMpEthBalances.length - 1].balance,
-        withdrawBalance: globalPersistentData.withdrawBalances[globalPersistentData.withdrawBalances.length - 1].balance,
-        totalPendingWithdraws: globalPersistentData.requestedDelayedUnstakeBalances[globalPersistentData.requestedDelayedUnstakeBalances.length - 1].balance,
+        stakingBalance: globalPersistentData.stakingBalance,
+        liquidityEthBalance: globalPersistentData.liqBalance,
+        liquidityMpethBalance: globalPersistentData.liqMpEthBalance,
+        withdrawBalance: globalPersistentData.withdrawBalance,
+        totalPendingWithdraws: globalPersistentData.requestedDelayedUnstakeBalance,
         nodesBalances: nodesBalanceSum.toString(),
 
-        stakingTotalSupply: globalPersistentData.stakingTotalSupplies[globalPersistentData.stakingTotalSupplies.length - 1].balance,
-        liqTotalSupply: globalPersistentData.liqTotalSupplies[globalPersistentData.stakingTotalSupplies.length - 1].balance,
-        activatedValidators: globalPersistentData.activeValidators[globalPersistentData.activeValidators.length - 1].number
+        stakingTotalSupply: globalPersistentData.stakingTotalSupply,
+        liqTotalSupply: globalPersistentData.liqTotalSupply,
+        activatedValidators: globalPersistentData.activeValidators
 
     }
 

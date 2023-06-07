@@ -1,3 +1,4 @@
+import { isDebug } from "../../bots/heartbeat"
 import { getConfig } from "../../ethereum/config"
 import { IValidatorProposal } from "./entities"
 
@@ -124,6 +125,7 @@ export function getEpoch(epoch: string): Promise<any> {
 }
 
 export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
-    const url = BASE_URL + `/validator/${validatorIndex}/proposals`
-    return fetch(url).then(r => r.json().then(json => json.data))
+    const url = BASE_URL + `validator/${validatorIndex}/proposals`
+    if(isDebug) console.log("Validator proposal url", url)
+    return fetch(url).then(r => r.json())
 }

@@ -67,7 +67,6 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
     }
     const functionName = "getDeactivateValidatorsReport"
     const output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: functionName}
-    console.log(1, currentEpoch, globalPersistentData.delayedUnstakeEpoch)
     const balances: Balances = await getBalances()
 
     const balancesBody = `

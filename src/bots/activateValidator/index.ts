@@ -29,7 +29,6 @@ export interface Balances {
 
 export async function activateValidator(): Promise<boolean> {    
     let wasValidatorCreated = false
-
     
     try {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()

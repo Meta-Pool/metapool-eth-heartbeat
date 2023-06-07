@@ -20,19 +20,21 @@ import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
 import { IValidatorProposal } from "../../services/beaconcha/entities";
+import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
+import { divide } from "../../utils/mathUtils";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
 let server: BareWebServer;
 let server80: BareWebServer;
-const MONITORING_PORT = process.argv[2] != "debug" ? 7000 : 7001
+let MONITORING_PORT = 7000
 let serverStartedTimestamp: number;
 let executing: boolean = false
 export let isDebug: boolean = false
 let loopsExecuted = 0;
-let globalStakingData: StakingData
-let globalLiquidityData: LiquidityData
+export let globalStakingData: StakingData
+export let globalLiquidityData: LiquidityData
 const stakingContract: StakingContract = new StakingContract()
 const liquidityContract: LiquidityContract = new LiquidityContract()
 const withdrawContract: WithdrawContract = new WithdrawContract()
@@ -77,27 +79,41 @@ export interface NodeBalance {
 }
 
 export interface PersistentData {
+    // Time data
     lastSavedPriceDateISO: string
     beatCount: number
     timestamp: number
+    delayedUnstakeEpoch: number
+
+    // Price data
     mpEthPrices: PriceData[]
     lpPrices: PriceData[]
     mpethPrice: string
     lpPrice: string
-    delayedUnstakeEpoch: number
 
+    // Historical data
     stakingBalances: BalanceData[]
+    stakingTotalSupplies: BalanceData[]
     withdrawBalances: BalanceData[]
     liquidityBalances: BalanceData[]
     liquidityMpEthBalances: BalanceData[]
-    // Key is node pub key
-    nodesBalances: Record<string, BalanceData[]>
-    validatorsLatestProposal: {[validatorIndex: number]: number}
-    requestedDelayedUnstakeBalances: BalanceData[]
-
-    stakingTotalSupplies: BalanceData[]
     liqTotalSupplies: BalanceData[]
-    activeValidators: SimpleNumberRecord[]
+    historicalNodesBalances: Record<string, BalanceData[]> // Key is node pub key
+    requestedDelayedUnstakeBalances: BalanceData[]
+    historicalActiveValidators: SimpleNumberRecord[]
+    
+    // Current data
+    stakingBalance: string
+    stakingTotalSupply: string
+    liqBalance: string
+    liqMpEthBalance: string
+    liqTotalSupply: string
+    withdrawBalance: string
+    requestedDelayedUnstakeBalance: string
+    activeValidators: number
+    nodesBalances: Record<string, string> // Key is node pub key
+    validatorsLatestProposal: {[validatorIndex: number]: number}
+
 
 }
 
@@ -614,70 +630,31 @@ async function refreshContractData() {
     if(!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
     if(!globalPersistentData.stakingTotalSupplies) globalPersistentData.stakingTotalSupplies = []
     if(!globalPersistentData.liqTotalSupplies) globalPersistentData.liqTotalSupplies = []
-    if(!globalPersistentData.activeValidators) globalPersistentData.activeValidators = []
+    if(!globalPersistentData.historicalActiveValidators) globalPersistentData.historicalActiveValidators = []
     
-    if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
+    if(!globalPersistentData.historicalNodesBalances) globalPersistentData.historicalNodesBalances = {}
 
-    const date = new Date().toISOString()
-    globalPersistentData.stakingBalances.push({
-        dateISO: date,
-        balance: stakingBalance.toString()
-    })
-    globalPersistentData.liquidityBalances.push({
-        dateISO: date,
-        balance: liquidityBalance.toString()
-    })
-    globalPersistentData.liquidityMpEthBalances.push({
-        dateISO: date,
-        balance: liquidityMpEthBalance.toString()
-    })
-    globalPersistentData.withdrawBalances.push({
-        dateISO: date,
-        balance: withdrawBalance.toString()
-    })
-
-    globalPersistentData.requestedDelayedUnstakeBalances.push({
-        dateISO: date,
-        balance: totalPendingWithdraw.toString()
-    })
-
-    globalPersistentData.stakingTotalSupplies.push({
-        dateISO: date,
-        balance: stakingTotalSupply.toString()
-    })
-
-    globalPersistentData.liqTotalSupplies.push({
-        dateISO: date,
-        balance: liqTotalSupply.toString()
-    })
-    globalPersistentData.activeValidators.push({
-        dateISO: date,
-        number: nodesBalances.reduce((acc: number, curr: ValidatorDataResponse) => {
-            if(curr.data.status === "active" || curr.data.status === "active_offline") {
-                return acc + 1
-            } else {
-                return acc
-            }
-        }, 0)
-    })
-    
+    // const date = new Date().toISOString()
+    globalPersistentData.stakingBalance = stakingBalance.toString()
+    globalPersistentData.liqBalance = liquidityBalance.toString()
+    globalPersistentData.liqMpEthBalance = liquidityMpEthBalance.toString()
+    globalPersistentData.withdrawBalance = withdrawBalance.toString()
+    globalPersistentData.requestedDelayedUnstakeBalance = totalPendingWithdraw.toString()
+    globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
+    globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
+    globalPersistentData.activeValidators = nodesBalances.reduce((acc: number, curr: ValidatorDataResponse) => {
+        if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
+            return acc + 1
+        } else {
+            return acc
+        }
+    }, 0)
+    console.log(2, "Active:", globalPersistentData.activeValidators)
 
     // console.log("Nodes balances", globalPersistentData.nodesBalances.has(nodesBalances[0].data.pubkey))
     nodesBalances.forEach((node: ValidatorDataResponse) => {
-        if(!globalPersistentData.nodesBalances[node.data.pubkey]) {
-            globalPersistentData.nodesBalances[node.data.pubkey] = []
-        }
-        const nodeBalances = globalPersistentData.nodesBalances[node.data.pubkey]!
-        nodeBalances.push({
-            dateISO: date,
-            balance: node.data.balance.toString() + ZEROS_9
-        })
-
-        globalPersistentData.nodesBalances[node.data.pubkey] = nodeBalances
+        globalPersistentData.nodesBalances[node.data.pubkey] = node.data.balance.toString() + ZEROS_9
     })
-
-
-
     
 }
 
@@ -699,24 +676,6 @@ async function refreshMetrics() {
     
 }
 
-function divide(a: string, b: string): string {
-    return (Number(a) / Number(b)).toString()
-}
-
-function calculateLpPrice(): BigInt {
-    if(globalLiquidityData.totalSupply == 0n) return ethers.parseEther("1")
-    return ethers.parseEther(divide(globalLiquidityData.totalAssets.toString(), globalLiquidityData.totalSupply.toString()))
-}
-
-function calculateMpEthPrice(): BigInt {
-    if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
-
-    const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
-    const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
-
-    return ethers.parseEther(divide(totalAssets, totalSupply))
-}
-
 async function beat() {
 
     TotalCalls.beats++;
@@ -732,7 +691,6 @@ async function beat() {
     // keep record of stNEAR & LP price to compute APY%
     const currentDateISO = new Date().toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
-    console.log(globalPersistentData.lastSavedPriceDateISO, currentDateISO, isFirstCallOfTheDay)
     if (isFirstCallOfTheDay) {
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
 
@@ -910,6 +868,7 @@ function processArgs() {
         switch(process.argv[i]) {
             case "--debug":
                 isDebug = true
+                MONITORING_PORT = 7001
                 break
             default:
                 throw new Error(`Unknown arg ${process.argv[i]}`)
