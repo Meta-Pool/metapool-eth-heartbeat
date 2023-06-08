@@ -1,7 +1,9 @@
+import { ethers } from "ethers"
 import { isDebug } from "../bots/heartbeat"
 import stakingAbi from "./abi/Staking.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
+import { LiquidityContract } from "./liquidity"
 
 export interface Node {
     pubkey: string
@@ -22,7 +24,7 @@ export class StakingContract extends EthContract {
     
     pushToBeacon(node: Node, ethFromLiq: BigInt, withdrawEthAvailableForStaking: BigInt) {
         if(isDebug) console.log("Activating node. ethFromLiq", ethFromLiq, "ethFromWith", withdrawEthAvailableForStaking)
-        return this.contract.pushToBeacon([node], ethFromLiq, withdrawEthAvailableForStaking)
+        return this.contract.pushToBeacon([node], ethFromLiq, withdrawEthAvailableForStaking).catch(this.decodeError)
     }
     
     totalSupply(): Promise<bigint> {

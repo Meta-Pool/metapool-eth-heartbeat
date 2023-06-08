@@ -1,4 +1,3 @@
-import { DAYS, SECONDS } from "../bots/heartbeat"
 import withdrawAbi from "./abi/withdrawAbi.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"

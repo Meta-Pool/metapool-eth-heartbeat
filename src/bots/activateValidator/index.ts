@@ -38,7 +38,7 @@ export async function activateValidator(): Promise<boolean> {
         const balances: Balances = await getBalances()
         
         const amountToSaveForDelayedUnstake: bigint = shouldSaveForDelayedUnstake ? balances.totalPendingWithdraw : 0n
-        const realStakingBalance = balances.staking + balances.withdrawBalance - amountToSaveForDelayedUnstake
+        const realStakingBalance = balances.staking + balances.ethAvailableForStakingInWithdraw - amountToSaveForDelayedUnstake
         if(realStakingBalance < 0n) {
             console.log("There is no balance to cover for delayed unstakes. Shouldn't create validator")
             return false
@@ -57,7 +57,7 @@ export async function activateValidator(): Promise<boolean> {
             console.log("Creating validator")
             const node: Node = await getNextNodeToActivateData()
             console.log("Node", node)
-            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.withdrawBalance)
+            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.ethAvailableForStakingInWithdraw)
             wasValidatorCreated = true
             
             if(!isStakingBalanceEnough) {
@@ -67,7 +67,7 @@ export async function activateValidator(): Promise<boolean> {
             console.log(`Not enough balance. ${ethers.formatEther(ETH_32 - balances.staking)} ETH needed`)
         }
     } catch(err: any) {
-        console.error("There was a problem activating a validator " + err.message)
+        console.error("There was a problem activating a validator", err.message)
         const subject = "[ERROR] Activating validator"
         const body = "Error: " + err.message 
         sendEmail(subject, body)
@@ -115,7 +115,7 @@ export async function getBalances(): Promise<Balances> {
     const liqBalance = stakingContract.getWalletBalance(config.liquidityContractAddress)
     const liqMpEthBalance = stakingContract.balanceOf(config.liquidityContractAddress)
     const withdrawBalance = stakingContract.getWalletBalance(config.withdrawContractAddress)
-    const withdrawContractStakingBalance = stakingContract.balanceOf(config.withdrawContractAddress)
+    const withdrawContractStakingBalance = withdrawContract.ethRemaining()
     const totalPendingWithdraw = withdrawContract.totalPendingWithdraw()
 
     return {
