@@ -1,3 +1,5 @@
+import { IBalanceHistoryData, ValidatorDataResponse } from "./beaconcha"
+
 export interface IValidatorProposal {
     data: IValidatorProposalStatus[]
     status: string
@@ -40,4 +42,14 @@ export interface IValidatorProposalStatus {
     syncaggregate_participation: number,
     syncaggregate_signature: string,
     voluntaryexitscount: number
+}
+
+export interface IBeaconChainHeartBeatData {
+    validatorsData: ValidatorDataResponse[]
+    validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
+}
+
+export const EMPTY_BEACON_CHAIN_DATA: IBeaconChainHeartBeatData = {
+    validatorsData: [],
+    validatorsBalanceHistory: {}
 }

@@ -47,6 +47,8 @@ export type Snapshot = {
     stakingTotalSupply: string
     liqTotalSupply: string
     activatedValidators: number
+    createdValidatorsLeft: number
+    timeRemainingToFinishEpoch: string
 
     // env_epoch_height: number,
     // prev_epoch_duration_ms: number,
@@ -198,7 +200,9 @@ export function fromGlobalState(): Record<string,any> {
 
         stakingTotalSupply: globalPersistentData.stakingTotalSupply,
         liqTotalSupply: globalPersistentData.liqTotalSupply,
-        activatedValidators: globalPersistentData.activeValidators
+        activatedValidators: globalPersistentData.activeValidators,
+        createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
+        timeRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishEpoch,
 
     }
 

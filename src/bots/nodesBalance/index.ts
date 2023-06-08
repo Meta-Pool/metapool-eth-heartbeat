@@ -1,7 +1,8 @@
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
-import { IBalanceHistoryData, getValidatorBalanceHistory, getValidatorsData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
+import { IBalanceHistoryData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
+import { beaconChainData } from "../../services/beaconcha/beaconchaHelper"
 import { sendEmail } from "../../utils/mailUtils"
 
 export const ZEROS_9 = "0".repeat(9)
@@ -24,7 +25,7 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
     try {
         let finishingEthRemaining: bigint = await withdrawContract.ethRemaining()
 
-        while(retries > 0 && initialEthRemaining !== finishingEthRemaining) {
+        while (retries > 0 && initialEthRemaining !== finishingEthRemaining) {
             retries--
             initialEthRemaining = finishingEthRemaining
 
@@ -32,47 +33,47 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
             finishingEthRemaining = await withdrawContract.ethRemaining()
         }
 
-        if(initialEthRemaining !== finishingEthRemaining && retries === 0) {
+        if (initialEthRemaining !== finishingEthRemaining && retries === 0) {
             throw new Error(`Error getting nodes balances. Eth remaining changed after 5 retries`)
         }
 
-        if(initialEthRemaining === -1n || totalBalanceBigInt === "-1") {
+        if (initialEthRemaining === -1n || totalBalanceBigInt === "-1") {
             throw new Error(`Unexpected value after getting nodes balance. initialEthRemaining: ${initialEthRemaining}. totalBalanceBigInt: ${totalBalanceBigInt}`)
-        }    
+        }
 
-    
+
         await stakingContract.updateNodesBalance(totalBalanceBigInt)
         console.log("MpEth price updated")
         return {
-            ok: true, 
+            ok: true,
             function: functionName,
-            subject: "", 
-            body: "MpEth price updated successfully", 
+            subject: "",
+            body: "MpEth price updated successfully",
             severity: Severity.OK
         }
     } catch (err: any) {
         console.error(`Error updating mpeth price ${err.message}`)
-        
+
         const subject = "Update nodes balance"
         const body = err.message
         // sendEmail(subject, body)
         return {
-            ok: false, 
+            ok: false,
             function: functionName,
-            subject, 
-            body, 
+            subject,
+            body,
             severity: Severity.ERROR
         }
     }
 }
 
 export async function getNodesBalance(): Promise<string> {
-    const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
+    const validatorDataArray: ValidatorDataResponse[] = beaconChainData.validatorsData
 
     const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
     console.log("Validators balances", balances)
     const totalBalance = balances.reduce((p: number, c: number) => p + c, 0)
-    
+
     // Total balance comes with 9 decimals, so we add 9 zeros
     const totalBalanceBigInt: string = totalBalance.toString() + ZEROS_9
     console.log("Total balance", totalBalanceBigInt)
@@ -81,42 +82,43 @@ export async function getNodesBalance(): Promise<string> {
 
 export async function checkValidatorsPenalization() {
     console.log("Checking if a validator was penalized")
-    const validatorDataArray: ValidatorDataResponse[] = await getValidatorsData()
+    // const validatorDataArray: ValidatorDataResponse[] = beaconChainData.validatorsData
 
-    const validatorsBalanceHistory: IBalanceHistoryData[][] = await Promise.all(validatorDataArray.map((v: ValidatorDataResponse) => getValidatorBalanceHistory(v.data.pubkey)))
+    // const validatorsBalanceHistory: IBalanceHistoryData[][] = await Promise.all(validatorDataArray.map((v: ValidatorDataResponse) => getValidatorBalanceHistory(v.data.pubkey)))
+    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsBalanceHistory
 
     // BalanceHistoryData is ordered so the index 0 has the most recent epoch
-    const penalizedValidators = validatorsBalanceHistory.filter((history: IBalanceHistoryData[]) => history[0].balance < history[1].balance)
+    const penalizedValidatorsKeys: string[] = Object.keys(validatorsBalanceHistory).filter((key: string) => validatorsBalanceHistory[key][0].balance < validatorsBalanceHistory[key][1].balance)
 
-    if(penalizedValidators.length == 0) {
+    if (penalizedValidatorsKeys.length == 0) {
         console.log("There are no validators being penalized")
     } else {
-        reportPenalizedValidators(penalizedValidators)
+        reportPenalizedValidators(penalizedValidatorsKeys)
     }
-    
-    
 }
 
-function reportPenalizedValidators(penalizedValidators: IBalanceHistoryData[][]) {
+function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
     console.log("There are validators being penalized")
+    const balancesHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsBalanceHistory
 
-        const subject = "[ERROR] Penalized validators"
+    const subject = "[ERROR] Penalized validators"
 
-        const bodyDetails: string[] = penalizedValidators.map((v: IBalanceHistoryData[]) => 
-        `
+    const bodyDetails: string[] = penalizedValidatorsKeys.map((k: string) => {
+        const v: IBalanceHistoryData[] = balancesHistory[k]
+        return `
             <h3><u>Validator Index: ${v[0].validatorindex}</u></h3>
             
             <div>Epoch ${v[0].epoch} - Balance: ${v[0].balance}</div>
             <div>Epoch ${v[1].epoch} - Balance: ${v[1].balance}</div>
             <div>Lost wei: <span style="color:red">${v[1].balance - v[0].balance}</span></div>
-        `)
+        `})
 
-        const body = 
+    const body =
         `
-            <h2>There are ${penalizedValidators.length} validators being penalized.</h2>
+            <h2>There are ${penalizedValidatorsKeys.length} validators being penalized.</h2>
 
             <div>${bodyDetails.join("\n")}</div>
         `
 
-        sendEmail(subject, body)
+    sendEmail(subject, body)
 }

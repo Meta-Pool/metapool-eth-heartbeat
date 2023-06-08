@@ -1,6 +1,5 @@
 import { ethers } from "ethers"
 import { existsSync, readFileSync, writeFileSync } from "fs"
-import { getValidatorsData } from "../../services/beaconcha/beaconcha"
 import { Node, StakingContract } from "../../ethereum/stakingContract"
 import depositData from "../../validator_data/deposit_data-1677016004.json"
 import { EthConfig, getConfig } from "../../ethereum/config"
@@ -9,7 +8,9 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min } from "../../utils/numberUtils"
-import { DAYS, HOURS, SECONDS } from "../heartbeat"
+import { DAYS, HOURS, SECONDS, globalPersistentData } from "../heartbeat"
+import { sLeftToTimeLeft } from "../../utils/timeUtils"
+import { beaconChainData } from "../../services/beaconcha/beaconchaHelper"
 
 export const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
@@ -32,6 +33,7 @@ export async function activateValidator(): Promise<boolean> {
     
     try {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
+        globalPersistentData.timeRemainingToFinishEpoch = sLeftToTimeLeft(secondsUntilNextEpoch)
         const shouldSaveForDelayedUnstake = Number(secondsUntilNextEpoch.toString()) * SECONDS < 2 * DAYS
         const balances: Balances = await getBalances()
         
@@ -55,7 +57,7 @@ export async function activateValidator(): Promise<boolean> {
             console.log("Creating validator")
             const node: Node = await getNextNodeToActivateData()
             console.log("Node", node)
-            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.ethAvailableForStakingInWithdraw)
+            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, balances.withdrawBalance)
             wasValidatorCreated = true
             
             if(!isStakingBalanceEnough) {
@@ -87,7 +89,8 @@ async function canUseLiqEth(): Promise<boolean> {
 }
 
 async function getValidatorToActivate(): Promise<any> {
-    const validatorsDataResponse: ValidatorDataResponse[] = await getValidatorsData()
+    // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
+    const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
     return depositData.find((depData: any) => {
         return validatorsDataResponse.every((v: ValidatorDataResponse) => {
             return v.data.pubkey !== `0x${depData.pubkey}`
@@ -112,7 +115,7 @@ export async function getBalances(): Promise<Balances> {
     const liqBalance = stakingContract.getWalletBalance(config.liquidityContractAddress)
     const liqMpEthBalance = stakingContract.balanceOf(config.liquidityContractAddress)
     const withdrawBalance = stakingContract.getWalletBalance(config.withdrawContractAddress)
-    const withdrawContractStakingBalance = withdrawContract.ethRemaining()
+    const withdrawContractStakingBalance = stakingContract.balanceOf(config.withdrawContractAddress)
     const totalPendingWithdraw = withdrawContract.totalPendingWithdraw()
 
     return {

@@ -6,7 +6,6 @@ import * as os from 'os';
 import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
 import { LiquidityData, StakingData } from "./contractData";
-import { ethers } from "ethers";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9, updateNodesBalance } from "../nodesBalance";
@@ -15,13 +14,13 @@ import { alertCreateValidators, getDeactivateValidatorsReport } from "../validat
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { getValidatorProposal, getValidatorsData } from "../../services/beaconcha/beaconcha";
+import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
 import { IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
-import { divide } from "../../utils/mathUtils";
+import { beaconChainData, setBeaconchaData as refreshBeaconChainData } from "../../services/beaconcha/beaconchaHelper";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -111,9 +110,10 @@ export interface PersistentData {
     withdrawBalance: string
     requestedDelayedUnstakeBalance: string
     activeValidators: number
+    createdValidatorsLeft: number
     nodesBalances: Record<string, string> // Key is node pub key
     validatorsLatestProposal: {[validatorIndex: number]: number}
-
+    timeRemainingToFinishEpoch: string
 
 }
 
@@ -606,7 +606,7 @@ async function refreshContractData() {
         withdrawBalance,
         totalPendingWithdraw,
 
-        nodesBalances
+        // nodesBalances
     ] = await Promise.all([
         // Staking
         stakingContract.getWalletBalance(stakingContract.address),
@@ -622,7 +622,7 @@ async function refreshContractData() {
         withdrawContract.totalPendingWithdraw(),
 
         // Nodes
-        getValidatorsData()
+        // getValidatorsData()
     ])   
     globalPersistentData.stakingBalance = stakingBalance.toString()
     globalPersistentData.liqBalance = liquidityBalance.toString()
@@ -631,7 +631,7 @@ async function refreshContractData() {
     globalPersistentData.requestedDelayedUnstakeBalance = totalPendingWithdraw.toString()
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
-    globalPersistentData.activeValidators = nodesBalances.reduce((acc: number, curr: ValidatorDataResponse) => {
+    globalPersistentData.activeValidators = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
         if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
             return acc + 1
         } else {
@@ -640,7 +640,7 @@ async function refreshContractData() {
     }, 0)
     
     if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
-    nodesBalances.forEach((node: ValidatorDataResponse) => {
+    beaconChainData.validatorsData.forEach((node: ValidatorDataResponse) => {
         globalPersistentData.nodesBalances[node.data.pubkey] = node.data.balance.toString() + ZEROS_9
     })
     if(isDebug) console.log("Contract data refreshed")
@@ -764,10 +764,10 @@ function trucateLongGlobalArrays() {
 
 async function registerValidatorsProposals() {
     lastValidatorCheckProposalTimestamp = Date.now()
-    const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
+    const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
     validatorsData.map(async (v: ValidatorDataResponse) => {
         const index = v.data.validatorindex
-        if(!index) return
+        if(!index || v.data.status !== "active_online") return
         const proposalData: IValidatorProposal = await getValidatorProposal(index)
         if(proposalData.data && proposalData.data.length > 0) {
             globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
@@ -785,6 +785,11 @@ async function beat() {
     console.log("Refresh metrics")
     await refreshMetrics();
     console.log("Metrics refreshed successfully")
+
+    // Refresh beaconcha data
+    console.log("Refresh Beacon Chain data")
+    await refreshBeaconChainData()
+    console.log("Beacon Chain data refreshed successfully")
 
     // keep record of stNEAR & LP price to compute APY%
     const currentDateISO = new Date().toISOString().slice(0, 10)
@@ -939,7 +944,6 @@ async function run() {
     processArgs()
 
     globalPersistentData = loadJSON()
-
     if (process.argv.includes("also-80")) {
         try {
             server80 = new BareWebServer('public_html', appHandler, 80) // also start one on port 80 to be able to grab stats from a PHP script in narwallets.com
@@ -955,4 +959,4 @@ async function run() {
     await heartLoop();
 }
 
-run().catch((reason: any) => console.error("Main err", JSON.stringify(reason)));
+run().catch((reason: any) => console.error("Main err", reason.message));

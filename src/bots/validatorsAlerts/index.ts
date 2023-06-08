@@ -1,17 +1,18 @@
 import { ethers } from 'ethers'
-import { ENV, getEnv } from '../../entities/env'
-import { ValidatorDataResponse, getValidatorsData } from '../../services/beaconcha/beaconcha'
-import { sendEmail } from '../../utils/mailUtils'
+import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
-import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
+import { EMPTY_DAILY_REPORT as EMPTY_MAIL_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
 import { globalPersistentData } from '../heartbeat'
+import { saveJSON } from '../heartbeat/save-load-JSON'
+import { beaconChainData } from '../../services/beaconcha/beaconchaHelper'
 
 const THRESHOLD: number = 5
 
 enum PossibleValidatorStatuses {
     ACTIVE_ONLINE = "active_online",
+    ACTIVE_OFFLINE = "active_offline",
     EXITED = "exited"
 }
 
@@ -31,29 +32,39 @@ function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
 }
 
 export async function alertCreateValidators(): Promise<IDailyReportHelper> {
-    let output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: "alertCreateValidators"}
+    let output: IDailyReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
-    const validatorsData: ValidatorDataResponse[] = await getValidatorsData()
+    const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
 
     const validatorsQtyByType = getValidatorsQtyByType(validatorsData)
-    // const activatedValidatorsAmount = validatorsData.length
-    const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
+    const activatedValidatorsAmount = validatorsData.length
+    // const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
 
     const createdValidatorsAmount = depositData.length
-    console.log("Should send alert?", createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD)
-    if(createdValidatorsAmount - activatedValidatorsAmount <= THRESHOLD) {
+    const validatorsToActivateLeft = createdValidatorsAmount - activatedValidatorsAmount
+    globalPersistentData.createdValidatorsLeft = validatorsToActivateLeft
+    saveJSON(globalPersistentData)
+    output.body = `
+            Created validators: ${createdValidatorsAmount}. 
+            Activated validators: ${activatedValidatorsAmount}. 
+            Validators left to activate: ${validatorsToActivateLeft}.
+            ${Object.keys(validatorsQtyByType).map((type: string) => `${type.toUpperCase()}: ${validatorsQtyByType[type]}.`)
+                .join("\n            ")}
+        `
+
+    console.log("Should send alert?", validatorsToActivateLeft <= THRESHOLD)
+    if(validatorsToActivateLeft <= THRESHOLD) {
         // Send alert to create new validators if we have less than threshold
         console.log("Sending email alerting to create new validators")
         output.ok = false
         output.subject = "Create new validators"
-        output.body = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
+        output.body = `CREATE NEW VALIDATORS ${output.body}`
         output.severity = Severity.IMPORTANT
         return output
     } 
     
     output.ok = true
     output.subject = "No need to create new validators"
-    output.body = `There are ${createdValidatorsAmount} created validators and ${activatedValidatorsAmount} activated validators. There are ${createdValidatorsAmount - activatedValidatorsAmount} validators to activate left`
     output.severity = Severity.OK
     return output
     
@@ -66,7 +77,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         globalPersistentData.delayedUnstakeEpoch = currentEpoch
     }
     const functionName = "getDeactivateValidatorsReport"
-    const output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: functionName}
+    const output: IDailyReportHelper = {...EMPTY_MAIL_REPORT, function: functionName}
     const balances: Balances = await getBalances()
 
     const balancesBody = `
