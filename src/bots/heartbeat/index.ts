@@ -21,6 +21,7 @@ import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
 import { IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { beaconChainData, setBeaconchaData as refreshBeaconChainData } from "../../services/beaconcha/beaconchaHelper";
+import { alertCheckProfit } from "../profitChecker";
 
 export let globalPersistentData: PersistentData
 const NETWORK = getEnv().NETWORK
@@ -836,6 +837,7 @@ async function runDailyActionsAndReport() {
         updateNodesBalance(),
         getDeactivateValidatorsReport(),
         alertCreateValidators(),
+        alertCheckProfit()
     ];
     console.log("--Checking if validators should be created")
     

@@ -2,7 +2,7 @@ import { ethers } from 'ethers'
 import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
-import { EMPTY_DAILY_REPORT as EMPTY_MAIL_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
+import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
 import { globalPersistentData } from '../heartbeat'
 import { saveJSON } from '../heartbeat/save-load-JSON'
@@ -32,7 +32,7 @@ function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
 }
 
 export async function alertCreateValidators(): Promise<IDailyReportHelper> {
-    let output: IDailyReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
+    let output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
     const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
 
@@ -77,7 +77,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         globalPersistentData.delayedUnstakeEpoch = currentEpoch
     }
     const functionName = "getDeactivateValidatorsReport"
-    const output: IDailyReportHelper = {...EMPTY_MAIL_REPORT, function: functionName}
+    const output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: functionName}
     const balances: Balances = await getBalances()
 
     const balancesBody = `
