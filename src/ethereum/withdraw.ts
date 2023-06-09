@@ -21,9 +21,9 @@ export class WithdrawContract extends EthContract {
         return this.contract.pendingWithdraws(address)
     }
 
-    ethRemaining(): Promise<bigint> {
-        return this.contract.ethRemaining()
-    }
+    // ethRemaining(): Promise<bigint> {
+    //     return this.contract.ethRemaining()
+    // }
 
     totalPendingWithdraw(): Promise<bigint> {
         return this.contract.totalPendingWithdraw()
@@ -35,10 +35,6 @@ export class WithdrawContract extends EthContract {
 
     getEpochTimeLeft(): Promise<bigint> {
         return this.contract.getEpochTimeLeft()
-    }
-
-    getAvailableEthForValidator(): Promise<bigint> {
-        return this.contract.getAvailableEthForValidator()
     }
 }
 

@@ -4,6 +4,7 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { IBalanceHistoryData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
 import { beaconChainData } from "../../services/beaconcha/beaconchaHelper"
 import { sendEmail } from "../../utils/mailUtils"
+import { globalPersistentData } from "../heartbeat"
 
 export const ZEROS_9 = "0".repeat(9)
 
@@ -23,14 +24,17 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
     let totalBalanceBigInt: string = "-1"
 
     try {
-        let finishingEthRemaining: bigint = await withdrawContract.ethRemaining()
+        // let finishingEthRemaining: bigint = await withdrawContract.ethRemaining()
+        let finishingEthRemaining: bigint = BigInt(globalPersistentData.withdrawAvailableEthForValidators)
 
         while (retries > 0 && initialEthRemaining !== finishingEthRemaining) {
             retries--
             initialEthRemaining = finishingEthRemaining
 
             totalBalanceBigInt = await getNodesBalance()
-            finishingEthRemaining = await withdrawContract.ethRemaining()
+            const withdrawBalance = await withdrawContract.getWalletBalance(withdrawContract.address)
+            const totalPendingWithdraw = await withdrawContract.totalPendingWithdraw()
+            finishingEthRemaining = withdrawBalance - totalPendingWithdraw
         }
 
         if (initialEthRemaining !== finishingEthRemaining && retries === 0) {

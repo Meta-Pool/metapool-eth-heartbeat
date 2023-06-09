@@ -116,7 +116,8 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
     `
 
     // Witdraw balance is enough to cover    
-    if(balances.withdrawAvailableEthForValidators > 0) {
+    const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw
+    if(withdrawAvailableEthForValidators > 0) {
         return {
             ...output,
             ok: true, 

@@ -110,6 +110,7 @@ export interface PersistentData {
     liqTotalSupply: string
     withdrawBalance: string
     requestedDelayedUnstakeBalance: string
+    withdrawAvailableEthForValidators: string
     activeValidators: number
     createdValidatorsLeft: number
     nodesBalances: Record<string, string> // Key is node pub key
@@ -630,6 +631,7 @@ async function refreshContractData() {
     globalPersistentData.liqMpEthBalance = liquidityMpEthBalance.toString()
     globalPersistentData.withdrawBalance = withdrawBalance.toString()
     globalPersistentData.requestedDelayedUnstakeBalance = totalPendingWithdraw.toString()
+    globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
     globalPersistentData.activeValidators = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {

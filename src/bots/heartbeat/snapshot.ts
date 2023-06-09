@@ -4,16 +4,16 @@ import { globalPersistentData, PriceData } from "./index"
 //---------------------------------------------------
 //check for pending work in the SC and turn the crank
 //---------------------------------------------------
-function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number): number {
+function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, defaultApy: number = 0): number {
 
-    if (!priceArray) return 0;
+    if (!priceArray) return defaultApy;
     // check how many prices
     const l = priceArray.length
-    if (deltaDays >= l) return 0;
+    if (deltaDays >= l) return defaultApy;
     //get both prices
     const currentPrice = priceArray[l - 1].price
     const priceAtStart = priceArray[l - 1 - deltaDays].price
-    if (!priceAtStart || !currentPrice) return 0;
+    if (!priceAtStart || !currentPrice) return defaultApy;
 
     const curPrice = BigInt(currentPrice)
     const projectedInAYear = curPrice + (
@@ -182,10 +182,10 @@ export function fromGlobalState(): Record<string,any> {
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
-        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3),
-        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7),
-        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15),
-        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30),
+        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, 10),
+        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, 10),
+        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, 10),
+        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, 10),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
