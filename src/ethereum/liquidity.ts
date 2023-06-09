@@ -18,6 +18,9 @@ export class LiquidityContract extends EthContract {
         return this.contract.totalAssets()
     }
     
+    getAvailableEthForValidator(): Promise<bigint> {
+        return this.contract.getAvailableEthForValidator()
+    }
 }
 
 

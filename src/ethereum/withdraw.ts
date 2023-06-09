@@ -36,6 +36,10 @@ export class WithdrawContract extends EthContract {
     getEpochTimeLeft(): Promise<bigint> {
         return this.contract.getEpochTimeLeft()
     }
+
+    getAvailableEthForValidator(): Promise<bigint> {
+        return this.contract.getAvailableEthForValidator()
+    }
 }
 
 
