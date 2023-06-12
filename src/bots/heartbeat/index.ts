@@ -35,9 +35,9 @@ export let isDebug: boolean = false
 let loopsExecuted = 0;
 export let globalStakingData: StakingData
 export let globalLiquidityData: LiquidityData
-const stakingContract: StakingContract = new StakingContract()
-const liquidityContract: LiquidityContract = new LiquidityContract()
-const withdrawContract: WithdrawContract = new WithdrawContract()
+export const stakingContract: StakingContract = new StakingContract()
+export const liquidityContract: LiquidityContract = new LiquidityContract()
+export const withdrawContract: WithdrawContract = new WithdrawContract()
 let lastValidatorCheckProposalTimestamp = 0 // ms
 
 //time in ms
@@ -948,6 +948,7 @@ async function run() {
     processArgs()
 
     globalPersistentData = loadJSON()
+
     if (process.argv.includes("also-80")) {
         try {
             server80 = new BareWebServer('public_html', appHandler, 80) // also start one on port 80 to be able to grab stats from a PHP script in narwallets.com

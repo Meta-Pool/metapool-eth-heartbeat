@@ -36,7 +36,11 @@ export class StakingContract extends EthContract {
     }
     
     updateNodesBalance(balance: String) {
-        return this.contract.updateNodesBalance(balance)
+        return this.contract.updateNodesBalance(balance).catch(this.decodeError)
+    }
+
+    requestEthFromLiquidPoolToWithdrawal(amount: bigint) {
+        return this.contract.requestEthFromLiquidPoolToWithdrawal(amount).catch(this.decodeError)
     }
 }
 

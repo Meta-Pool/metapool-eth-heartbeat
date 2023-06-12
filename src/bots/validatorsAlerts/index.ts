@@ -4,7 +4,7 @@ import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
 import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
-import { globalPersistentData } from '../heartbeat'
+import { globalPersistentData, stakingContract } from '../heartbeat'
 import { saveJSON } from '../heartbeat/save-load-JSON'
 import { beaconChainData } from '../../services/beaconcha/beaconchaHelper'
 
@@ -83,6 +83,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
     const balancesBody = `
         Staking balance: ${ethers.formatEther(balances.staking)} ETH
         Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
+        Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
         Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
     `
     // Epoch hasn't change, so there is nothing to do
@@ -90,7 +91,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         return {
             ...output,
             ok: true, 
-            body: `Withdraw contract has enough to cover for delayed unstake.
+            body: `Epoch hasn't changed so there is nothing to do
          ${balancesBody}`,
             severity: Severity.OK
         }   
@@ -114,9 +115,8 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         Previous epoch: ${previousEpoch}
         Current epoch: ${currentEpoch}
     `
-
-    // Witdraw balance is enough to cover    
-    const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw
+        
+    const withdrawAvailableEthForValidators = /*balances.withdrawBalance*/ - balances.totalPendingWithdraw
     if(withdrawAvailableEthForValidators > 0) {
         return {
             ...output,
@@ -126,11 +126,10 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
          ${epochInfoBody}`,
             severity: Severity.OK
         }
-    }
+    } // Check if withdraw balance is enough to cover
 
-    const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance)
+    const neededWei = balances.totalPendingWithdraw - (balances.staking /*+ balances.withdrawBalance*/)
     const neededEth = Number(ethers.formatEther(neededWei.toString()))
-    // Staking with withdraw are enough to cover
     if(neededEth <= 0) {
         return {
             ...output,
@@ -140,21 +139,59 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
             ${epochInfoBody}`,
             severity: Severity.OK
         }
-    }
+    } // Check if staking with withdraw are enough to cover
 
+    const liqAvailableEthForValidators = Number(ethers.formatEther(balances.liqAvailableEthForValidators.toString()))
+    if(liqAvailableEthForValidators >= neededEth) {
+        try {
+            await stakingContract.requestEthFromLiquidPoolToWithdrawal(neededWei)
+            return {
+                ...output,
+                ok: true, 
+                body: `Staking with withdraw and liquidity contracts have enough ETH to cover for delayed unstake.
+                ${balancesBody}
+                ${epochInfoBody}`,
+                severity: Severity.OK
+            }
+        } catch(err: any) {
+            const message = `There was a problem moving eth from liq to withdraw ${err.message}`
+            console.error(message)
+            return {
+                ...output,
+                ok: false, 
+                body: `${message}.
+                ${balancesBody}
+                ${epochInfoBody}`,
+                severity: Severity.ERROR
+            }
+        }
+        
+    } // Staking with withdraw and liquidity are enough to cover
+
+    // It is necessary to dissasemble at least one validator
     console.log("Calculating validators to disassemble")
     console.log("Needed eth", neededEth)
-    const validatorsQtyToDisassemble = Math.ceil(neededEth / 32)
+    console.log("Available eth from liq", liqAvailableEthForValidators)
+    let validatorsToDissasemble = 0
+    let ethToTransferFromLiq = neededEth
+    while(ethToTransferFromLiq > liqAvailableEthForValidators) {
+        validatorsToDissasemble++
+        ethToTransferFromLiq -= 32
+    }
 
+    if(ethToTransferFromLiq > 0) {
+        await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
+    }
+    ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
     const subject = "[IMPORTANT] Disassemble validators"
     const body = `
+        VALIDATORS TO DISASSEMBLE: ${validatorsToDissasemble}
         ${balancesBody}
         ${epochInfoBody}
         Needed ETH: ${neededEth}
-        Validators to disassemble: ${validatorsQtyToDisassemble}
+        ETH provided from liq: ${ethToTransferFromLiq}
     `
 
-    // sendEmail(subject, balancesBody)
     return {
         ...output,
         ok: false, 
