@@ -48,7 +48,7 @@ export type Snapshot = {
     liqTotalSupply: string
     activatedValidators: number
     createdValidatorsLeft: number
-    timeRemainingToFinishEpoch: number
+    secondsRemainingToFinishEpoch: number
 
     // env_epoch_height: number,
     // prev_epoch_duration_ms: number,
@@ -202,7 +202,7 @@ export function fromGlobalState(): Record<string,any> {
         liqTotalSupply: globalPersistentData.liqTotalSupply,
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
-        timeRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
+        secondsRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
 
     }
 

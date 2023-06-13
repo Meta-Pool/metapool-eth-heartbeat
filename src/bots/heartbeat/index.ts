@@ -611,6 +611,7 @@ async function refreshContractData() {
 
         withdrawBalance,
         totalPendingWithdraw,
+        secondsUntilNextEpoch,
 
         // nodesBalances
     ] = await Promise.all([
@@ -626,6 +627,7 @@ async function refreshContractData() {
         // Withdraw
         withdrawContract.getWalletBalance(withdrawContract.address),
         withdrawContract.totalPendingWithdraw(),
+        withdrawContract.getEpochTimeLeft(),
 
         // Nodes
         // getValidatorsData()
@@ -636,6 +638,7 @@ async function refreshContractData() {
     globalPersistentData.withdrawBalance = withdrawBalance.toString()
     globalPersistentData.requestedDelayedUnstakeBalance = totalPendingWithdraw.toString()
     globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
+    globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
     globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
