@@ -1,4 +1,5 @@
-import { IBalanceHistoryData, ValidatorDataResponse } from "./beaconcha"
+import { IBalanceHistory } from "../../entities/beaconcha/validator"
+import { ValidatorDataResponse } from "./beaconcha"
 
 export interface IValidatorProposal {
     data: IValidatorProposalStatus[]
@@ -46,10 +47,27 @@ export interface IValidatorProposalStatus {
 
 export interface IBeaconChainHeartBeatData {
     validatorsData: ValidatorDataResponse[]
-    validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
+    validatorsBalanceHistory: Record<string, IBalanceHistory[]> // key is pubkey
+    validatorsWithdrawalHistory: Record<string, IValidatorWithrawals[]> // key is pubkey
 }
 
 export const EMPTY_BEACON_CHAIN_DATA: IBeaconChainHeartBeatData = {
     validatorsData: [],
-    validatorsBalanceHistory: {}
+    validatorsBalanceHistory: {},
+    validatorsWithdrawalHistory: {},
+}
+
+export interface IValidatorWithrawals {
+    status: string
+    data: IWithdrawalData
+}
+
+export interface IWithdrawalData {
+    epoch: number
+    slot: number
+    blockroot: string
+    withdrawalindex: number
+    validatorindex: number
+    address: string
+    amount: number // Has 9 decimals
 }

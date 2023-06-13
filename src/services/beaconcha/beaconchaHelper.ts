@@ -1,13 +1,18 @@
-import { ValidatorDataResponse, getValidatorBalanceHistory, getValidatorsData } from "./beaconcha";
+import { beaconChainData } from "../../bots/heartbeat";
+import { ValidatorDataResponse, getValidatorBalanceHistory, getValidatorWithrawalInEpoch, getValidatorsData } from "./beaconcha";
 import { EMPTY_BEACON_CHAIN_DATA, IBeaconChainHeartBeatData } from "./entities";
 
-export let beaconChainData: IBeaconChainHeartBeatData = EMPTY_BEACON_CHAIN_DATA
+
 
 export async function setBeaconchaData() {
     beaconChainData.validatorsData = await getValidatorsData()
 
     beaconChainData.validatorsBalanceHistory = {}
     await Promise.all(beaconChainData.validatorsData.map(async (v: ValidatorDataResponse) => {
-        beaconChainData.validatorsBalanceHistory[v.data.pubkey] = await getValidatorBalanceHistory(v.data.pubkey)
+        if(v.data.status && v.data.status !== "exited") {
+            beaconChainData.validatorsBalanceHistory[v.data.pubkey] = await getValidatorBalanceHistory(v.data.pubkey)
+            beaconChainData.validatorsBalanceHistory = await getValidatorWithrawalInEpoch(v.data.pubkey)
+
+        }
     }))
 }

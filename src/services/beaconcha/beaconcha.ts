@@ -1,4 +1,5 @@
 import { isDebug } from "../../bots/heartbeat"
+import { IBalanceHistory } from "../../entities/beaconcha/validator"
 import { getConfig } from "../../ethereum/config"
 import { IValidatorProposal } from "./entities"
 
@@ -40,20 +41,20 @@ export interface ValidatorData {
     withdrawalcredentials?: string
 }
 
-export interface BalanceHistory {
-    status: string
-    data: IBalanceHistoryData[]
-}
+// export interface BalanceHistory {
+//     status: string
+//     data: IBalanceHistoryData[]
+// }
 
-export interface IBalanceHistoryData {
-    balance: number
-    effectivebalance: number
-    epoch: number
-    validatorindex: number
-    week: number
-    week_start: string
-    week_end: string
-}
+// export interface IBalanceHistoryData {
+//     balance: number
+//     effectivebalance: number
+//     epoch: number
+//     validatorindex: number
+//     week: number
+//     week_start: string
+//     week_end: string
+// }
 
 export interface IEpochResponse {
     status: string
@@ -110,7 +111,7 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
     }
 }
 
-export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistoryData[]> {
+export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistory[]> {
     const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
     return fetch(url).then(r => r.json().then(json => json.data))
 }
@@ -127,5 +128,17 @@ export function getEpoch(epoch: string): Promise<any> {
 export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
     const url = BASE_URL + `validator/${validatorIndex}/proposals`
     if(isDebug) console.log("Validator proposal url", url)
+    return fetch(url).then(r => r.json())
+}
+
+/**
+ * 
+ * @param indexOrPubKey 
+ * @param epoch If no epoch is sent, assumes latest epoch
+ * @returns 
+ */
+export function getValidatorWithrawalInEpoch(indexOrPubKey: string|number, epoch?: number) {
+    const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + epoch ? `?epoch=${epoch}` : ""
+    if(isDebug) console.log("Withrawal url:", url)
     return fetch(url).then(r => r.json())
 }

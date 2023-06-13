@@ -4,9 +4,7 @@ import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
 import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
-import { globalPersistentData, stakingContract } from '../heartbeat'
-import { saveJSON } from '../heartbeat/save-load-JSON'
-import { beaconChainData } from '../../services/beaconcha/beaconchaHelper'
+import { beaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
 
 const THRESHOLD: number = 5
 
@@ -43,7 +41,7 @@ export async function alertCreateValidators(): Promise<IDailyReportHelper> {
     const createdValidatorsAmount = depositData.length
     const validatorsToActivateLeft = createdValidatorsAmount - activatedValidatorsAmount
     globalPersistentData.createdValidatorsLeft = validatorsToActivateLeft
-    saveJSON(globalPersistentData)
+    // saveJSON(globalPersistentData)
     output.body = `
             Created validators: ${createdValidatorsAmount}. 
             Activated validators: ${activatedValidatorsAmount}. 

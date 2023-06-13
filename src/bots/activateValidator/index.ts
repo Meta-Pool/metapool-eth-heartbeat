@@ -8,9 +8,8 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min } from "../../utils/numberUtils"
-import { DAYS, HOURS, SECONDS, globalPersistentData } from "../heartbeat"
+import { DAYS, HOURS, SECONDS, beaconChainData, globalPersistentData } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
-import { beaconChainData } from "../../services/beaconcha/beaconchaHelper"
 import { LiquidityContract } from "../../ethereum/liquidity"
 
 export const ETH_32 = ethers.parseEther("32")
@@ -35,7 +34,7 @@ export async function activateValidator(): Promise<boolean> {
     
     try {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
-        globalPersistentData.timeRemainingToFinishEpoch = sLeftToTimeLeft(secondsUntilNextEpoch)
+        globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
         const shouldSaveForDelayedUnstake = Number(secondsUntilNextEpoch.toString()) * SECONDS < 2 * DAYS
         const balances: Balances = await getBalances()
 

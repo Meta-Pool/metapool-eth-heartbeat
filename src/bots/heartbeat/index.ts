@@ -18,12 +18,13 @@ import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
-import { IValidatorProposal } from "../../services/beaconcha/entities";
+import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
-import { beaconChainData, setBeaconchaData as refreshBeaconChainData } from "../../services/beaconcha/beaconchaHelper";
+import { setBeaconchaData as refreshBeaconChainData } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 
 export let globalPersistentData: PersistentData
+export let beaconChainData: IBeaconChainHeartBeatData
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
 let server: BareWebServer;
@@ -111,12 +112,15 @@ export interface PersistentData {
     withdrawBalance: string
     requestedDelayedUnstakeBalance: string
     withdrawAvailableEthForValidators: string
-    activeValidators: number
+    activeValidatorsQty: number
     createdValidatorsLeft: number
     nodesBalances: Record<string, string> // Key is node pub key
     validatorsLatestProposal: {[validatorIndex: number]: number}
-    timeRemainingToFinishEpoch: string
+    timeRemainingToFinishMetapoolEpoch: number
+    rewardsPerSeconds: number
 
+    // Chain data
+    latestEpochChecked: number
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -634,7 +638,7 @@ async function refreshContractData() {
     globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
-    globalPersistentData.activeValidators = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
+    globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
         if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
             return acc + 1
         } else {
@@ -742,7 +746,7 @@ function updateGlobalData(currentDateISO: string) {
     })
     globalPersistentData.historicalActiveValidators.push({
         dateISO: currentDateISO,
-        number: globalPersistentData.activeValidators
+        number: globalPersistentData.activeValidatorsQty
     })
     
     Object.keys(globalPersistentData.nodesBalances).forEach((pubKey: string) => {
@@ -829,7 +833,8 @@ async function beat() {
     
     //END OF BEAT
     globalPersistentData.beatCount++;
-    saveJSON(globalPersistentData);
+    saveJSON(globalPersistentData, "persistent.json");
+    saveJSON(beaconChainData, "beaconChainPersistentData.json");
 
 }
 
@@ -947,7 +952,8 @@ function processArgs() {
 async function run() {
     processArgs()
 
-    globalPersistentData = loadJSON()
+    globalPersistentData = loadJSON("persistent.json")
+    beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
         // await refreshBeaconChainData()
         // const report = await updateNodesBalance()
