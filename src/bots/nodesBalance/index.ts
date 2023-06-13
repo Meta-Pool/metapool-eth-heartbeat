@@ -2,9 +2,8 @@ import { IDailyReportHelper, Severity } from "../../entities/emailUtils"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { IBalanceHistoryData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
-import { beaconChainData } from "../../services/beaconcha/beaconchaHelper"
 import { sendEmail } from "../../utils/mailUtils"
-import { globalPersistentData } from "../heartbeat"
+import { beaconChainData, globalPersistentData } from "../heartbeat"
 
 export const ZEROS_9 = "0".repeat(9)
 

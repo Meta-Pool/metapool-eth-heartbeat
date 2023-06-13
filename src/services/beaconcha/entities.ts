@@ -1,5 +1,5 @@
 import { IBalanceHistory } from "../../entities/beaconcha/validator"
-import { ValidatorDataResponse } from "./beaconcha"
+import { IBalanceHistoryData, ValidatorDataResponse } from "./beaconcha"
 
 export interface IValidatorProposal {
     data: IValidatorProposalStatus[]
@@ -47,7 +47,7 @@ export interface IValidatorProposalStatus {
 
 export interface IBeaconChainHeartBeatData {
     validatorsData: ValidatorDataResponse[]
-    validatorsBalanceHistory: Record<string, IBalanceHistory[]> // key is pubkey
+    validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
     validatorsWithdrawalHistory: Record<string, IValidatorWithrawals[]> // key is pubkey
 }
 

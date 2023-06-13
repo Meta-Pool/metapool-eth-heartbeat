@@ -41,20 +41,20 @@ export interface ValidatorData {
     withdrawalcredentials?: string
 }
 
-// export interface BalanceHistory {
-//     status: string
-//     data: IBalanceHistoryData[]
-// }
+export interface BalanceHistory {
+    status: string
+    data: IBalanceHistoryData[]
+}
 
-// export interface IBalanceHistoryData {
-//     balance: number
-//     effectivebalance: number
-//     epoch: number
-//     validatorindex: number
-//     week: number
-//     week_start: string
-//     week_end: string
-// }
+export interface IBalanceHistoryData {
+    balance: number
+    effectivebalance: number
+    epoch: number
+    validatorindex: number
+    week: number
+    week_start: string
+    week_end: string
+}
 
 export interface IEpochResponse {
     status: string
@@ -111,7 +111,7 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
     }
 }
 
-export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistory[]> {
+export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistoryData[]> {
     const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
     return fetch(url).then(r => r.json().then(json => json.data))
 }
