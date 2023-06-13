@@ -1,9 +1,10 @@
-import { ethers } from "ethers"
 import { isDebug } from "../bots/heartbeat"
 import stakingAbi from "./abi/Staking.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
-import { LiquidityContract } from "./liquidity"
+import { ETH_32 } from "../bots/activateValidator"
+import { min } from "../utils/numberUtils"
+import { ethers } from "ethers"
 
 export interface Node {
     pubkey: string
@@ -22,9 +23,11 @@ export class StakingContract extends EthContract {
         return this.contract.balanceOf(address)
     }
     
-    pushToBeacon(node: Node, ethFromLiq: BigInt, withdrawEthAvailableForStaking: BigInt) {
+    pushToBeacon(node: Node, ethFromLiq: BigInt, withdrawEthAvailableForStaking: bigint) {
         if(isDebug) console.log("Activating node. ethFromLiq", ethFromLiq, "ethFromWith", withdrawEthAvailableForStaking)
-        return this.contract.pushToBeacon([node], ethFromLiq, withdrawEthAvailableForStaking).catch(this.decodeError)
+        const ethToRequestFromWithdraw = min(ethers.parseEther("32"), withdrawEthAvailableForStaking)
+        // const ethToRequestFromWithdraw = ethers.parseEther("32")
+        return this.contract.pushToBeacon([node], ethFromLiq, ethToRequestFromWithdraw).catch(this.decodeError)
     }
     
     totalSupply(): Promise<bigint> {
@@ -36,7 +39,7 @@ export class StakingContract extends EthContract {
     }
     
     updateNodesBalance(balance: String) {
-        return this.contract.updateNodesBalance(balance).catch(this.decodeError)
+        return this.contract.updateNodesBalance(balance, "1" + "0".repeat(12)).catch(this.decodeError)
     }
 
     requestEthFromLiquidPoolToWithdrawal(amount: bigint) {

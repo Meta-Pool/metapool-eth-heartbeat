@@ -948,6 +948,12 @@ async function run() {
     processArgs()
 
     globalPersistentData = loadJSON()
+    if(isDebug) {
+        // await refreshBeaconChainData()
+        // const report = await updateNodesBalance()
+        // console.log(report)
+        // return
+    }
 
     if (process.argv.includes("also-80")) {
         try {

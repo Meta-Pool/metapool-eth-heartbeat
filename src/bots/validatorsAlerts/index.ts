@@ -116,7 +116,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         Current epoch: ${currentEpoch}
     `
         
-    const withdrawAvailableEthForValidators = /*balances.withdrawBalance*/ - balances.totalPendingWithdraw
+    const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw
     if(withdrawAvailableEthForValidators > 0) {
         return {
             ...output,
@@ -128,7 +128,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         }
     } // Check if withdraw balance is enough to cover
 
-    const neededWei = balances.totalPendingWithdraw - (balances.staking /*+ balances.withdrawBalance*/)
+    const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance)
     const neededEth = Number(ethers.formatEther(neededWei.toString()))
     if(neededEth <= 0) {
         return {
