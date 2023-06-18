@@ -11,7 +11,7 @@ export async function setBeaconchaData() {
     await Promise.all(beaconChainData.validatorsData.map(async (v: ValidatorDataResponse) => {
         if(v.data.status && v.data.status !== "exited") {
             beaconChainData.validatorsBalanceHistory[v.data.pubkey] = await getValidatorBalanceHistory(v.data.pubkey)
-            beaconChainData.validatorsBalanceHistory = await getValidatorWithrawalInEpoch(v.data.pubkey)
+            // beaconChainData.validatorsBalanceHistory = await getValidatorWithrawalInEpoch(v.data.pubkey)
 
         }
     }))

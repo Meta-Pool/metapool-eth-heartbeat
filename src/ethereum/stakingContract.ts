@@ -3,7 +3,7 @@ import stakingAbi from "./abi/Staking.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
 import { ETH_32 } from "../bots/activateValidator"
-import { min } from "../utils/numberUtils"
+import { max, min } from "../utils/numberUtils"
 import { ethers } from "ethers"
 
 export interface Node {
@@ -38,8 +38,8 @@ export class StakingContract extends EthContract {
         return this.contract.totalAssets()
     }
     
-    updateNodesBalance(balance: String) {
-        return this.contract.updateNodesBalance(balance, "1" + "0".repeat(12)).catch(this.decodeError)
+    updateNodesBalance(balance: String, rewardsPerSecond: bigint) {
+        return this.contract.updateNodesBalance(balance, max(0n, rewardsPerSecond)).catch(this.decodeError)
     }
 
     requestEthFromLiquidPoolToWithdrawal(amount: bigint) {

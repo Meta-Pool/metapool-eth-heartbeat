@@ -3,7 +3,9 @@ import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { IBalanceHistoryData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
 import { sendEmail } from "../../utils/mailUtils"
-import { beaconChainData, globalPersistentData } from "../heartbeat"
+import { etow, wtoe } from "../../utils/numberUtils"
+import { MS_IN_DAY, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../heartbeat"
+import { computeRollingApy } from "../heartbeat/snapshot"
 
 export const ZEROS_9 = "0".repeat(9)
 
@@ -45,7 +47,7 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
         }
 
 
-        await stakingContract.updateNodesBalance(totalBalanceBigInt)
+        await stakingContract.updateNodesBalance(totalBalanceBigInt, BigInt("1000000000000"))
         console.log("MpEth price updated")
         return {
             ok: true,
@@ -124,4 +126,21 @@ function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
         `
 
     sendEmail(subject, body)
+}
+
+export function getEstimatedRewardsPerSecond(): bigint {
+    const injectionFinishTimestampMs = 1688007600000 // 2023/06/29 00:00:00
+
+    // Previous to that date, we inject 0.75 ETH every week and have no rewards
+    if(Date.now() < injectionFinishTimestampMs) {
+        const ethRewardsPerWeek = etow(0.75)
+        const ethRewardsPerSecond = ethRewardsPerWeek / BigInt(7 * MS_IN_DAY) * BigInt(MS_IN_SECOND)
+        console.log("Rewards per second", ethRewardsPerSecond)
+        return ethRewardsPerSecond
+    } else {
+        const apy = computeRollingApy(globalPersistentData.mpEthPrices, 1)
+        const ethRewardsPerYear = wtoe(globalPersistentData.mpTotalAssets) * (apy/100)
+        const ethRewardsPerSecond = ethRewardsPerYear / (365 * MS_IN_DAY) * MS_IN_SECOND
+        return etow(ethRewardsPerSecond)
+    }
 }

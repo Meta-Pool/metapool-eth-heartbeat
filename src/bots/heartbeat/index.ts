@@ -8,7 +8,7 @@ import { tail } from "./util/tail";
 import { LiquidityData, StakingData } from "./contractData";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
-import { ZEROS_9, updateNodesBalance } from "../nodesBalance";
+import { ZEROS_9, getEstimatedRewardsPerSecond, getNodesBalance, updateNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators, getDeactivateValidatorsReport } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
@@ -42,11 +42,11 @@ export const withdrawContract: WithdrawContract = new WithdrawContract()
 let lastValidatorCheckProposalTimestamp = 0 // ms
 
 //time in ms
-export const SECONDS = 1000
-export const MINUTES = 60 * SECONDS
-export const HOURS = 60 * MINUTES
-export const DAYS = 24 * HOURS
-const INTERVAL = 5 * MINUTES
+export const MS_IN_SECOND = 1000
+export const MS_IN_MINUTES = 60 * MS_IN_SECOND
+export const MS_IN_HOUR = 60 * MS_IN_MINUTES
+export const MS_IN_DAY = 24 * MS_IN_HOUR
+const INTERVAL = 5 * MS_IN_MINUTES
 
 const TotalCalls = {
     beats: 0,
@@ -105,19 +105,20 @@ export interface PersistentData {
     
     // Current data
     stakingBalance: string
+    mpTotalAssets: string
     stakingTotalSupply: string
     liqBalance: string
     liqMpEthBalance: string
     liqTotalSupply: string
     withdrawBalance: string
-    requestedDelayedUnstakeBalance: string
+    totalPendingWithdraws: string
     withdrawAvailableEthForValidators: string
     activeValidatorsQty: number
     createdValidatorsLeft: number
     nodesBalances: Record<string, string> // Key is node pub key
     validatorsLatestProposal: {[validatorIndex: number]: number}
     timeRemainingToFinishMetapoolEpoch: number
-    rewardsPerSeconds: number
+    rewardsPerSecondsInWei: string
 
     // Chain data
     latestEpochChecked: number
@@ -582,8 +583,7 @@ async function refreshStakingData() {
         totalAssets: stakingTotalAssets,
         totalSupply: stakingTotalSupply
     }
-
-    globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
+    
     if(isDebug) console.log("Staking data refreshed")
 }
 
@@ -636,7 +636,7 @@ async function refreshContractData() {
     globalPersistentData.liqBalance = liquidityBalance.toString()
     globalPersistentData.liqMpEthBalance = liquidityMpEthBalance.toString()
     globalPersistentData.withdrawBalance = withdrawBalance.toString()
-    globalPersistentData.requestedDelayedUnstakeBalance = totalPendingWithdraw.toString()
+    globalPersistentData.totalPendingWithdraws = totalPendingWithdraw.toString()
     globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
     globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
@@ -670,8 +670,14 @@ async function refreshMetrics() {
         refreshStakingData(),
         refreshLiquidityData(),
         refreshContractData(),
+        refreshBeaconChainData()
     ])
-    
+
+    const nodesBalance = await getNodesBalance()
+    const totalAssets = BigInt(globalPersistentData.stakingBalance) + BigInt(globalPersistentData.withdrawBalance) + BigInt(nodesBalance) - BigInt(globalPersistentData.totalPendingWithdraws)
+    globalPersistentData.mpTotalAssets = totalAssets.toString()
+    globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
+    globalPersistentData.rewardsPerSecondsInWei = getEstimatedRewardsPerSecond().toString()
 }
 
 async function initializeUninitializedGlobalData() {
@@ -714,7 +720,7 @@ function updateGlobalData(currentDateISO: string) {
     globalPersistentData.mpEthPrices.push({
         dateISO: currentDateISO,
         price: calculateMpEthPrice().toString(),
-        assets: globalStakingData.totalAssets.toString(),
+        assets: globalPersistentData.mpTotalAssets.toString(),
         supply: globalStakingData.totalSupply.toString(),
     });
     
@@ -736,7 +742,7 @@ function updateGlobalData(currentDateISO: string) {
     })
     globalPersistentData.requestedDelayedUnstakeBalances.push({
         dateISO: currentDateISO,
-        balance: globalPersistentData.requestedDelayedUnstakeBalance
+        balance: globalPersistentData.totalPendingWithdraws
     })
     globalPersistentData.stakingTotalSupplies.push({
         dateISO: currentDateISO,
@@ -796,11 +802,6 @@ async function beat() {
     await refreshMetrics();
     console.log("Metrics refreshed successfully")
 
-    // Refresh beaconcha data
-    console.log("Refresh Beacon Chain data")
-    await refreshBeaconChainData()
-    console.log("Beacon Chain data refreshed successfully")
-
     // keep record of stNEAR & LP price to compute APY%
     const currentDateISO = new Date().toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
@@ -814,7 +815,7 @@ async function beat() {
         await runDailyActionsAndReport()
     } // Calls made once a day
 
-    if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * HOURS) {
+    if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
         await registerValidatorsProposals()
     } // Calls made every 6 hours
 
@@ -844,7 +845,7 @@ async function beat() {
 async function runDailyActionsAndReport() {
     console.log("Sending daily report")
     const reportHelpersPromises: Promise<IDailyReportHelper>[] = [
-        updateNodesBalance(),
+        // updateNodesBalance(),
         getDeactivateValidatorsReport(),
         alertCreateValidators(),
         alertCheckProfit()
@@ -912,7 +913,7 @@ async function heartLoop() {
 
     loopsExecuted++;
     // 2022-4-4, 24 executions => 2 hs
-    if (Date.now() >= serverStartedTimestamp + 2 * HOURS) {
+    if (Date.now() >= serverStartedTimestamp + 2 * MS_IN_HOUR) {
         // 2 hs loops cycle finished- gracefully end process, pm2 will restart it
         console.log(loopsExecuted, "cycle finished- gracefully end process")
         if (server80 != undefined) {
@@ -931,8 +932,8 @@ async function heartLoop() {
     else {
         const elapsedMs = Date.now() - beatStartMs
         //check again in INTERVAL minutes from the start of the beat. Minimun is 20 seconds
-        let nextBeatIn = atLeast(20 * SECONDS, INTERVAL - elapsedMs);
-        console.log("next beat in", Math.trunc(nextBeatIn / SECONDS), "seconds")
+        let nextBeatIn = atLeast(20 * MS_IN_SECOND, INTERVAL - elapsedMs);
+        console.log("next beat in", Math.trunc(nextBeatIn / MS_IN_SECOND), "seconds")
         setTimeout(heartLoop, nextBeatIn)
     }
 }

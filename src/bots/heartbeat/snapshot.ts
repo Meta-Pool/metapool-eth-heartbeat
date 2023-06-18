@@ -4,7 +4,7 @@ import { globalPersistentData, PriceData } from "./index"
 //---------------------------------------------------
 //check for pending work in the SC and turn the crank
 //---------------------------------------------------
-function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, defaultApy: number = 0): number {
+export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, defaultApy: number = 0): number {
 
     if (!priceArray) return defaultApy;
     // check how many prices
@@ -49,6 +49,8 @@ export type Snapshot = {
     activatedValidators: number
     createdValidatorsLeft: number
     secondsRemainingToFinishEpoch: number
+    rewardsPerSecondInWei: string
+    mpTotalAssets: string
 
     // env_epoch_height: number,
     // prev_epoch_duration_ms: number,
@@ -195,7 +197,7 @@ export function fromGlobalState(): Record<string,any> {
         liquidityEthBalance: globalPersistentData.liqBalance,
         liquidityMpethBalance: globalPersistentData.liqMpEthBalance,
         withdrawBalance: globalPersistentData.withdrawBalance,
-        totalPendingWithdraws: globalPersistentData.requestedDelayedUnstakeBalance,
+        totalPendingWithdraws: globalPersistentData.totalPendingWithdraws,
         nodesBalances: nodesBalanceSum.toString(),
 
         stakingTotalSupply: globalPersistentData.stakingTotalSupply,
@@ -203,6 +205,8 @@ export function fromGlobalState(): Record<string,any> {
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         secondsRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
+        rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
+        mpTotalAssets: globalPersistentData.mpTotalAssets,
 
     }
 

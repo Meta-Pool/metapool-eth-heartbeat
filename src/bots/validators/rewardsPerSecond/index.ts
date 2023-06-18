@@ -1,8 +1,8 @@
 import { IBalanceHistory } from "../../../entities/beaconcha/validator";
 import { IBalanceHistoryData, ValidatorDataResponse } from "../../../services/beaconcha/beaconcha";
-import { MINUTES, SECONDS, beaconChainData, globalPersistentData } from "../../heartbeat";
+import { MS_IN_MINUTES, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../../heartbeat";
 
-export const epochDurationMs = 6 * MINUTES + 24 * SECONDS
+export const epochDurationMs = 6 * MS_IN_MINUTES + 24 * MS_IN_SECOND
 
 export function getRewardsPerSecond() {
 

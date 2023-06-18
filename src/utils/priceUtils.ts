@@ -1,5 +1,5 @@
 import { ethers } from "ethers"
-import { globalLiquidityData, globalStakingData } from "../bots/heartbeat"
+import { globalLiquidityData, globalPersistentData, globalStakingData } from "../bots/heartbeat"
 import { divide } from "./mathUtils"
 
 /**
@@ -9,7 +9,7 @@ import { divide } from "./mathUtils"
 export function calculateMpEthPrice(): BigInt {
     if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
 
-    const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
+    const totalAssets = ethers.formatEther(globalPersistentData.mpTotalAssets.toString())
     const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
 
     return ethers.parseEther(divide(totalAssets, totalSupply))

@@ -1,12 +1,12 @@
 import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from "../../entities/emailUtils";
 import { globalPersistentData } from "../heartbeat";
-import { wton } from "../../utils/numberUtils";
+import { wtoe } from "../../utils/numberUtils";
 
 // Done async to fit behaviour of daily reports
 export function alertCheckProfit(): Promise<IDailyReportHelper> {
     let output: IDailyReportHelper = { ...EMPTY_DAILY_REPORT, function: "alertCheckProfit" }
-    const lastPrice = wton(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 1].price)
-    const priceBefore = wton(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 2].price)
+    const lastPrice = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 1].price)
+    const priceBefore = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 2].price)
 
     const minExpectedDailyPercentageIncrease = 0.01
     const maxExpectedDailyPercentageIncrease = 0.014
