@@ -8,7 +8,8 @@ import { divide } from "./mathUtils"
  */
 export function calculateMpEthPrice(): BigInt {
     if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
-
+    console.log(1, globalPersistentData.mpTotalAssets)
+    console.log(2, globalStakingData.totalSupply)
     const totalAssets = ethers.formatEther(globalPersistentData.mpTotalAssets.toString())
     const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
 

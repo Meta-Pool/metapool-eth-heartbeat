@@ -80,9 +80,9 @@ export async function getNodesBalance(): Promise<string> {
     const totalBalance = balances.reduce((p: number, c: number) => p + c, 0)
 
     // Total balance comes with 9 decimals, so we add 9 zeros
-    const totalBalanceBigInt: string = totalBalance.toString() + ZEROS_9
+    const totalBalanceBigInt: bigint = BigInt(totalBalance) * BigInt(1 + ZEROS_9) 
     console.log("Total balance", totalBalanceBigInt)
-    return totalBalanceBigInt
+    return totalBalanceBigInt.toString()
 }
 
 export async function checkValidatorsPenalization() {

@@ -5,6 +5,7 @@ import { wtoe } from "../../utils/numberUtils";
 // Done async to fit behaviour of daily reports
 export function alertCheckProfit(): Promise<IDailyReportHelper> {
     let output: IDailyReportHelper = { ...EMPTY_DAILY_REPORT, function: "alertCheckProfit" }
+    if(globalPersistentData.mpEthPrices.length < 2) return Promise.resolve({...output, ok: true, body: "Not enough prices to calculate", severity: Severity.OK})
     const lastPrice = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 1].price)
     const priceBefore = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 2].price)
 

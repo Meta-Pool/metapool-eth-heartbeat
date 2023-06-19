@@ -877,6 +877,7 @@ function buildDailyReport(reports: IDailyReportHelper[]) {
         `
     }, "https://eth-stats.narwallets.com/metrics_json")
 
+    // const severity: number = Math.max(reports.map((currReport: IDailyReportHelper) => currReport.severity))
     const severity: number = reports.reduce((max: number, currReport: IDailyReportHelper) => Math.max(max, currReport.severity), Severity.OK)
     let subject: string = reports.reduce((acc: string, currReport: IDailyReportHelper) => {
         if(currReport.ok) {
