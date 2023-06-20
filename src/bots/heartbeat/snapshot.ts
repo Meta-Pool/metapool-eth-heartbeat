@@ -2,6 +2,8 @@ import { ethers } from "ethers";
 import { beaconChainData, globalPersistentData, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { wtoe } from "../../utils/numberUtils";
+import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { ZEROS_9 } from "../nodesBalance";
 
 //---------------------------------------------------
 //check for pending work in the SC and turn the crank
@@ -74,7 +76,8 @@ export type SnapshotHR = {
     liquidityMpethBalance: number
     withdrawBalance: number
     totalPendingWithdraws: number
-    nodesBalances: number
+    totalNodesBalance: number
+    nodesBalances: Record<string, number>
 
     stakingTotalSupply: number
     liqTotalSupply: number
@@ -132,10 +135,14 @@ export function fromGlobalState(): Record<string,any> {
 
 export function fromGlobalStateForHuman(): Record<string,any> {
 
-    const nodesBalanceSum = Object.keys(globalPersistentData.historicalNodesBalances).reduce((acc: bigint, key: string) => {
-        const balanceArray = globalPersistentData.historicalNodesBalances[key]
-        return acc + BigInt(balanceArray[balanceArray.length - 1].balance)
+    const nodesBalanceSum = beaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
+        return acc + BigInt(v.data.balance + ZEROS_9)
     }, 0n)
+
+    const nodesBalances: Record<string, number> = {}
+    beaconChainData.validatorsData.forEach((v: ValidatorDataResponse) => {
+        nodesBalances[v.data.pubkey] = wtoe(v.data.balance + ZEROS_9)
+    })
 
     let snap: SnapshotHR = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
@@ -154,7 +161,8 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         liquidityMpethBalance: wtoe(globalPersistentData.liqMpEthBalance),
         withdrawBalance: wtoe(globalPersistentData.withdrawBalance),
         totalPendingWithdraws: wtoe(globalPersistentData.totalPendingWithdraws),
-        nodesBalances: wtoe(nodesBalanceSum.toString()),
+        totalNodesBalance: wtoe(nodesBalanceSum.toString()),
+        nodesBalances,
 
         stakingTotalSupply: wtoe(globalPersistentData.stakingTotalSupply),
         liqTotalSupply: wtoe(globalPersistentData.liqTotalSupply),
