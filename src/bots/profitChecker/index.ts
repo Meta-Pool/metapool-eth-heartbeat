@@ -11,8 +11,8 @@ export function alertCheckProfit(): Promise<IDailyReportHelper> {
 
     const minExpectedDailyPercentageIncrease = 0.01
     const maxExpectedDailyPercentageIncrease = 0.014
-    const minExpectedValue = (1 + minExpectedDailyPercentageIncrease) * priceBefore
-    const maxExpectedValue = (1 + maxExpectedDailyPercentageIncrease) * priceBefore
+    const minExpectedValue = (1 + minExpectedDailyPercentageIncrease / 100) * priceBefore
+    const maxExpectedValue = (1 + maxExpectedDailyPercentageIncrease / 100) * priceBefore
 
     if (minExpectedValue > lastPrice) {
         output.ok = false
