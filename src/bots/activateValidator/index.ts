@@ -33,15 +33,21 @@ export async function activateValidator(): Promise<boolean> {
     let wasValidatorCreated = false
     
     try {
+        console.log(1)
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
+        console.log(2)
         globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
+        console.log(3)
         const shouldSaveForDelayedUnstake = Number(secondsUntilNextEpoch.toString()) * MS_IN_SECOND < 2 * MS_IN_DAY
+        console.log(4)
         const balances: Balances = await getBalances()
-
+        console.log(5)
         const withdrawAvailableEthForValidators = max(0n, balances.withdrawBalance - balances.totalPendingWithdraw)
-        
+        console.log(6)
         const amountToSaveForDelayedUnstake: bigint = shouldSaveForDelayedUnstake ? balances.totalPendingWithdraw : 0n
+        console.log(7)
         const realStakingBalance = balances.staking + withdrawAvailableEthForValidators - amountToSaveForDelayedUnstake
+        console.log(8)
         if(realStakingBalance < 0n) {
             console.log("There is no balance to cover for delayed unstakes. Shouldn't create validator")
             return false
@@ -50,7 +56,7 @@ export async function activateValidator(): Promise<boolean> {
         // const maxLiqEthAvailable = max(balances.liquidity - ETH_32, 0n)
         // const availableLiqEth = max(0n, min(balances.liquidity - balances.liquidityMpEthInEth, maxLiqEthAvailable))
         const availableLiqEth = balances.liqAvailableEthForValidators
-        
+        console.log(9)
         const isStakingBalanceEnough = realStakingBalance > ETH_32
         const availableBalanceToCreateValidator = realStakingBalance + availableLiqEth
         // const ethNecesaryFromLiq = ETH_32 - realStakingBalance > 0 ? ETH_32 - realStakingBalance : BigInt(0)

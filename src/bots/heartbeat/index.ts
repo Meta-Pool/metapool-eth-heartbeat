@@ -679,6 +679,7 @@ async function refreshMetrics() {
         refreshContractData(),
         refreshBeaconChainData()
     ])
+    console.log("Metrics promises fullfilled")
 
     const nodesBalance = await getNodesBalance()
     const totalAssets = BigInt(globalPersistentData.stakingBalance) + BigInt(globalPersistentData.withdrawBalance) + BigInt(nodesBalance) - BigInt(globalPersistentData.totalPendingWithdraws)
