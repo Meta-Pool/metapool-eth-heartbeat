@@ -474,6 +474,13 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
                 resp.end()
                 return true;
             }
+            if (rest === "_hr") {
+                // metrics_hr human readable
+                resp.setHeader("content-type", 'application/json; version=0.0.4; charset=utf-8')
+                resp.write(JSON.stringify(snapshot.fromGlobalStateForHuman()))
+                resp.end()
+                return true;
+            }
             // let assume all responses are text
             resp.setHeader("content-type", 'text/plain; version=0.0.4; charset=utf-8')
             if (rest === "") {
