@@ -47,12 +47,14 @@ export interface IValidatorProposalStatus {
 
 export interface IBeaconChainHeartBeatData {
     validatorsData: ValidatorDataResponse[]
+    validatorsStatusesQty: Record<string, number> // key is status type
     validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
     validatorsWithdrawalHistory: Record<string, IValidatorWithrawals[]> // key is pubkey
 }
 
 export const EMPTY_BEACON_CHAIN_DATA: IBeaconChainHeartBeatData = {
     validatorsData: [],
+    validatorsStatusesQty: {},
     validatorsBalanceHistory: {},
     validatorsWithdrawalHistory: {},
 }

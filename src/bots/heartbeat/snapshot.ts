@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { globalPersistentData, PriceData } from "./index"
+import { beaconChainData, globalPersistentData, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { wtoe } from "../../utils/numberUtils";
 
@@ -84,6 +84,8 @@ export type SnapshotHR = {
     rewardsPerSecondInETH: number
     mpTotalAssets: number
 
+    validatorsTypesQty: Record<string, number>
+
 }
 
 export function fromGlobalState(): Record<string,any> {
@@ -162,6 +164,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
         mpTotalAssets: wtoe(globalPersistentData.mpTotalAssets),
 
+        validatorsTypesQty: beaconChainData.validatorsStatusesQty
     }
 
     // Object.assign(snap,globalPersistentData.extraData)
