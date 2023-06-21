@@ -19,7 +19,7 @@ export class LiquidityContract extends EthContract {
     }
     
     getAvailableEthForValidator(): Promise<bigint> {
-        return this.contract.getAvailableEthForValidator()
+        return this.contract.getAvailableEthForValidator().catch(this.decodeError)
     }
 }
 

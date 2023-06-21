@@ -19,7 +19,7 @@ export class StakingContract extends EthContract {
         super(getConfig().stakingContractAddress, stakingAbi.abi)
     }
 
-    balanceOf(address: string) {
+    balanceOf(address: string): Promise<bigint> {
         return this.contract.balanceOf(address)
     }
     
