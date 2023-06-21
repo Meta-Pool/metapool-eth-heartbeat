@@ -11,8 +11,5 @@ export function divide(a: string, b: string): string {
  * @returns the product of the numbers without the decimals, with 18 decimals
  */
 export function multiply(a: bigint, b: bigint): bigint {
-    console.log(21, a)
-    console.log(22, b)
-    console.log(23, etow(wtoe(a) * wtoe(b)))
     return etow(wtoe(a) * wtoe(b))
 }

@@ -106,7 +106,8 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
         data: {
             effectivebalance: 32000000000,
             balance: 32000000000,
-            pubkey: basicData.publickey
+            pubkey: basicData.publickey,
+            status: "pending"
         }
     }
 }
