@@ -7,7 +7,7 @@ import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
-import { max, min } from "../../utils/numberUtils"
+import { max, min, wtoe } from "../../utils/numberUtils"
 import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { LiquidityContract } from "../../ethereum/liquidity"
@@ -35,36 +35,34 @@ export async function activateValidator(): Promise<boolean> {
     try {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
         globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
-        const shouldSaveForDelayedUnstake = Number(secondsUntilNextEpoch.toString()) * MS_IN_SECOND < 2 * MS_IN_DAY
         const balances: Balances = await getBalances()
+        const balanceForStaking = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances. totalPendingWithdraw
+        const validatorsToCreate = Math.floor(wtoe(balanceForStaking) / 32)
         
-        const withdrawAvailableEthForValidators = max(0n, balances.withdrawBalance - balances.totalPendingWithdraw)
-        const amountToSaveForDelayedUnstake: bigint = shouldSaveForDelayedUnstake ? balances.totalPendingWithdraw : 0n
-        const realStakingBalance = balances.staking + withdrawAvailableEthForValidators - amountToSaveForDelayedUnstake
-        if(realStakingBalance < 0n) {
-            console.log("There is no balance to cover for delayed unstakes. Shouldn't create validator")
-            return false
-        }
-        
-        // const maxLiqEthAvailable = max(balances.liquidity - ETH_32, 0n)
-        // const availableLiqEth = max(0n, min(balances.liquidity - balances.liquidityMpEthInEth, maxLiqEthAvailable))
-        const availableLiqEth = balances.liqAvailableEthForValidators
-        const isStakingBalanceEnough = realStakingBalance > ETH_32
-        const availableBalanceToCreateValidator = realStakingBalance + availableLiqEth
-        // const ethNecesaryFromLiq = ETH_32 - realStakingBalance > 0 ? ETH_32 - realStakingBalance : BigInt(0)
-        const ethNecesaryFromLiq = max(ETH_32 - realStakingBalance, 0n)
-        console.log("Available balance to create validators", ethers.formatEther(availableBalanceToCreateValidator))
-        console.log("ETH necessary from liquidity", ethers.formatEther(ethNecesaryFromLiq))
-        if(availableBalanceToCreateValidator >= ETH_32) {
-            console.log("Creating validator")
-            const node: Node = await getNextNodeToActivateData()
-            console.log("Node", node)
-            await stakingContract.pushToBeacon(node, ethNecesaryFromLiq, withdrawAvailableEthForValidators)
-            wasValidatorCreated = true
-            
-            if(!isStakingBalanceEnough) {
-                await writeFileSync(liqLastUsageFilename, new Date().getTime().toString())
+        if(validatorsToCreate > 0) {
+            console.log("Creating", validatorsToCreate, "validators")
+            const totalNecessaryWei = BigInt(validatorsToCreate) * ETH_32
+            const weiFromLiq = max(0n, min(totalNecessaryWei - balances.staking, balances.liqAvailableEthForValidators))
+            const weiFromWithdraw = max(0n, min(totalNecessaryWei - balances.staking - weiFromLiq, balances.withdrawBalance - balances.totalPendingWithdraw))
+
+            console.log("ETH needed", wtoe(totalNecessaryWei))
+            console.log("ETH from staking", wtoe(balances.staking))
+            console.log("ETH from liq", wtoe(weiFromLiq))
+            console.log("ETH from withdraw", wtoe(weiFromWithdraw))
+            if(totalNecessaryWei != balances.staking + weiFromLiq + weiFromWithdraw) {
+                console.error("Inconsistency when activating validator. Needed wei don't match balances")
+                throw new Error(`Inconsistency when activating validator. Needed wei don't match balances
+                    Trying to activate ${validatorsToCreate}
+                    Needed ETH: ${wtoe(totalNecessaryWei)}
+                    ETH from staking: ${wtoe(balances.staking)}
+                    ETH from liq: ${wtoe(weiFromLiq)}
+                    ETH from withdraw: ${wtoe(weiFromWithdraw)}
+                `)
             }
+            const nodes: Node[] = await getNextNodesToActivate(validatorsToCreate)
+            console.log("Nodes", nodes)
+            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
+            wasValidatorCreated = true
         } else {
             console.log(`Not enough balance. ${ethers.formatEther(ETH_32 - balances.staking)} ETH needed`)
         }
@@ -97,6 +95,28 @@ async function getValidatorToActivate(): Promise<any> {
         return validatorsDataResponse.every((v: ValidatorDataResponse) => {
             return v.data.pubkey !== `0x${depData.pubkey}`
         })
+    })
+}
+
+async function getValidatorsToActivate(): Promise<any[]> {
+    // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
+    const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
+    return depositData.filter((depData: any) => {
+        return validatorsDataResponse.every((v: ValidatorDataResponse) => {
+            return v.data.pubkey !== `0x${depData.pubkey}`
+        })
+    })
+}
+
+async function getNextNodesToActivate(qty: number): Promise<Node[]> {
+    const nodes = await getValidatorsToActivate()
+    return nodes.slice(0, qty).map((node: any) => {
+        return {
+            pubkey: "0x" + node.pubkey,
+            withdrawCredentials: "0x" + node.withdrawal_credentials,
+            signature: "0x" + node.signature,
+            depositDataRoot: "0x" + node.deposit_data_root
+        } 
     })
 }
 

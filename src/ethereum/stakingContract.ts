@@ -23,11 +23,11 @@ export class StakingContract extends EthContract {
         return this.contract.balanceOf(address)
     }
     
-    pushToBeacon(node: Node, ethFromLiq: BigInt, withdrawEthAvailableForStaking: bigint) {
+    pushToBeacon(node: Node[], ethFromLiq: BigInt, withdrawEthAvailableForStaking: bigint) {
         if(isDebug) console.log("Activating node. ethFromLiq", ethFromLiq, "ethFromWith", withdrawEthAvailableForStaking)
         const ethToRequestFromWithdraw = min(ethers.parseEther("32"), withdrawEthAvailableForStaking)
         // const ethToRequestFromWithdraw = ethers.parseEther("32")
-        return this.contract.pushToBeacon([node], ethFromLiq, ethToRequestFromWithdraw).catch(this.decodeError)
+        return this.contract.pushToBeacon(node, ethFromLiq, ethToRequestFromWithdraw).catch(this.decodeError)
     }
     
     totalSupply(): Promise<bigint> {
