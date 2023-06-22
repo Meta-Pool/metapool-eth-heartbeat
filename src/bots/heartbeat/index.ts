@@ -820,18 +820,14 @@ async function beat() {
         updateGlobalData(currentDateISO)
         trucateLongGlobalArrays()       
         
-        await runDailyActionsAndReport()
-
         // ------------------------------
         // Check if a validator can be activated an do it
         // ------------------------------
         console.log("--Checking if a validator can be activated")
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
-
-        if(wasValidatorCreated) {
-            await alertCreateValidators()
-        }
+        
+        await runDailyActionsAndReport()
     } // Calls made once a day
 
     if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
@@ -842,6 +838,11 @@ async function beat() {
     console.log("--Checking if order queue should be moved")
     const wasDelayedUnstakeOrderQueueRun = await checkAuroraDelayedUnstakeOrders()
     console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRun)
+
+    //refresh contract state
+    console.log("Refresh metrics")
+    await refreshMetrics();
+    console.log("Metrics refreshed successfully")
     
     //END OF BEAT
     globalPersistentData.beatCount++;
