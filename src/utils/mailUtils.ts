@@ -9,7 +9,8 @@ const TESTNET_RESPONSIBLES = [
 
 const MAINNET_RESPONSIBLES = [
     "danieljseidler@gmail.com",
-    "arkuhk@gmail.com"
+    "arkuhk@gmail.com",
+    "agustin@metapool.app",
 ]
 
 // const responsibles = isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES

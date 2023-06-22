@@ -1,6 +1,4 @@
-import { MS_IN_HOUR, globalPersistentData, globalStakingData } from "../bots/heartbeat";
-import { ZEROS_9 } from "../bots/nodesBalance";
-import { divide } from "./mathUtils";
+import { globalStakingData } from "../bots/heartbeat";
 import { etow, wtoe } from "./numberUtils";
 
 export function getEstimatedMpEthPrice(estimatedRewardsPerSecond: bigint, lastNodesUpdate: bigint): bigint {
