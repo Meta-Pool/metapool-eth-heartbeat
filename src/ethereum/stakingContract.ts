@@ -45,6 +45,14 @@ export class StakingContract extends EthContract {
     requestEthFromLiquidPoolToWithdrawal(amount: bigint) {
         return this.contract.requestEthFromLiquidPoolToWithdrawal(amount).catch(this.decodeError)
     }
+
+    estimatedRewardsPerSecond(): Promise<bigint> {
+        return this.contract.estimatedRewardsPerSecond()
+    }
+
+    nodesBalanceUnlockTime(): Promise<bigint> {
+        return this.contract.nodesBalanceUnlockTime()
+    }
 }
 
 

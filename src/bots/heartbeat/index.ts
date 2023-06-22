@@ -22,6 +22,7 @@ import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/be
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { setBeaconchaData as refreshBeaconChainData } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
+import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -90,6 +91,7 @@ export interface PersistentData {
     mpEthPrices: PriceData[]
     lpPrices: PriceData[]
     mpethPrice: string
+    estimatedMpEthPrice: string
     lpPrice: string
 
     // Historical data
@@ -610,7 +612,10 @@ async function refreshLiquidityData() {
 async function refreshContractData() {
     const [
         stakingBalance,
+        stakingTotalAssets,
         stakingTotalSupply,
+        estimatedRewardsPerSecond,
+        nodesBalanceUnlockTime, // Last time updateNodesBalanceWasCalled
 
         liquidityBalance,
         liquidityMpEthBalance,
@@ -624,7 +629,10 @@ async function refreshContractData() {
     ] = await Promise.all([
         // Staking
         stakingContract.getWalletBalance(stakingContract.address),
+        stakingContract.totalAssets(),
         stakingContract.totalSupply(),
+        stakingContract.estimatedRewardsPerSecond(),
+        stakingContract.nodesBalanceUnlockTime(),
 
         // Liquidity
         liquidityContract.getWalletBalance(liquidityContract.address),
@@ -646,8 +654,16 @@ async function refreshContractData() {
     globalPersistentData.totalPendingWithdraws = totalPendingWithdraw.toString()
     globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
     globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
+    globalStakingData = {
+        totalAssets: stakingTotalAssets,
+        totalSupply: stakingTotalSupply
+    }
+    // globalStakingData.totalAssets = stakingTotalAssets
+    // globalStakingData.totalSupply = stakingTotalSupply
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
+    globalPersistentData.estimatedMpEthPrice = getEstimatedMpEthPrice(estimatedRewardsPerSecond, nodesBalanceUnlockTime).toString()
+
     globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
         if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
             return acc + 1
