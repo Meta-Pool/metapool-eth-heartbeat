@@ -821,22 +821,22 @@ async function beat() {
         trucateLongGlobalArrays()       
         
         await runDailyActionsAndReport()
+
+        // ------------------------------
+        // Check if a validator can be activated an do it
+        // ------------------------------
+        console.log("--Checking if a validator can be activated")
+        const wasValidatorCreated = await activateValidator()
+        console.log("Was validator created?", wasValidatorCreated)
+
+        if(wasValidatorCreated) {
+            await alertCreateValidators()
+        }
     } // Calls made once a day
 
     if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
         await registerValidatorsProposals()
     } // Calls made every 6 hours
-
-    // ------------------------------
-    // Check if a validator can be activated an do it
-    // ------------------------------
-    console.log("--Checking if a validator can be activated")
-    const wasValidatorCreated = await activateValidator()
-    console.log("Was validator created?", wasValidatorCreated)
-
-    if(wasValidatorCreated) {
-        await alertCreateValidators()
-    }
 
     // Aurora
     console.log("--Checking if order queue should be moved")
@@ -860,14 +860,15 @@ async function runDailyActionsAndReport() {
     ];
     console.log("--Checking if validators should be created")
     
-    const reports: IDailyReportHelper[] = await Promise.all((await reportHelpersPromises).map((promise: Promise<IDailyReportHelper>, index: number) => {
+    // Resolving reports and catching in case of an error
+    const reports: IDailyReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IDailyReportHelper>, index: number) => {
         return promise.catch((err: any) => {
             return {
                 ok: false,
                 function: `Index ${index}`,
                 subject: `Error on index ${index}`,
                 body: `Error running function for daily action and report with index ${index}. ${err.message}`,
-                severity: 2
+                severity: Severity.ERROR
             }
         })
     }))

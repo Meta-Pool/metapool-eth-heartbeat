@@ -36,8 +36,8 @@ export async function activateValidator(): Promise<boolean> {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
         globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
         const balances: Balances = await getBalances()
-        const balanceForStaking = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances. totalPendingWithdraw
-        const validatorsToCreate = Math.floor(wtoe(balanceForStaking) / 32)
+        const balanceForValidators = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances. totalPendingWithdraw
+        const validatorsToCreate = Math.floor(wtoe(balanceForValidators) / 32)
         
         if(validatorsToCreate > 0) {
             console.log("Creating", validatorsToCreate, "validators")
@@ -64,7 +64,7 @@ export async function activateValidator(): Promise<boolean> {
             await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
             wasValidatorCreated = true
         } else {
-            console.log(`Not enough balance. ${ethers.formatEther(ETH_32 - balances.staking)} ETH needed`)
+            console.log(`Not enough balance. Current balance for creating validators: ${wtoe(balanceForValidators)}`)
         }
     } catch(err: any) {
         console.error("There was a problem activating a validator", err.message)

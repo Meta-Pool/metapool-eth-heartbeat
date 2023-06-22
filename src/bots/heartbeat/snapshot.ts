@@ -25,7 +25,7 @@ export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays
     )
     const apy = (projectedInAYear - curPrice) * 10000n / curPrice;
 
-    return Number(apy) / 100
+    return Math.max(Number(apy) / 100, 0)
 }
 
 export type Snapshot = {
