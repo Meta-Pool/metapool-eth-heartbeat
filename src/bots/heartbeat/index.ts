@@ -692,9 +692,9 @@ async function refreshMetrics() {
     await Promise.all([
         refreshStakingData(),
         refreshLiquidityData(),
-        refreshContractData(),
         refreshBeaconChainData()
     ])
+    await refreshContractData() // Contract data depends on previous refreshes
     console.log("Metrics promises fullfilled")
 
     const nodesBalance = await getNodesBalance()
@@ -933,6 +933,7 @@ async function heartLoop() {
     catch (ex: any) {
         console.error("ERR", JSON.stringify(ex))
         console.error("ERR", ex.message)
+        console.error("ERR", ex.stack)
     }
     finally {
         executing = false;

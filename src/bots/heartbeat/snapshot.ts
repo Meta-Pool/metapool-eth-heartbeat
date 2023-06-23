@@ -78,8 +78,7 @@ export type SnapshotHR = {
     withdrawBalance: number
     totalPendingWithdraws: number
     totalNodesBalance: number
-    nodesBalances: Record<string, number>
-
+    
     stakingTotalSupply: number
     liqTotalSupply: number
     activatedValidators: number
@@ -87,7 +86,8 @@ export type SnapshotHR = {
     timeRemainingToFinishEpoch: string
     rewardsPerSecondInETH: number
     mpTotalAssets: number
-
+    
+    nodesBalances: Record<string, number>
     validatorsTypesQty: Record<string, number>
 
 }
@@ -129,8 +129,18 @@ export function fromGlobalState(): Record<string,any> {
 
     }
 
+    const output: Record<string, string|number> = snap
+    
+    Object.keys(globalPersistentData.nodesBalances).forEach((pubkey: any) => {
+        output[`nodesBalance_${pubkey}`] = globalPersistentData.nodesBalances[pubkey]
+    });
+
+    Object.keys(beaconChainData.validatorsStatusesQty).forEach((status: any) => {
+        output[`validatorsStatusesQty_${status}`] = beaconChainData.validatorsStatusesQty[status]
+    });
+
     // Object.assign(snap,globalPersistentData.extraData)
-    return snap
+    return output
 
 }
 
