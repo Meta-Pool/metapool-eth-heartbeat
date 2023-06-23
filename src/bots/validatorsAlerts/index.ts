@@ -34,7 +34,7 @@ export async function alertCreateValidators(): Promise<IDailyReportHelper> {
     console.log("Getting validators data")
     const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
 
-    const validatorsQtyByType = getValidatorsQtyByType(validatorsData)
+    const validatorsQtyByType = beaconChainData.validatorsStatusesQty
     const activatedValidatorsAmount = validatorsData.length
     // const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
 

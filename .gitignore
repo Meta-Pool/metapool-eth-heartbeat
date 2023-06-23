@@ -8,6 +8,7 @@ validator_keys/
 
 assigned.json
 persistent.json
+beaconChainPersistentData.json
 src/bots/assignOperatorsToValidatorBot/assigned.json
 src/bots/assignOperatorsToValidatorBot/groups.json
 src/bots/assignOperatorsToValidatorBot/operators.json
