@@ -40,7 +40,6 @@ export let globalLiquidityData: LiquidityData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
-let lastValidatorCheckProposalTimestamp = 0 // ms
 
 //time in ms
 export const MS_IN_SECOND = 1000
@@ -86,6 +85,7 @@ export interface PersistentData {
     beatCount: number
     timestamp: number
     delayedUnstakeEpoch: number
+    lastValidatorCheckProposalTimestamp: number
 
     // Price data
     mpEthPrices: PriceData[]
@@ -712,7 +712,7 @@ async function initializeUninitializedGlobalData() {
         globalPersistentData.mpEthPrices = []
     }
     if(!globalPersistentData.delayedUnstakeEpoch) {
-        globalPersistentData.delayedUnstakeEpoch = await withdrawContract.getEpoch()
+        globalPersistentData.delayedUnstakeEpoch = 0
     }
     if(!globalPersistentData.validatorsLatestProposal) {
         globalPersistentData.validatorsLatestProposal = {}
@@ -728,6 +728,8 @@ async function initializeUninitializedGlobalData() {
     if(!globalPersistentData.historicalActiveValidators) globalPersistentData.historicalActiveValidators = []
     
     if(!globalPersistentData.historicalNodesBalances) globalPersistentData.historicalNodesBalances = {}
+
+    if(!globalPersistentData.lastValidatorCheckProposalTimestamp) globalPersistentData.lastValidatorCheckProposalTimestamp = 0
 
     if(isDebug) console.log("Global state initialized successfully")
 }
@@ -803,7 +805,7 @@ function trucateLongGlobalArrays() {
 }
 
 async function registerValidatorsProposals() {
-    lastValidatorCheckProposalTimestamp = Date.now()
+    globalPersistentData.lastValidatorCheckProposalTimestamp = Date.now()
     const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
     validatorsData.map(async (v: ValidatorDataResponse) => {
         const index = v.data.validatorindex
@@ -823,16 +825,17 @@ async function beat() {
 
     //refresh contract state
     console.log("Refresh metrics")
+    await initializeUninitializedGlobalData()
     await refreshMetrics();
     console.log("Metrics refreshed successfully")
 
     // keep record of stNEAR & LP price to compute APY%
-    const currentDateISO = new Date().toISOString().slice(0, 10)
+    const currentDate = new Date(new Date().toLocaleString('en', {timeZone: 'America/New_York'})) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
+    const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
     if (isFirstCallOfTheDay) {
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
 
-        await initializeUninitializedGlobalData()
         updateGlobalData(currentDateISO)
         trucateLongGlobalArrays()       
         
@@ -846,7 +849,7 @@ async function beat() {
         await runDailyActionsAndReport()
     } // Calls made once a day
 
-    if(Date.now() - lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
+    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
         await registerValidatorsProposals()
     } // Calls made every 6 hours
 

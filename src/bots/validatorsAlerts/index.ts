@@ -71,9 +71,9 @@ export async function alertCreateValidators(): Promise<IDailyReportHelper> {
 export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelper> {
     const withdrawContract = new WithdrawContract()
     const currentEpoch = await withdrawContract.getEpoch()
-    if(!globalPersistentData.delayedUnstakeEpoch) {
-        globalPersistentData.delayedUnstakeEpoch = currentEpoch
-    }
+    // if(!globalPersistentData.delayedUnstakeEpoch) {
+    //     globalPersistentData.delayedUnstakeEpoch = currentEpoch
+    // }
     const functionName = "getDeactivateValidatorsReport"
     const output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: functionName}
     const balances: Balances = await getBalances()
