@@ -616,6 +616,7 @@ async function refreshContractData() {
         stakingTotalSupply,
         estimatedRewardsPerSecond,
         nodesBalanceUnlockTime, // Last time updateNodesBalanceWasCalled
+        nodesAndWithdrawalTotalBalance,
 
         liquidityBalance,
         liquidityMpEthBalance,
@@ -633,6 +634,7 @@ async function refreshContractData() {
         stakingContract.totalSupply(),
         stakingContract.estimatedRewardsPerSecond(),
         stakingContract.nodesBalanceUnlockTime(),
+        stakingContract.nodesAndWithdrawalTotalBalance(),
 
         // Liquidity
         liquidityContract.getWalletBalance(liquidityContract.address),
@@ -662,7 +664,7 @@ async function refreshContractData() {
     // globalStakingData.totalSupply = stakingTotalSupply
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
-    globalPersistentData.estimatedMpEthPrice = getEstimatedMpEthPrice(estimatedRewardsPerSecond, nodesBalanceUnlockTime).toString()
+    globalPersistentData.estimatedMpEthPrice = getEstimatedMpEthPrice(estimatedRewardsPerSecond, nodesBalanceUnlockTime, nodesAndWithdrawalTotalBalance).toString()
 
     globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
         if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
@@ -854,9 +856,13 @@ async function beat() {
     } // Calls made every 6 hours
 
     // Aurora
-    console.log("--Checking if order queue should be moved")
-    const wasDelayedUnstakeOrderQueueRun = await checkAuroraDelayedUnstakeOrders()
-    console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRun)
+    console.log("--Checking if order queue should be moved for new contract")
+    const wasDelayedUnstakeOrderQueueRunForNewContract = await checkAuroraDelayedUnstakeOrders(false)
+    console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForNewContract)
+
+    console.log("--Checking if order queue should be moved for old contract")
+    const wasDelayedUnstakeOrderQueueRunForOldContract = await checkAuroraDelayedUnstakeOrders(true)
+    console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForOldContract)
 
     //refresh contract state
     console.log("Refresh metrics")

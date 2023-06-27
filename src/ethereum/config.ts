@@ -10,6 +10,7 @@ export interface EthConfig {
     validatorOwnerAddress: string
     // Aurora
     stakingManagerAddress: string
+    oldStakingManagerAddress?: string
 }
 
 const MAINNET_CONFIG: EthConfig = {
@@ -21,7 +22,8 @@ const MAINNET_CONFIG: EthConfig = {
     ssvContractAddress: "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04",
     validatorOwnerAddress: "0x73e1bc24d12e642Ed648De1B951c0F318489b521",
     // Aurora
-    stakingManagerAddress: "0x69e3a362ffD379cB56755B142c2290AFbE5A6Cc8",
+    stakingManagerAddress: "0xfbC1423a2A4453E162cDd535991bCC4143E5d336",
+    oldStakingManagerAddress: "0x69e3a362ffD379cB56755B142c2290AFbE5A6Cc8",
 }
 
 const GOERLI_CONFIG: EthConfig = {

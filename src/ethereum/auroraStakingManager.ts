@@ -1,12 +1,17 @@
-import stakingManagerAbi from "./abi/StakingManager.json"
+import oldStakingManagerAbi from "./abi/StakingManager.json"
+import stakingManagerAbi from "./abi/NewStakingManager.json"
 import { getConfig } from "./config"
 import { AurContract } from "./aurContracts"
 
 export class StakingManagerContract extends AurContract {
 
-    constructor() {
+    constructor(old: boolean = false) {
+        const network = "mainnet"
+        const config = getConfig(network)
+        const address = old && config.oldStakingManagerAddress? config.oldStakingManagerAddress : config.stakingManagerAddress
+        const abi = old ? oldStakingManagerAbi : stakingManagerAbi
         // Network is hardcoded here since ETH is not in prod, but Aur is
-        super(getConfig("mainnet").stakingManagerAddress, stakingManagerAbi.abi, "mainnet")
+        super(address, stakingManagerAbi.abi, network)
     }
 
     nextCleanOrderQueue() {

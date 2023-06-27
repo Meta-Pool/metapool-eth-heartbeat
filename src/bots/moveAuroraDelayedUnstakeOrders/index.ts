@@ -5,9 +5,9 @@ import { sendEmail } from "../../utils/mailUtils"
  * Checks whether the order queue should be cleaned or not and runs it if necessary. Sends an email report in case of error
  * @returns A boolean telling if the order queue was cleaned
  */
-export async function checkAuroraDelayedUnstakeOrders(): Promise<boolean> {
+export async function checkAuroraDelayedUnstakeOrders(useOldContract: boolean): Promise<boolean> {
     try {
-        const stakingManagerContract = new StakingManagerContract()
+        const stakingManagerContract = new StakingManagerContract(useOldContract)
         const nextRunTimestampInSeconds: BigInt = await stakingManagerContract.nextCleanOrderQueue()
         const nextRunTimestampInMs: number = Number(nextRunTimestampInSeconds.toString()) * 1000
         const now = new Date().getTime()

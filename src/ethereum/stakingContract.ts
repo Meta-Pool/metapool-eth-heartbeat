@@ -53,6 +53,10 @@ export class StakingContract extends EthContract {
     nodesBalanceUnlockTime(): Promise<bigint> {
         return this.contract.nodesBalanceUnlockTime()
     }
+    
+    nodesAndWithdrawalTotalBalance(): Promise<bigint> {
+        return this.contract.nodesAndWithdrawalTotalBalance()
+    }
 }
 
 
