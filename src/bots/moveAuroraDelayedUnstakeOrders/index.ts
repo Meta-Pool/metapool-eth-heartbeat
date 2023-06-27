@@ -1,5 +1,6 @@
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager"
 import { sendEmail } from "../../utils/mailUtils"
+import { sLeftToTimeLeft } from "../../utils/timeUtils"
 
 /**
  * Checks whether the order queue should be cleaned or not and runs it if necessary. Sends an email report in case of error
@@ -12,7 +13,7 @@ export async function checkAuroraDelayedUnstakeOrders(useOldContract: boolean): 
         const nextRunTimestampInMs: number = Number(nextRunTimestampInSeconds.toString()) * 1000
         const now = new Date().getTime()
         console.log("Next clean orders queue", new Date(nextRunTimestampInMs))
-        console.log("Time remaining to next run", (nextRunTimestampInMs - now) / 1000, "seconds")
+        console.log("Time remaining to next run", sLeftToTimeLeft(Math.floor((nextRunTimestampInMs - now) / 1000)))
         if(now >= nextRunTimestampInMs) {
             console.log("Running clean orders queue")
             // const tx = await stakingManagerContract.cleanOrdersQueue()
