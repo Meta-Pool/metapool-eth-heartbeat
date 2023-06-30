@@ -617,9 +617,9 @@ async function refreshContractData() {
         stakingBalance,
         stakingTotalAssets,
         stakingTotalSupply,
-        estimatedRewardsPerSecond,
-        submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
-        nodesAndWithdrawalTotalBalance,
+        // estimatedRewardsPerSecond,
+        // submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
+        // nodesAndWithdrawalTotalBalance,
 
         liquidityBalance,
         liquidityMpEthBalance,
@@ -635,9 +635,9 @@ async function refreshContractData() {
         stakingContract.getWalletBalance(stakingContract.address),
         stakingContract.totalAssets(),
         stakingContract.totalSupply(),
-        stakingContract.estimatedRewardsPerSecond(),
-        stakingContract.submitReportUnlockTime(),
-        stakingContract.nodesAndWithdrawalTotalBalance(),
+        // stakingContract.estimatedRewardsPerSecond(),
+        // stakingContract.submitReportUnlockTime(),
+        // stakingContract.nodesAndWithdrawalTotalBalance(),
 
         // Liquidity
         liquidityContract.getWalletBalance(liquidityContract.address),
@@ -667,7 +667,7 @@ async function refreshContractData() {
     // globalStakingData.totalSupply = stakingTotalSupply
     globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
-    globalPersistentData.estimatedMpEthPrice = getEstimatedMpEthPrice(estimatedRewardsPerSecond, submitReportUnlockTime, nodesAndWithdrawalTotalBalance).toString()
+    // globalPersistentData.estimatedMpEthPrice = getEstimatedMpEthPrice(estimatedRewardsPerSecond, submitReportUnlockTime, nodesAndWithdrawalTotalBalance).toString()
 
     globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
         if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {

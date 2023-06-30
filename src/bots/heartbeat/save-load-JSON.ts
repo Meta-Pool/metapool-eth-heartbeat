@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, existsSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { PersistentData } from '.'
 
 const DB_PATH = "db/"
@@ -10,6 +10,9 @@ export function saveJSON<T>(data: T, filename: string): void {
 export function loadJSON<T>(filename: string, isArray: boolean = false): T {
     filename = DB_PATH + filename
     try {
+        if(!existsSync(DB_PATH)) {
+            mkdirSync(DB_PATH)
+        }
         if(!existsSync(filename)) {
             const initValue = isArray ? "[]" : "{}"
             writeFileSync(filename, initValue)
