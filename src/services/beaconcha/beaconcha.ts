@@ -1,13 +1,16 @@
+import { keys } from "ts-transformer-keys"
 import { isDebug } from "../../bots/heartbeat"
+import { ZEROS_9 } from "../../bots/nodesBalance"
 import { IBalanceHistory } from "../../entities/beaconcha/validator"
 import { getConfig } from "../../ethereum/config"
-import { IValidatorProposal } from "./entities"
+import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "./entities"
 
 const BASE_URL = "https://prater.beaconcha.in/api/v1/"
-const VALIDATOR_ID_FINDER_BASE_URL = BASE_URL + "validator/eth1/"
-const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 
-const VALIDATOR_HISTORY_URL = BASE_URL + "validator/{index_or_pubkey}/balancehistory"
+const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
+const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
+const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory"
+const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={epoch}"
 
 export interface DeployerDataResponse {
     status: string
@@ -56,35 +59,6 @@ export interface IBalanceHistoryData {
     week_end: string
 }
 
-export interface IEpochResponse {
-    status: string
-    data: IEpochData
-}
-
-export interface IEpochData {
-    attestationscount: number
-    attesterslashingscount: number
-    averagevalidatorbalance: number
-    blockscount: number
-    depositscount: number
-    eligibleether: number
-    epoch: number
-    finalized: boolean
-    globalparticipationrate: number
-    missedblocks: number
-    orphanedblocks: number
-    proposedblocks: number
-    proposerslashingscount: number
-    rewards_exported: boolean
-    scheduledblocks: number
-    totalvalidatorbalance: number
-    ts: string
-    validatorscount: number
-    voluntaryexitscount: number
-    votedether: number
-    withdrawalcount: number
-}
-
 export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}`)
@@ -121,9 +95,9 @@ export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promis
  * 
  * @param epoch Epoch number, the string latest or the string finalized
  */
-export function getEpoch(epoch: string): Promise<any> {
+export function getEpoch(epoch: string = "latest"): Promise<IEpochResponse> {
     const url = BASE_URL + "epoch/" + epoch
-    return fetch(url).then(r => r.json().then(json => json.data))
+    return fetch(url).then(r => r.json().then(json => json))
 }
 
 export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
@@ -142,4 +116,68 @@ export function getValidatorWithrawalInEpoch(indexOrPubKey: string|number, epoch
     const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + epoch ? `?epoch=${epoch}` : ""
     if(isDebug) console.log("Withrawal url:", url)
     return fetch(url).then(r => r.json())
+}
+
+export async function getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
+    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(","))
+    let output: Record<number, any> = {}
+    indexes.forEach((index: number) => {
+        output[index] = {
+            lastCheckedEpoch: lastEpoch + 1,
+            rewards: 0n,
+            penalties: 0n
+        }
+    })
+
+    let serviceFirstEpoch = lastEpoch
+    while(serviceFirstEpoch > firstEpoch) {
+        const epochIDHUrl = validatorsUrl.replace("{epoch}", serviceFirstEpoch.toString())
+        const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
+        output = await processIDHResponse(output, idhResponse, firstEpoch)
+        serviceFirstEpoch -= 100
+    }
+
+    return output
+}
+
+async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, any>> {
+    const errorMessages: string[] = []
+    idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
+        if(data.epoch < firstEpoch) return
+        const validatorIDH = output[data.validatorindex]
+
+        const incomeResponseProperties = Object.keys(data.income)
+        const isIncluded = incomeResponseProperties.some((e: string) => INCOME_DATA_KEYS.includes(e))
+        if(!isIncluded) {
+            const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked.`
+            errorMessages.push(message)
+            throw new Error(message)
+        }
+        validatorIDH.lastCheckedEpoch--
+        validatorIDH.rewards += sumRewards(data.income)
+        validatorIDH.penalties += sumPenalties(data.income)
+
+        output[data.validatorindex] = {...validatorIDH}
+    })
+    return output
+}
+
+function sumRewards(data: IIncomeData): bigint {
+    return BigInt((data.attestation_head_reward|| 0) + ZEROS_9)
+        + BigInt((data.attestation_source_reward|| 0) + ZEROS_9)
+        + BigInt((data.attestation_target_reward|| 0) + ZEROS_9)
+        + BigInt((data.proposer_attestation_inclusion_reward|| 0) + ZEROS_9)
+        + BigInt((data.proposer_slashing_inclusion_reward|| 0) + ZEROS_9)
+        + BigInt((data.proposer_sync_inclusion_reward|| 0) + ZEROS_9)
+        + BigInt((data.slashing_reward|| 0) + ZEROS_9)
+        + BigInt((data.sync_committee_reward|| 0) + ZEROS_9)
+        + BigInt(data.tx_fee_reward_wei || 0)
+}
+
+function sumPenalties(data: IIncomeData): bigint {
+    return BigInt((data.attestation_source_penalty|| 0) + ZEROS_9)
+        + BigInt((data.attestation_target_penalty|| 0) + ZEROS_9)
+        + BigInt((data.finality_delay_penalty|| 0) + ZEROS_9)
+        + BigInt((data.slashing_penalty|| 0) + ZEROS_9)
+        + BigInt((data.sync_committee_penalty|| 0) + ZEROS_9)
 }

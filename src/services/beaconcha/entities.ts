@@ -48,15 +48,17 @@ export interface IValidatorProposalStatus {
 export interface IBeaconChainHeartBeatData {
     validatorsData: ValidatorDataResponse[]
     validatorsStatusesQty: Record<string, number> // key is status type
-    validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
+    validatorsIncomeDetailHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
     validatorsWithdrawalHistory: Record<string, IValidatorWithrawals[]> // key is pubkey
+    currentEpoch: number
 }
 
 export const EMPTY_BEACON_CHAIN_DATA: IBeaconChainHeartBeatData = {
     validatorsData: [],
     validatorsStatusesQty: {},
-    validatorsBalanceHistory: {},
+    validatorsIncomeDetailHistory: {},
     validatorsWithdrawalHistory: {},
+    currentEpoch: 0
 }
 
 export interface IValidatorWithrawals {
@@ -72,4 +74,95 @@ export interface IWithdrawalData {
     validatorindex: number
     address: string
     amount: number // Has 9 decimals
+}
+
+export interface IEpochResponse {
+    status: string
+    data: IEpochData
+}
+
+export interface IEpochData {
+    attestationscount: number,
+    attesterslashingscount: number,
+    averagevalidatorbalance: number,
+    blockscount: number,
+    depositscount: number,
+    eligibleether: number,
+    epoch: number,
+    finalized: boolean,
+    globalparticipationrate: number,
+    missedblocks: number,
+    orphanedblocks: number,
+    proposedblocks: number,
+    proposerslashingscount: number,
+    rewards_exported: boolean,
+    scheduledblocks: number,
+    totalvalidatorbalance: number,
+    ts: string,
+    validatorscount: number,
+    voluntaryexitscount: number,
+    votedether: number,
+    withdrawalcount: number
+}
+
+export interface IIncomeDetailHistoryResponse {
+    status: string
+    data:  IIncomeDetailHistoryData[]
+}
+
+export interface IIncomeDetailHistoryData {
+    income: IIncomeData,
+    epoch: number,
+    validatorindex: number,
+    week: number,
+    week_start: string,
+    week_end: string
+}
+
+export interface IIncomeData { // If you add a property here, make sure to add it in the array INCOME_DATA_KEYS in this same file
+    attestation_head_reward?: number,
+    attestation_source_penalty?: number,
+    attestation_source_reward?: number,
+    attestation_target_penalty?: number,
+    attestation_target_reward?: number,
+    finality_delay_penalty?: number,
+    proposals_missed?: number,
+    proposer_attestation_inclusion_reward?: number,
+    proposer_slashing_inclusion_reward?: number,
+    proposer_sync_inclusion_reward?: number,
+    slashing_penalty?: number,
+    slashing_reward?: number,
+    sync_committee_penalty?: number,
+    sync_committee_reward?: number,
+    tx_fee_reward_wei?: string
+}
+
+export const INCOME_DATA_KEYS: string[] = [
+    "attestation_head_reward",
+    "attestation_source_penalty",
+    "attestation_source_reward",
+    "attestation_target_penalty",
+    "attestation_target_reward",
+    "finality_delay_penalty",
+    "proposals_missed",
+    "proposer_attestation_inclusion_reward",
+    "proposer_slashing_inclusion_reward",
+    "proposer_sync_inclusion_reward",
+    "slashing_penalty",
+    "slashing_reward",
+    "sync_committee_penalty",
+    "sync_committee_reward",
+    "tx_fee_reward_wei"
+]
+
+export interface MiniIDHReport {
+    lastCheckedEpoch: number
+    rewards: bigint
+    penalties: bigint
+}
+
+export interface Donations {
+    beaconEpoch: number
+    depositAmountEth: number
+    transactionHash: string
 }

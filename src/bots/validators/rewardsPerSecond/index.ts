@@ -6,7 +6,7 @@ export const epochDurationMs = 6 * MS_IN_MINUTES + 24 * MS_IN_SECOND
 
 export function getRewardsPerSecond() {
 
-    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsBalanceHistory
+    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsIncomeDetailHistory
 
 
 }

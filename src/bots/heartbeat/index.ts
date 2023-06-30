@@ -14,15 +14,16 @@ import { alertCreateValidators, getDeactivateValidatorsReport } from "../validat
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
+import { getEpoch, getValidatorProposal } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
-import { setBeaconchaData as refreshBeaconChainData } from "../../services/beaconcha/beaconchaHelper";
+import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
+import { wtoe } from "../../utils/numberUtils";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -47,6 +48,8 @@ export const MS_IN_MINUTES = 60 * MS_IN_SECOND
 export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
 const INTERVAL = 5 * MS_IN_MINUTES
+
+
 
 const TotalCalls = {
     beats: 0,
@@ -703,7 +706,6 @@ async function refreshMetrics() {
     const totalAssets = BigInt(globalPersistentData.stakingBalance) + BigInt(globalPersistentData.withdrawBalance) + BigInt(nodesBalance) - BigInt(globalPersistentData.totalPendingWithdraws)
     globalPersistentData.mpTotalAssets = totalAssets.toString()
     globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
-    globalPersistentData.rewardsPerSecondsInWei = getEstimatedRewardsPerSecond().toString()
 }
 
 async function initializeUninitializedGlobalData() {
@@ -847,6 +849,8 @@ async function beat() {
         console.log("--Checking if a validator can be activated")
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
+        
+
         
         await runDailyActionsAndReport()
     } // Calls made once a day
@@ -996,9 +1000,6 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
-        // await refreshBeaconChainData()
-        // const report = await updateNodesBalance()
-        // console.log(report)
         // return
     }
 
@@ -1017,4 +1018,4 @@ async function run() {
     await heartLoop();
 }
 
-run().catch((reason: any) => console.error("Main err", reason.message));
+run().catch((reason: any) => console.error("Main err", reason.message, reason.stack));

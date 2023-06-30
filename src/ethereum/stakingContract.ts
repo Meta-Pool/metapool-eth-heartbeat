@@ -2,9 +2,9 @@ import { isDebug } from "../bots/heartbeat"
 import stakingAbi from "./abi/Staking.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
-import { ETH_32 } from "../bots/activateValidator"
 import { max, min } from "../utils/numberUtils"
 import { ethers } from "ethers"
+import { Report } from "../entities/staking"
 
 export interface Node {
     pubkey: string
@@ -56,6 +56,10 @@ export class StakingContract extends EthContract {
     
     nodesAndWithdrawalTotalBalance(): Promise<bigint> {
         return this.contract.nodesAndWithdrawalTotalBalance()
+    }
+
+    reportEpochs(report: Report, rewardsPerSecond: bigint): Promise<any> {
+        return this.contract.reportEpochs(report, rewardsPerSecond)
     }
 }
 

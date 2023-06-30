@@ -1,9 +1,10 @@
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils"
+import { Report } from "../../entities/staking"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
-import { IBalanceHistoryData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha"
+import { IBalanceHistoryData, ValidatorDataResponse, getEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
 import { sendEmail } from "../../utils/mailUtils"
-import { etow, wtoe } from "../../utils/numberUtils"
+import { etow, max, wtoe } from "../../utils/numberUtils"
 import { MS_IN_DAY, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../heartbeat"
 import { computeRollingApy } from "../heartbeat/snapshot"
 
@@ -72,7 +73,10 @@ export async function updateNodesBalance(): Promise<IDailyReportHelper> {
     }
 }
 
-export async function getNodesBalance(): Promise<string> {
+export async function getNodesBalance(reloadNodesData: boolean = false): Promise<string> {
+    if(reloadNodesData) {
+        beaconChainData.validatorsData = await getValidatorsData()
+    }
     const validatorDataArray: ValidatorDataResponse[] = beaconChainData.validatorsData
 
     const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
@@ -90,7 +94,7 @@ export async function checkValidatorsPenalization() {
     // const validatorDataArray: ValidatorDataResponse[] = beaconChainData.validatorsData
 
     // const validatorsBalanceHistory: IBalanceHistoryData[][] = await Promise.all(validatorDataArray.map((v: ValidatorDataResponse) => getValidatorBalanceHistory(v.data.pubkey)))
-    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsBalanceHistory
+    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsIncomeDetailHistory
 
     // BalanceHistoryData is ordered so the index 0 has the most recent epoch
     const penalizedValidatorsKeys: string[] = Object.keys(validatorsBalanceHistory).filter((key: string) => validatorsBalanceHistory[key][0].balance < validatorsBalanceHistory[key][1].balance)
@@ -104,7 +108,7 @@ export async function checkValidatorsPenalization() {
 
 function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
     console.log("There are validators being penalized")
-    const balancesHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsBalanceHistory
+    const balancesHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsIncomeDetailHistory
 
     const subject = "[ERROR] Penalized validators"
 
@@ -128,19 +132,15 @@ function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
     sendEmail(subject, body)
 }
 
-export function getEstimatedRewardsPerSecond(): bigint {
-    const injectionFinishTimestampMs = 1688007600000 // 2023/06/29 00:00:00
+export async function getEstimatedRewardsPerSecond(report: Report): Promise<bigint> {
+    const income = max(report.rewards - report.penalties, 0n)
+    const initialEpoch = await getEpoch(report.from.toString())
+    const finalEpoch = await getEpoch(report.to.toString())
 
-    // Previous to that date, we inject 0.75 ETH every week and have no rewards
-    if(Date.now() < injectionFinishTimestampMs) {
-        const ethRewardsPerWeek = etow(0.75)
-        const ethRewardsPerSecond = ethRewardsPerWeek / BigInt(7 * MS_IN_DAY) * BigInt(MS_IN_SECOND)
-        console.log("Rewards per second", ethRewardsPerSecond)
-        return ethRewardsPerSecond
-    } else {
-        const apy = computeRollingApy(globalPersistentData.mpEthPrices, 1)
-        const ethRewardsPerYear = wtoe(globalPersistentData.mpTotalAssets) * (apy/100)
-        const ethRewardsPerSecond = ethRewardsPerYear / (365 * MS_IN_DAY) * MS_IN_SECOND
-        return etow(ethRewardsPerSecond)
-    }
+    const deltaMs = new Date(finalEpoch.data.ts).getTime() - new Date(initialEpoch.data.ts).getTime()
+    const deltaS = Math.floor(deltaMs / 1000)
+
+    // When dividing with BigInt it truncates the result if necessary, which is expected
+    return income / BigInt(deltaS)
+    
 }

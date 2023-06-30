@@ -75,29 +75,6 @@ export async function activateValidator(): Promise<boolean> {
     return wasValidatorCreated
 }
 
-async function canUseLiqEth(): Promise<boolean> {
-    const liqLastUsageFileExists = await existsSync(liqLastUsageFilename)
-    if(!liqLastUsageFileExists) {
-        let timeToSet = new Date()
-        timeToSet.setHours(timeToSet.getHours() - HOURS_TO_WAIT_BEFORE_REUSING_LIQ_ETH)
-        await writeFileSync(liqLastUsageFilename, timeToSet.getTime().toString())
-    }
-
-    const lastUsageTimestamp = await readFileSync(liqLastUsageFilename)
-    const elapsedMsSinceLastLiqUse = new Date().getTime() - Number(lastUsageTimestamp)
-    return elapsedMsSinceLastLiqUse / 1000 / 60 / 60 > HOURS_TO_WAIT_BEFORE_REUSING_LIQ_ETH
-}
-
-async function getValidatorToActivate(): Promise<any> {
-    // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
-    const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
-    return depositData.find((depData: any) => {
-        return validatorsDataResponse.every((v: ValidatorDataResponse) => {
-            return v.data.pubkey !== `0x${depData.pubkey}`
-        })
-    })
-}
-
 async function getValidatorsToActivate(): Promise<any[]> {
     // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
     const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
@@ -118,16 +95,6 @@ async function getNextNodesToActivate(qty: number): Promise<Node[]> {
             depositDataRoot: "0x" + node.deposit_data_root
         } 
     })
-}
-
-async function getNextNodeToActivateData(): Promise<Node> {
-    const node = await getValidatorToActivate()
-    return {
-        pubkey: "0x" + node.pubkey,
-        withdrawCredentials: "0x" + node.withdrawal_credentials,
-        signature: "0x" + node.signature,
-        depositDataRoot: "0x" + node.deposit_data_root
-    } 
 }
 
 export async function getBalances(): Promise<Balances> {
