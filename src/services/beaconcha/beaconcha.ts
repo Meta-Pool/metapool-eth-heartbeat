@@ -1,4 +1,3 @@
-import { keys } from "ts-transformer-keys"
 import { isDebug } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
 import { IBalanceHistory } from "../../entities/beaconcha/validator"
