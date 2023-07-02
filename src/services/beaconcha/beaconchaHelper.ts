@@ -4,7 +4,7 @@ import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
 import { etow } from "../../utils/numberUtils";
-import { ValidatorDataResponse, getEpoch as getBeaconChainEpoch, getValidatorBalanceHistory, getValidatorWithrawalInEpoch, getValidatorsData, getValidatorsIncomeDetailHistory } from "./beaconcha";
+import { ValidatorDataResponse, getEpoch as getBeaconChainEpoch, getEpoch, getValidatorBalanceHistory, getValidatorWithrawalInEpoch, getValidatorsData, getValidatorsIncomeDetailHistory } from "./beaconcha";
 import { Donations as Donation, EMPTY_BEACON_CHAIN_DATA, IBeaconChainHeartBeatData, IEpochResponse, MiniIDHReport } from "./entities";
 
 
@@ -24,7 +24,8 @@ export async function setBeaconchaData() {
     beaconChainData.currentEpoch = latestEpochData.data.epoch
 }
 
-export async function setIncomeDetailHistory(toEpoch: number) {
+export async function setIncomeDetailHistory() {
+    const toEpoch: number = (await getEpoch()).data.epoch
     const filename = "income_detail_history.json"
     // When coming from file, it's not the class, but the structure.
     const incomeDetailHistory: Record<number, IncomeReport> = {}

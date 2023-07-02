@@ -8,7 +8,7 @@ import { tail } from "./util/tail";
 import { LiquidityData, StakingData } from "./contractData";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
-import { ZEROS_9, getEstimatedRewardsPerSecond, getNodesBalance, updateNodesBalance } from "../nodesBalance";
+import { ZEROS_9, getNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators, getDeactivateValidatorsReport } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
@@ -850,7 +850,7 @@ async function beat() {
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
         
-
+        setIncomeDetailHistory()
         
         await runDailyActionsAndReport()
     } // Calls made once a day
