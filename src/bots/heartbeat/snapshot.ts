@@ -53,7 +53,7 @@ export type Snapshot = {
     activatedValidators: number
     createdValidatorsLeft: number
     secondsRemainingToFinishEpoch: number
-    rewardsPerSecondInWei: string
+    // rewardsPerSecondInWei: string
     mpTotalAssets: string
 
 }
@@ -84,7 +84,7 @@ export type SnapshotHR = {
     activatedValidators: number
     createdValidatorsLeft: number
     timeRemainingToFinishEpoch: string
-    rewardsPerSecondInETH: number
+    // rewardsPerSecondInETH: number
     mpTotalAssets: number
     
     nodesBalances: Record<string, number>
@@ -124,7 +124,7 @@ export function fromGlobalState(): Record<string,any> {
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         secondsRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
-        rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
+        // rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
         mpTotalAssets: globalPersistentData.mpTotalAssets,
 
     }
@@ -181,7 +181,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         timeRemainingToFinishEpoch: sLeftToTimeLeft(globalPersistentData.timeRemainingToFinishMetapoolEpoch),
-        rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
+        // rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
         mpTotalAssets: wtoe(globalPersistentData.mpTotalAssets),
 
         validatorsTypesQty: beaconChainData.validatorsStatusesQty
