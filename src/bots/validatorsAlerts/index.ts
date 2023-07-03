@@ -5,6 +5,7 @@ import { Balances, ETH_32, getBalances } from '../activateValidator'
 import { EMPTY_DAILY_REPORT, IDailyReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
 import { beaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
+import { etow } from '../../utils/numberUtils'
 
 const THRESHOLD: number = 5
 
@@ -71,9 +72,7 @@ export async function alertCreateValidators(): Promise<IDailyReportHelper> {
 export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelper> {
     const withdrawContract = new WithdrawContract()
     const currentEpoch = await withdrawContract.getEpoch()
-    // if(!globalPersistentData.delayedUnstakeEpoch) {
-    //     globalPersistentData.delayedUnstakeEpoch = currentEpoch
-    // }
+    
     const functionName = "getDeactivateValidatorsReport"
     const output: IDailyReportHelper = {...EMPTY_DAILY_REPORT, function: functionName}
     const balances: Balances = await getBalances()
@@ -113,7 +112,7 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         Previous epoch: ${previousEpoch}
         Current epoch: ${currentEpoch}
     `
-        
+       
     const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw
     if(withdrawAvailableEthForValidators > 0) {
         return {
@@ -180,6 +179,9 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
     if(ethToTransferFromLiq > 0) {
         await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
     }
+
+    const vIndexes: string[] = getValidatorsRecommendedToBeDisassemled(validatorsToDissasemble)
+
     ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
     const subject = "[IMPORTANT] Disassemble validators"
     const body = `
@@ -188,8 +190,9 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         ${epochInfoBody}
         Needed ETH: ${neededEth}
         ETH provided from liq: ${ethToTransferFromLiq}
+        Recommended validators to disassemble: ${vIndexes.join(", ")}
     `
-
+    console.log(1, body)
     return {
         ...output,
         ok: false, 
@@ -197,4 +200,13 @@ export async function getDeactivateValidatorsReport(): Promise<IDailyReportHelpe
         body,
         severity: Severity.IMPORTANT
     }
+}
+
+function getValidatorsRecommendedToBeDisassemled(amount: number): string[] {
+    const validatorsProposalsArray: [string, number][] = Object.keys(globalPersistentData.validatorsLatestProposal).map((validatorIndex: string) => {
+        return [validatorIndex, globalPersistentData.validatorsLatestProposal[Number(validatorIndex)]]
+    })
+
+    validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
+    return validatorsProposalsArray.map((v: [string, number]) => v[0]).slice(0, amount)
 }

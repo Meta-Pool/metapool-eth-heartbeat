@@ -721,9 +721,8 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
-        // beaconChainData.validatorsData = await getValidatorsData()
-        // setIncomeDetailHistory()
-        // return
+        getDeactivateValidatorsReport()
+        return
     }
 
     if (process.argv.includes("also-80")) {
