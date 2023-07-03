@@ -131,6 +131,7 @@ export async function getValidatorsIncomeDetailHistory(indexes: number[], firstE
     let serviceFirstEpoch = lastEpoch
     while(serviceFirstEpoch > firstEpoch) {
         const epochIDHUrl = validatorsUrl.replace("{epoch}", serviceFirstEpoch.toString())
+        console.log(1, epochIDHUrl)
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
         output = await processIDHResponse(output, idhResponse, firstEpoch)
         serviceFirstEpoch -= 100

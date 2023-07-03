@@ -19,9 +19,10 @@ import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/beaconcha/entities";
-import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
+import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
+import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -134,304 +135,14 @@ function showWho(resp: http.ServerResponse) {
 
 function showStats(resp: http.ServerResponse) {
     resp.write("Show stats not implemented yet")
-    // const hoursFromStart = epoch.hours_from_start()
-    // const hoursToEnd = epoch.hours_to_end()
-    // const hoursFromStartPct = hoursFromStart / (epoch.prev_epoch_duration_ms / HOURS) * 100;
-    // resp.write(`
-    //   <dl>
-    //     <dt>Server Started</dt><dd>${StarDateTime.toString()}</dd>
-    //     <dt>Total Calls</dt><dd>${util.inspect(TotalCalls)}</dd>
-    //     <dt>Accum</dt><dd>${globalPersistentData.beatCount}</dd>
-    //   </dl>
-
-    //   <dl>
-    //     <dt>Contract State Epoch</dt><dd>${globalContractState.env_epoch_height}</dd>
-    //     <dt>Prev epoch duration</dt><dd>${asHM(epoch.prev_epoch_duration_ms / HOURS)}</dd>
-    //     <dt>Epoch start height </dt><dd>${epoch.start_block_height}</dd>
-    //     <dt>last_block_height</dt><dd>${globalLastBlock.header.height}</dd>
-    //     <dt>Epoch blocks elapsed </dt><dd>${globalLastBlock.header.height - epoch.start_block_height}</dd>
-    //     <dt>Epoch advance</dt><dd>${Math.round((globalLastBlock.header.height - epoch.start_block_height) / epoch.length * 100)}%</dd>
-
-    //     <dt>Epoch started</dt><dd>${epoch.start_dtm.toString()} => ${asHM(hoursFromStart)} ago</dd>
-    //     <dt>Epoch ends</dt><dd>${epoch.ends_dtm.toString()} => in ${asHM(hoursToEnd)}</dd>
-    //   </dl>
-
-    //   <div class="progress">
-    //     <div class="elapsed" style="width:${hoursFromStartPct}%">
-    //     ${asHM(hoursFromStart)}
-    //     </div>
-    //     <div class="remaining" style="width:${100 - hoursFromStartPct}%">
-    //     ${asHM(hoursToEnd)}
-    //     </div>
-    //   </div>
-    //   `);
-
 }
 
 function showContractState(resp: http.ServerResponse) {
     resp.write("Show contract state not implemented yet")
-    // try {
-    //   const lines = fs.readFileSync('state.log', 'utf-8').split(/\r?\n/);
-
-    //   resp.write(`<div class="table-wrapper"><table><thead>`);
-    //   resp.write(`
-    //     <tr>
-    //     <th colspan=5>Step</th>
-
-    //     <th colspan=3>LIQUID</th>
-
-    //     <th colspan=2>ORDERS</th>
-
-    //     <th colspan=4>STAKING</th>
-
-    //     <th colspan=2>control</th>
-
-    //     <th colspan=3>external</th>
-
-    //     </tr>
-    //   `);
-    //   resp.write(`
-    //     <tr>
-    //     <th>epoch</th>
-    //     <th>Step</th>
-    //     <th>user</th>
-    //     <th>ACTION</th>
-    //     <th>amount</th>
-
-    //     <th>contract account balance</th>
-    //     <th>reserve for D-WITHDRAW</th>
-    //     <th>Total Available</th>
-
-    //     <th>epoch STK orders</th>
-    //     <th>epoch UNSTAKE orders</th>
-
-    //     <th>Accum TFS</th>
-    //     <th>Accum TAS</th>
-    //     <th>to-stake Delta</th>
-    //     <th>T.unstake.& waiting</th>
-
-    //     <th>Unstake Claims</th>	
-    //     <th>U.Claim avail sum</th>	
-    //     <th>staked in pools</th>	
-    //     <th>unstake in pools</th>	
-    //     <th>total in pool</th>
-
-    //     </tr></thead>
-    //     <tbody>
-    //   `);
-
-    //   globalStep = 0;
-    //   let prevStateString = ""
-    //   let prevState: ComposedState | undefined = undefined;
-
-    //   for (let inx = 0; inx < lines.length; inx++) {
-    //     const line = lines[inx];
-    //     if (line.startsWith('"{')) { //event
-    //       const jsonFriendly = line.slice(1, -1).replace(/\\/g, "");
-    //       const data: Record<string, any> = JSON.parse(jsonFriendly)
-    //       resp.write(`
-    //       <tr>
-    //       <td></td>
-    //       <td>${globalStep++}</td>
-    //       <td>${data.account || data.account_id || data.sp || "bot"}</td>
-    //       <td>${data.event}</td>
-    //       <td>${ytonFormat(data.amount)}</td>
-    //       <tr>
-    //       `)
-    //     }
-    //     else if (line.startsWith("--")) {
-    //       const code = line.slice(2, 6)
-    //       switch (code) {
-    //         case "PRE ": case "POST": case "DIFF": case "SAMP": {
-    //           const state = parseComposedState(line.slice(6))
-    //           const stateString = JSON.stringify(state);
-    //           if (stateString !== prevStateString) {
-    //             if (prevState) {
-    //               const diff = computeStateDiff(prevState, state);
-    //               writeStateHTMLRow(globalStep, "DIFF", diff, resp);
-    //             }
-    //             writeStateHTMLRow(globalStep, code, state, resp);
-    //             prevStateString = stateString;
-    //             prevState = Object.assign({}, state);
-    //           }
-    //           globalStep++;
-    //           break;
-    //         }
-    //       }
-    //     }
-    //   }
-
-    //   resp.write(`</tbody></table></div>`);
-
-    // } catch (ex) {
-    //   resp.write("<pre>" + JSON.stringify(ex) + "</pre>");
-    // }
 }
 
 function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
     resp.write("Show pool performance not implemented yet")
-    // try {
-
-    //   let currEpoch = Number(globalContractState.env_epoch_height)
-    //   if (debugMode) currEpoch = 1247;
-
-    //   // store by poolId an array[epoch] of RewardsInfo
-    //   let inMemoryData: Record<string, RewardsInfo[]> = {}
-    //   let jsonData: Record<string, EpochRewardsInfo[]> = {}
-
-    //   const managementFee = globalContractParams.operator_rewards_fee_basis_points / 100 // default is 50 => 0.5%
-    //   const epochsInYear = 365 * 24 / (epoch.prev_epoch_duration_ms / HOURS) // an epoch is 15 hs approx
-
-    //   let olderReadEpoch: number = currEpoch + 1;
-    //   for (let epoch = currEpoch; epoch >= currEpoch - 10; epoch--) {
-    //     const epochFilename = epochRewardsFilename(epoch)
-    //     if (!fs.existsSync(epochFilename)) break;
-    //     olderReadEpoch = epoch
-    //     const lines = fs.readFileSync(epochFilename, 'utf-8').split(/\r?\n/);
-    //     for (let line of lines) {
-    //       if (line.startsWith("sp:")) {
-    //         // line-example: `sp:dexagon.poolv1.near old_balance:114164485558789007071764711806 new_balance:114186493485904339552607427902 rewards:22007927115332480842716096` 
-    //         const parts = line.split(/ /)
-    //         const poolId = parts[0].split(/:/)[1]
-    //         if (!inMemoryData[poolId]) inMemoryData[poolId] = [];
-    //         const values = {
-    //           oldBalance: parts[1].split(/:/)[1],
-    //           newBalance: parts[2].split(/:/)[1],
-    //           rewards: parts[3].split(/:/)[1]
-    //         }
-    //         inMemoryData[poolId][epoch] = values
-
-    //         // json data
-    //         let jsonDataPoolItem = jsonData[poolId]
-    //         if (!jsonDataPoolItem) {
-    //           jsonData[poolId] = []
-    //         }
-    //         jsonData[poolId].push({
-    //           epoch: epoch,
-    //           apy: computeApy(yton(values.oldBalance), yton(values.rewards), epochsInYear, managementFee),
-    //           oldBalance: values.oldBalance,
-    //           newBalance: values.newBalance,
-    //           rewards: values.rewards
-    //         })
-    //       }
-    //     }
-    //   }
-
-    //   // convert to array
-    //   type asArayItem = { name: string; data: RewardsInfo[] }
-    //   let asArray: asArayItem[] = []
-    //   for (let key in inMemoryData) {
-    //     asArray.push({ name: key, data: inMemoryData[key] })
-    //   }
-    //   // sort by stake at last epoch
-    //   asArray.sort((r1, r2) => {
-    //     try {
-    //       return Number(r2.data[currEpoch].oldBalance) - Number(r1.data[currEpoch].oldBalance)
-    //     } catch (ex) { return 0 }
-    //   });
-    //   let totalOldBalance = BigInt(0);
-    //   let totalRewards = BigInt(0);
-    //   let sumApy = 0
-    //   let apyDataPoints = 0
-    //   try {
-    //     for (let item of asArray) if (item.data[currEpoch]) {
-    //       const data = item.data[currEpoch]
-    //       totalOldBalance += BigInt(data.oldBalance)
-    //       totalRewards += BigInt(data.rewards)
-    //       const apy = computeApy(yton(data.oldBalance), yton(data.rewards), epochsInYear, managementFee)
-    //       sumApy += apy;
-    //       apyDataPoints++;
-    //     }
-    //   }
-    //   catch (ex) { console.error(ex) }
-    //   //console.log(`Total old balance:${yton(totalOldBalance.toString())}, Total rewards:${yton(totalRewards.toString())}`);
-    //   //const pctInterestEpoch = yton(totalRewards.toString()) * (100 - pct) / )
-    //   const avgApy = Number((sumApy / apyDataPoints).toFixed(4));
-    //   const totalApyEpoch = computeApy(yton(totalOldBalance.toString()), yton(totalRewards.toString()), epochsInYear, managementFee)
-    //   //console.log(`Interest epoch ${currEpoch}:${pctInterestEpoch}, Avg.APY:${avgApy}`);
-
-    //   if (jsonOnly) {
-    //     resp.write(JSON.stringify({
-    //       apy: totalApyEpoch,
-    //       avgApy: avgApy,
-    //       oldBalance: totalOldBalance.toString(),
-    //       totalRewards: totalRewards.toString(),
-    //       data: jsonData
-    //     }));
-    //     return;
-    //   }
-
-    //   resp.write(`<div class="perf-table"><table><thead>`);
-    //   resp.write(`
-    //     <tr>
-    //     <th colspan=1>Pool</th>
-    //     `);
-    //   const COLSPAN = 2
-    //   for (let epoch = olderReadEpoch; epoch <= currEpoch; epoch++) {
-    //     resp.write(`<th colspan=${COLSPAN}>${epoch}</th>`);
-    //   }
-    //   resp.write(`
-    //   </tr>
-    //   `);
-    //   resp.write(`
-    //     <tr>
-    //     <th colspan=1></th>
-    //     `);
-    //   for (let epoch = olderReadEpoch; epoch <= currEpoch; epoch++) {
-    //     //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
-    //     resp.write(`<th>stake</th><th>apy</th>`);
-    //   }
-    //   resp.write(`
-    //   </tr>
-    //   `);
-
-    //   for (let item of asArray) {
-    //     resp.write(`
-    //     <tr>
-    //     <td>${item.name}</td>
-    //     `);
-    //     for (let epoch = olderReadEpoch; epoch <= currEpoch; epoch++) {
-    //       const info = item.data[epoch]
-    //       if (!info) {
-    //         resp.write(`<td></td>`.repeat(COLSPAN));
-    //       }
-    //       else {
-    //         resp.write(`<td>${(yton(info.oldBalance) / 1e3).toFixed(2)}k</td>`);
-    //         //resp.write(`<td>${pctInterestEpoch.toFixed(5)}%</td>`);
-    //         //const apy = ((1 + pctInterestEpoch / 100) ** (epochsInYear) - 1) * 100
-    //         const apy = computeApy(yton(info.oldBalance), yton(info.rewards), epochsInYear, managementFee)
-    //         let bgtone = 64 + (apy - avgApy) * 128
-    //         if (bgtone > 255) bgtone = 255;
-    //         if (bgtone < -255) bgtone = -255;
-    //         bgtone = Math.trunc(bgtone)
-    //         if (bgtone >= 0) {
-    //           resp.write(`<td style="background-color:rgb(${255 - bgtone},255,${255 - bgtone})">${apy.toFixed(2)}%</td>`);
-    //         }
-    //         else {
-    //           resp.write(`<td style="background-color:rgb(255,${255 + bgtone / 2},${255 + bgtone})">${apy.toFixed(2)}%</td>`);
-    //         }
-    //       }
-    //     }
-    //     resp.write(`</tr>`)
-    //   }
-
-    //   resp.write(`</tbody></table></div>`);
-    //   resp.write(`<p>Total old balance:${yton(totalOldBalance.toString())}, Total rewards:${yton(totalRewards.toString())},` +
-    //     ` Metapool epoch APY:${totalApyEpoch}, AVG Apy: ${avgApy}</p>`);
-    //   resp.write(`<p>Last epoch:${Number(globalContractState.env_epoch_height) - 1}, duration:${(epoch.prev_epoch_duration_ms / HOURS).toFixed(2)} hs, Epochs per year:${epochsInYear.toFixed(2)}` +
-    //     `, Management Fee:${managementFee}%</p>`);
-
-    //   // resp.write(`<script>
-    //   // let table = document.querySelector(".perf-table")
-    //   // table.querySelectorAll("th").forEach((th, position) => {
-    //   //    th.addEventListener("click", evt => sortTable(table, position));
-    //   //   });
-    //   // </script>
-    //   // `);
-
-    // } catch (ex) {
-    //   resp.write("<pre>" + JSON.stringify(ex) + "</pre>");
-    // }
 }
 
 export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQuery, req: http.IncomingMessage, resp: http.ServerResponse) {
@@ -587,11 +298,30 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 }
 
 async function refreshStakingData() {
-    const stakingTotalAssets = await stakingContract.totalAssets()
-    const stakingTotalSupply = await stakingContract.totalSupply()
+    const [
+        stakingBalance,
+        totalAssets,
+        totalSupply,
+        totalUnderlying,
+        estimatedRewardsPerSecond,
+        submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
+        // nodesAndWithdrawalTotalBalance,
+    ] = await Promise.all([
+        stakingContract.getWalletBalance(stakingContract.address),
+        stakingContract.totalAssets(),
+        stakingContract.totalSupply(),
+        stakingContract.totalUnderlying(),
+        stakingContract.estimatedRewardsPerSecond(),
+        stakingContract.submitReportUnlockTime(),
+    ])
+    
     globalStakingData = {
-        totalAssets: stakingTotalAssets,
-        totalSupply: stakingTotalSupply
+        stakingBalance,
+        totalAssets,
+        totalSupply,
+        totalUnderlying,
+        estimatedRewardsPerSecond,
+        submitReportUnlockTime,
     }
     
     if(isDebug) console.log("Staking data refreshed")
@@ -612,12 +342,11 @@ async function refreshLiquidityData() {
 
 async function refreshContractData() {
     const [
-        stakingBalance,
-        stakingTotalAssets,
-        stakingTotalSupply,
-        // estimatedRewardsPerSecond,
-        // submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
-        // nodesAndWithdrawalTotalBalance,
+        // stakingBalance,
+        // stakingTotalAssets,
+        // stakingTotalSupply,
+        // stakingTotalUnderlying,
+        
 
         liquidityBalance,
         liquidityMpEthBalance,
@@ -630,11 +359,11 @@ async function refreshContractData() {
         // nodesBalances
     ] = await Promise.all([
         // Staking
-        stakingContract.getWalletBalance(stakingContract.address),
-        stakingContract.totalAssets(),
-        stakingContract.totalSupply(),
-        // stakingContract.estimatedRewardsPerSecond(),
-        // stakingContract.submitReportUnlockTime(),
+        // stakingContract.getWalletBalance(stakingContract.address),
+        // stakingContract.totalAssets(),
+        // stakingContract.totalSupply(),
+        // stakingContract.totalUnderlying(),
+        
         // stakingContract.nodesAndWithdrawalTotalBalance(),
 
         // Liquidity
@@ -650,22 +379,19 @@ async function refreshContractData() {
         // Nodes
         // getValidatorsData()
     ])   
-    globalPersistentData.stakingBalance = stakingBalance.toString()
+    globalPersistentData.stakingBalance = globalStakingData.stakingBalance.toString()
     globalPersistentData.liqBalance = liquidityBalance.toString()
     globalPersistentData.liqMpEthBalance = liquidityMpEthBalance.toString()
     globalPersistentData.withdrawBalance = withdrawBalance.toString()
     globalPersistentData.totalPendingWithdraws = totalPendingWithdraw.toString()
     globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
     globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
-    globalStakingData = {
-        totalAssets: stakingTotalAssets,
-        totalSupply: stakingTotalSupply
-    }
-    // globalStakingData.totalAssets = stakingTotalAssets
-    // globalStakingData.totalSupply = stakingTotalSupply
-    globalPersistentData.stakingTotalSupply = stakingTotalSupply.toString()
+    
+    globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
+    globalPersistentData.estimatedMpEthPrice = calculateEstimatedMpEthPrice().toString()
+    globalPersistentData.stakingTotalSupply = globalStakingData.totalSupply.toString()
     globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
-    // globalPersistentData.estimatedMpEthPrice = getEstimatedMpEthPrice(estimatedRewardsPerSecond, submitReportUnlockTime, nodesAndWithdrawalTotalBalance).toString()
+    globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
 
     globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
         if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
@@ -700,10 +426,7 @@ async function refreshMetrics() {
     await refreshContractData() // Contract data depends on previous refreshes
     console.log("Metrics promises fullfilled")
 
-    const nodesBalance = await getNodesBalance()
-    const totalAssets = BigInt(globalPersistentData.stakingBalance) + BigInt(globalPersistentData.withdrawBalance) + BigInt(nodesBalance) - BigInt(globalPersistentData.totalPendingWithdraws)
-    globalPersistentData.mpTotalAssets = totalAssets.toString()
-    globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
+    
 }
 
 async function initializeUninitializedGlobalData() {
@@ -748,7 +471,7 @@ function updateGlobalData(currentDateISO: string) {
     globalPersistentData.mpEthPrices.push({
         dateISO: currentDateISO,
         price: calculateMpEthPrice().toString(),
-        assets: globalPersistentData.mpTotalAssets.toString(),
+        assets: globalStakingData.totalAssets.toString(),
         supply: globalStakingData.totalSupply.toString(),
     });
     
@@ -848,7 +571,7 @@ async function beat() {
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
         
-        setIncomeDetailHistory()
+        if(!isDebug) await setIncomeDetailHistory()
         
         await runDailyActionsAndReport()
     } // Calls made once a day

@@ -37,6 +37,10 @@ export class StakingContract extends EthContract {
     totalAssets(): Promise<bigint> {
         return this.contract.totalAssets()
     }
+
+    totalUnderlying(): Promise<bigint> {
+        return this.contract.totalUnderlying()
+    }
     
     updateNodesBalance(balance: String, rewardsPerSecond: bigint) {
         return this.contract.updateNodesBalance(balance, max(0n, rewardsPerSecond)).catch(this.decodeError)

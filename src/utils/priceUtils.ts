@@ -9,7 +9,16 @@ import { divide } from "./mathUtils"
 export function calculateMpEthPrice(): BigInt {
     if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
     
-    const totalAssets = ethers.formatEther(globalPersistentData.mpTotalAssets.toString())
+    const totalAssets = ethers.formatEther(globalStakingData.totalUnderlying.toString())
+    const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
+
+    return ethers.parseEther(divide(totalAssets, totalSupply))
+}
+
+export function calculateEstimatedMpEthPrice(): BigInt {
+    if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
+    
+    const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())
     const totalSupply = ethers.formatEther(globalStakingData.totalSupply.toString())
 
     return ethers.parseEther(divide(totalAssets, totalSupply))

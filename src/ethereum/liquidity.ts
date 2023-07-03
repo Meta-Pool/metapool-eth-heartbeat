@@ -10,11 +10,11 @@ export class LiquidityContract extends EthContract {
         super(config.liquidityContractAddress, liquidityAbi.abi)
     }
 
-    totalSupply(): Promise<BigInt> {
+    totalSupply(): Promise<bigint> {
         return this.contract.totalSupply()
     }
     
-    totalAssets(): Promise<BigInt> {
+    totalAssets(): Promise<bigint> {
         return this.contract.totalAssets()
     }
     

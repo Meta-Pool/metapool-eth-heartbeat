@@ -1,4 +1,4 @@
-import { beaconChainData, globalPersistentData, stakingContract } from "../../bots/heartbeat";
+import { beaconChainData, globalPersistentData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
@@ -25,12 +25,12 @@ export async function setBeaconchaData() {
 }
 
 export async function setIncomeDetailHistory() {
-    const toEpoch: number = (await getEpoch()).data.epoch - 2 // Last 2 epochs are still getting processed, so they shouldn't be added
+    const toEpoch: number = (await getEpoch()).data.epoch - 3 // Last 3 epochs are still getting processed, so they shouldn't be added
     const filename = "income_detail_history.json"
     // When coming from file, it's not the class, but the structure.
     const incomeDetailHistory: Record<number, IncomeReport> = {}
     loadJSON<IncomeReport[]>(filename, true).forEach((e: IncomeReport) => incomeDetailHistory[e.index] = new IncomeReport(e.index, e.atEpoch, e.prevAtEpoch))
-    let fromEpoch = 185000
+    let fromEpoch = 186000
     if(Object.keys(incomeDetailHistory).length > 0) {
         const firstKey = Object.keys(incomeDetailHistory)[0]
         fromEpoch = incomeDetailHistory[Number(firstKey)].atEpoch.epoch + 1
@@ -93,10 +93,9 @@ export async function setIncomeDetailHistory() {
         report.penalties += validatorIDH.penalties
     })
     const rewardsPerSecond = await getEstimatedRewardsPerSecond(report)
-    globalPersistentData.rewardsPerSecondsInWei = rewardsPerSecond.toString()
+    
     console.log("Reporting epochs to contract")
     stakingContract.reportEpochs(report, rewardsPerSecond)
-
 }
 
 function getValidatorsGroups(validatorIndexes: number[]): number[][] {
@@ -111,7 +110,7 @@ function getValidatorsGroups(validatorIndexes: number[]): number[][] {
 
 function getNewDonations(fromEpoch: number, toEpoch: number): bigint {
     console.log(2, fromEpoch, toEpoch)
-    const donations = loadJSON<Donation[]>("donations.json")
+    const donations = loadJSON<Donation[]>("donations.json", true)
     const recentDonations = donations.filter((d: Donation) => {
         return d.beaconEpoch > fromEpoch && d.beaconEpoch <= toEpoch
     })
