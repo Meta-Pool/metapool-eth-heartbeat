@@ -14,7 +14,7 @@ import { alertCreateValidators, getDeactivateValidatorsReport } from "../validat
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { getEpoch, getValidatorProposal } from "../../services/beaconcha/beaconcha";
+import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
@@ -22,8 +22,6 @@ import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/be
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
-import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
-import { wtoe } from "../../utils/numberUtils";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -1000,6 +998,8 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
+        // beaconChainData.validatorsData = await getValidatorsData()
+        // setIncomeDetailHistory()
         // return
     }
 

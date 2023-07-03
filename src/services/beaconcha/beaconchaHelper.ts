@@ -25,7 +25,7 @@ export async function setBeaconchaData() {
 }
 
 export async function setIncomeDetailHistory() {
-    const toEpoch: number = (await getEpoch()).data.epoch
+    const toEpoch: number = (await getEpoch()).data.epoch - 2 // Last 2 epochs are still getting processed, so they shouldn't be added
     const filename = "income_detail_history.json"
     // When coming from file, it's not the class, but the structure.
     const incomeDetailHistory: Record<number, IncomeReport> = {}
@@ -94,6 +94,7 @@ export async function setIncomeDetailHistory() {
     })
     const rewardsPerSecond = await getEstimatedRewardsPerSecond(report)
     globalPersistentData.rewardsPerSecondsInWei = rewardsPerSecond.toString()
+    console.log("Reporting epochs to contract")
     stakingContract.reportEpochs(report, rewardsPerSecond)
 
 }
