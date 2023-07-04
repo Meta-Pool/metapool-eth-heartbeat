@@ -7,7 +7,7 @@ import { ZEROS_9 } from "../nodesBalance";
 
 export function mpEthPromotionApy(): number {
     const estimatedTotalAssetsAfterAYear = wtoe(globalStakingData.totalAssets) + 0.75 / 7 * 365
-    return estimatedTotalAssetsAfterAYear / wtoe(globalStakingData.totalAssets)
+    return (estimatedTotalAssetsAfterAYear / wtoe(globalStakingData.totalAssets) - 1) * 100
 
 }
 //---------------------------------------------------
@@ -16,17 +16,20 @@ export function mpEthPromotionApy(): number {
 export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, isForStaking: boolean = false): number {
 
     if (!priceArray) {
+        console.log(2)
         return isForStaking ? mpEthPromotionApy() : 0;
     }
     // check how many prices
     const l = priceArray.length
     if (deltaDays >= l) {
+        console.log(3, deltaDays, l)
         return isForStaking ? mpEthPromotionApy() : 0;
     }
     //get both prices
     const currentPrice = priceArray[l - 1].price
     const priceAtStart = priceArray[l - 1 - deltaDays].price
     if (!priceAtStart || !currentPrice) {
+        console.log(4)
         return isForStaking ? mpEthPromotionApy() : 0;
     }
 

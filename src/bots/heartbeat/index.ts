@@ -468,7 +468,7 @@ function updateDailyGlobalData(currentDateISO: string) {
     
     globalPersistentData.mpEthPrices.push({
         dateISO: currentDateISO,
-        price: calculateMpEthPrice().toString(),
+        price: calculateEstimatedMpEthPrice().toString(),
         assets: globalStakingData.totalAssets.toString(),
         supply: globalStakingData.totalSupply.toString(),
     });
@@ -726,10 +726,10 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
-        await refreshStakingData()
-        const apy = snapshot.mpEthPromotionApy()
-        console.log(1, apy)
-        return
+        // await refreshStakingData()
+        // const apy = snapshot.mpEthPromotionApy()
+        // console.log(1, apy)
+        // return
     }
 
     if (process.argv.includes("also-80")) {
