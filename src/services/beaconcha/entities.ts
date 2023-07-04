@@ -163,6 +163,6 @@ export interface MiniIDHReport {
 
 export interface Donations {
     beaconEpoch: number
-    depositAmountEth: number
+    depositAmountWei: string
     transactionHash: string
 }

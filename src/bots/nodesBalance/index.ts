@@ -3,6 +3,7 @@ import { Report } from "../../entities/staking"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { IBalanceHistoryData, ValidatorDataResponse, getEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
+import { IEpochResponse } from "../../services/beaconcha/entities"
 import { sendEmail } from "../../utils/mailUtils"
 import { etow, max, wtoe } from "../../utils/numberUtils"
 import { MS_IN_DAY, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../heartbeat"
@@ -134,10 +135,11 @@ function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
 
 export async function getEstimatedRewardsPerSecond(report: Report): Promise<bigint> {
     const income = max(report.rewards - report.penalties, 0n)
-    const initialEpoch = await getEpoch(report.from.toString())
-    const finalEpoch = await getEpoch(report.to.toString())
+    const initialEpochInfo: IEpochResponse = await getEpoch(report.from.toString())
+    const finalEpochInfo: IEpochResponse = await getEpoch(report.to.toString())
 
-    const deltaMs = new Date(finalEpoch.data.ts).getTime() - new Date(initialEpoch.data.ts).getTime()
+    // data.ts is an ISO timestamp in seconds
+    const deltaMs = new Date(finalEpochInfo.data.ts).getTime() - new Date(initialEpochInfo.data.ts).getTime()
     const deltaS = Math.floor(deltaMs / 1000)
 
     // When dividing with BigInt it truncates the result if necessary, which is expected

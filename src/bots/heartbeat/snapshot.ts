@@ -1,23 +1,34 @@
 import { ethers } from "ethers";
 import { beaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
-import { wtoe } from "../../utils/numberUtils";
+import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 
+export function mpEthPromotionApy(): number {
+    const estimatedTotalAssetsAfterAYear = wtoe(globalStakingData.totalAssets) + 0.75 / 7 * 365
+    return estimatedTotalAssetsAfterAYear / wtoe(globalStakingData.totalAssets)
+
+}
 //---------------------------------------------------
 //check for pending work in the SC and turn the crank
 //---------------------------------------------------
-export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, defaultApy: number = 0): number {
+export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, isForStaking: boolean = false): number {
 
-    if (!priceArray) return defaultApy;
+    if (!priceArray) {
+        return isForStaking ? mpEthPromotionApy() : 0;
+    }
     // check how many prices
     const l = priceArray.length
-    if (deltaDays >= l) return defaultApy;
+    if (deltaDays >= l) {
+        return isForStaking ? mpEthPromotionApy() : 0;
+    }
     //get both prices
     const currentPrice = priceArray[l - 1].price
     const priceAtStart = priceArray[l - 1 - deltaDays].price
-    if (!priceAtStart || !currentPrice) return defaultApy;
+    if (!priceAtStart || !currentPrice) {
+        return isForStaking ? mpEthPromotionApy() : 0;
+    }
 
     const curPrice = BigInt(currentPrice)
     const projectedInAYear = curPrice + (
@@ -105,10 +116,10 @@ export function fromGlobalState(): Record<string,any> {
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
-        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, 10),
-        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, 10),
-        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, 10),
-        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, 10),
+        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
+        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
+        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
+        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
@@ -167,10 +178,10 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         stakingTotalSupply: wtoe(globalStakingData.totalSupply),
         liqTotalAssets: wtoe(globalLiquidityData.totalAssets.toString()),
         liqTotalSupply: wtoe(globalPersistentData.liqTotalSupply),
-        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, 10),
-        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, 10),
-        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, 10),
-        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, 10),
+        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
+        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
+        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
+        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),

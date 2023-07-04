@@ -4,8 +4,8 @@ import { GenericContract } from "./contract";
 
 export class EthContract extends GenericContract {
 
-    constructor(address: string, abi: ethers.InterfaceAbi, network: string = "goerli") {
-        super(address, abi, getEnv().ACCOUNT_PRIVATE_KEY, network)
+    constructor(address: string, abi: ethers.InterfaceAbi) {
+        super(address, abi, getEnv().ACCOUNT_PRIVATE_KEY, getEnv().NETWORK ?? "goerli")
     }
 
     getProvider(network: string, apiKey: string) {

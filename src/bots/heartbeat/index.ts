@@ -422,11 +422,9 @@ async function refreshMetrics() {
         refreshStakingData(),
         refreshLiquidityData(),
         refreshBeaconChainData()
-    ])
+    ]) // These calls can be executed in parallel
     await refreshContractData() // Contract data depends on previous refreshes
     console.log("Metrics promises fullfilled")
-
-    
 }
 
 async function initializeUninitializedGlobalData() {
@@ -459,7 +457,7 @@ async function initializeUninitializedGlobalData() {
     if(isDebug) console.log("Global state initialized successfully")
 }
 
-function updateGlobalData(currentDateISO: string) {
+function updateDailyGlobalData(currentDateISO: string) {
     globalPersistentData.lpPrices.push({
         dateISO: currentDateISO,
         // price: globalContractState.nslp_share_price,
@@ -540,6 +538,7 @@ async function registerValidatorsProposals() {
             globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
         }
     })
+    saveGlobalPersistentData()
 }
 
 async function beat() {
@@ -559,11 +558,12 @@ async function beat() {
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
     if (isFirstCallOfTheDay) {
+        updateDailyGlobalData(currentDateISO)
+        trucateLongGlobalArrays()       
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
 
-        updateGlobalData(currentDateISO)
-        trucateLongGlobalArrays()       
-        
+        saveGlobalPersistentData()
+
         // ------------------------------
         // Check if a validator can be activated an do it
         // ------------------------------
@@ -596,9 +596,14 @@ async function beat() {
     
     //END OF BEAT
     globalPersistentData.beatCount++;
-    saveJSON(globalPersistentData, "persistent.json");
+    saveGlobalPersistentData()
+    // saveJSON(globalPersistentData, "persistent.json");
     saveJSON(beaconChainData, "beaconChainPersistentData.json");
 
+}
+
+function saveGlobalPersistentData() {
+    saveJSON(globalPersistentData, "persistent.json");
 }
 
 async function runDailyActionsAndReport() {
@@ -624,10 +629,10 @@ async function runDailyActionsAndReport() {
         })
     }))
 
-    buildDailyReport(reports)    
+    buildAndSendDailyReport(reports)    
 }
 
-function buildDailyReport(reports: IDailyReportHelper[]) {
+function buildAndSendDailyReport(reports: IDailyReportHelper[]) {
     const body = reports.reduce((acc: string, curr: IDailyReportHelper) => {
         return `
             ${acc}
@@ -721,7 +726,9 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
-        getDeactivateValidatorsReport()
+        await refreshStakingData()
+        const apy = snapshot.mpEthPromotionApy()
+        console.log(1, apy)
         return
     }
 
