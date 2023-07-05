@@ -126,6 +126,9 @@ export interface PersistentData {
 
     // Chain data
     latestEpochChecked: number
+
+    // Testnet helper data
+    lastIDHTs?: number
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -454,6 +457,10 @@ async function initializeUninitializedGlobalData() {
 
     if(!globalPersistentData.lastValidatorCheckProposalTimestamp) globalPersistentData.lastValidatorCheckProposalTimestamp = 0
 
+    const now = new Date()
+    const nowMinus6Hours = now.setHours(now.getHours() - 6)
+    globalPersistentData.lastIDHTs = nowMinus6Hours
+
     if(isDebug) console.log("Global state initialized successfully")
 }
 
@@ -557,6 +564,12 @@ async function beat() {
     const currentDate = new Date(new Date().toLocaleString('en', {timeZone: 'America/New_York'})) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
+    if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
+        if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR) {
+            globalPersistentData.lastIDHTs = Date.now()
+            if(!isDebug) await setIncomeDetailHistory()
+        }
+    }
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
         trucateLongGlobalArrays()       
@@ -571,7 +584,10 @@ async function beat() {
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
         
-        if(!isDebug) await setIncomeDetailHistory()
+        if(!isDebug) {
+            globalPersistentData.lastIDHTs = Date.now()
+            await setIncomeDetailHistory()
+        }
         
         await runDailyActionsAndReport()
     } // Calls made once a day
