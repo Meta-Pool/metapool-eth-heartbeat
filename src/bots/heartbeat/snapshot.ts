@@ -4,6 +4,8 @@ import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
+import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
+import { calculateMpEthPrice } from "../../utils/priceUtils";
 
 export function mpEthPromotionApy(): number {
     const estimatedTotalAssetsAfterAYear = wtoe(globalStakingData.totalAssets) + 0.75 / 7 * 365
@@ -22,7 +24,6 @@ export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays
     // check how many prices
     const l = priceArray.length
     if (deltaDays >= l) {
-        console.log(3, deltaDays, l)
         return isForStaking ? mpEthPromotionApy() : 0;
     }
     //get both prices
@@ -44,7 +45,9 @@ export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays
 
 export type Snapshot = {
 
+    mpethPriceUnderlying: number
     mpethPrice: number
+    rewardsPerSecondInWei: string
     lpPrice: number
     mp_eth_3_day_apy: number
     mp_eth_7_day_apy: number
@@ -60,15 +63,19 @@ export type Snapshot = {
     liquidityMpethBalance: string
     withdrawBalance: string
     totalPendingWithdraws: string
-    nodesBalances: string
+    totalNodesBalances: string
 
+    stakingTotalUnderlying: string
+    stakingTotalAssets: string
     stakingTotalSupply: string
+    liqTotalAssets: string
     liqTotalSupply: string
     activatedValidators: number
     createdValidatorsLeft: number
     secondsRemainingToFinishEpoch: number
-    // rewardsPerSecondInWei: string
-    mpTotalAssets: string
+    
+    // nodesBalances: Record<string, number>
+    // validatorsTypesQty: Record<string, number>
 
 }
 
@@ -110,14 +117,15 @@ export type SnapshotHR = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    const nodesBalanceSum = Object.keys(globalPersistentData.historicalNodesBalances).reduce((acc: bigint, key: string) => {
-        const balanceArray = globalPersistentData.historicalNodesBalances[key]
-        return acc + BigInt(balanceArray[balanceArray.length - 1].balance)
+    const nodesBalanceSum = beaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
+        return acc + BigInt(v.data.balance + ZEROS_9)
     }, 0n)
 
     
     let snap: Snapshot = {
+        mpethPriceUnderlying: wtoe(calculateMpEthPrice().toString()),
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
+        rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
         mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
@@ -127,28 +135,30 @@ export function fromGlobalState(): Record<string,any> {
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
         lp_30_day_apy: computeRollingApy(globalPersistentData.lpPrices, 30),
-
+        
         stakingBalance: globalPersistentData.stakingBalance,
         liquidityEthBalance: globalPersistentData.liqBalance,
         liquidityMpethBalance: globalPersistentData.liqMpEthBalance,
         withdrawBalance: globalPersistentData.withdrawBalance,
         totalPendingWithdraws: globalPersistentData.totalPendingWithdraws,
-        nodesBalances: nodesBalanceSum.toString(),
+        totalNodesBalances: nodesBalanceSum.toString(),
 
-        stakingTotalSupply: globalPersistentData.stakingTotalSupply,
+        stakingTotalUnderlying: globalStakingData.totalUnderlying.toString(),
+        stakingTotalAssets: globalStakingData.totalAssets.toString(),
+        stakingTotalSupply: globalStakingData.totalSupply.toString(),
+        liqTotalAssets: globalLiquidityData.totalAssets.toString(),
         liqTotalSupply: globalPersistentData.liqTotalSupply,
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         secondsRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
-        // rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
-        mpTotalAssets: globalStakingData.totalAssets.toString(),
+    
 
     }
 
     const output: Record<string, string|number> = snap
     
     Object.keys(globalPersistentData.nodesBalances).forEach((pubkey: any) => {
-        output[`nodesBalance_${pubkey}`] = globalPersistentData.nodesBalances[pubkey]
+        output[`nodeBalance_${pubkey}`] = globalPersistentData.nodesBalances[pubkey]
     });
 
     Object.keys(beaconChainData.validatorsStatusesQty).forEach((status: any) => {
