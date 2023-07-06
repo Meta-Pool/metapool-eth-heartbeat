@@ -65,7 +65,7 @@ export async function setIncomeDetailHistory() {
             Object.keys(curr).forEach((validatorIndex: string) => acc[Number(validatorIndex)] = curr[Number(validatorIndex)])
             return acc
         }, {})
-        console.log("Validators IDH", JSON.stringify(validatorsIDH))
+        // console.log("Validators IDH", JSON.stringify(validatorsIDH))
 
         // Adding new donations
         console.log("Getting donations")
