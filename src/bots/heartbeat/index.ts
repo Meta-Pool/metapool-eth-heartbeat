@@ -457,9 +457,11 @@ async function initializeUninitializedGlobalData() {
 
     if(!globalPersistentData.lastValidatorCheckProposalTimestamp) globalPersistentData.lastValidatorCheckProposalTimestamp = 0
 
-    const now = new Date()
-    const nowMinus6Hours = now.setHours(now.getHours() - 6)
-    globalPersistentData.lastIDHTs = nowMinus6Hours
+    if(!globalPersistentData.lastIDHTs) {
+        const now = new Date()
+        const nowMinus6Hours = now.setHours(now.getHours() - 6)
+        globalPersistentData.lastIDHTs = nowMinus6Hours
+    }
 
     if(isDebug) console.log("Global state initialized successfully")
 }
@@ -525,7 +527,7 @@ function updateDailyGlobalData(currentDateISO: string) {
     if(isDebug) console.log("Global data refreshed successfully")
 }
 
-function trucateLongGlobalArrays() {
+function truncateLongGlobalArrays() {
     if (globalPersistentData.mpEthPrices.length > 3 * 365) {
         globalPersistentData.mpEthPrices.splice(0, 30);
     }
@@ -565,14 +567,14 @@ async function beat() {
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
     if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
-        if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR) {
+        if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES) {
             globalPersistentData.lastIDHTs = Date.now()
             if(!isDebug) await setIncomeDetailHistory()
         }
     }
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
-        trucateLongGlobalArrays()       
+        truncateLongGlobalArrays()       
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
 
         saveGlobalPersistentData()

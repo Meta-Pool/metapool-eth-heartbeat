@@ -31,12 +31,13 @@ export async function setIncomeDetailHistory() {
         // When coming from file, it's not the class, but the structure.
         const incomeDetailHistory: Record<number, IncomeReport> = {}
         loadJSON<IncomeReport[]>(filename, true).forEach((e: IncomeReport) => incomeDetailHistory[e.index] = new IncomeReport(e.index, e.atEpoch, e.prevAtEpoch))
+        console.log("Income report file read successfully")
         let fromEpoch = 186000
         if (Object.keys(incomeDetailHistory).length > 0) { // All atEpoch.epoch should be the same for all registries
             const firstKey = Object.keys(incomeDetailHistory)[0]
             fromEpoch = incomeDetailHistory[Number(firstKey)].atEpoch.epoch + 1
         }
-
+        console.log("Getting IDH from epoch", fromEpoch, "to epoch", toEpoch)
         // Obtaining validatorsIndexes filtering out undefined ones
         if (!beaconChainData.validatorsData) throw new Error("Validators data not set")
         const validatorIndexes: number[] = beaconChainData.validatorsData
@@ -46,6 +47,7 @@ export async function setIncomeDetailHistory() {
         // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
         const validatorsGroups = getValidatorsGroups(validatorIndexes)
         const validatorsIDHArray: Record<number, MiniIDHReport>[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
+            console.log("Getting IDH for validators", validatorsGroup)
             return getValidatorsIncomeDetailHistory(validatorsGroup, fromEpoch, toEpoch)
         }))
 
@@ -60,9 +62,12 @@ export async function setIncomeDetailHistory() {
             Object.keys(curr).forEach((validatorIndex: string) => acc[Number(validatorIndex)] = curr[Number(validatorIndex)])
             return acc
         }, {})
+        console.log("Validators IDH", JSON.stringify(validatorsIDH))
 
         // Adding new donations
+        console.log("Getting donations")
         const recentDonations = getNewDonations(fromEpoch, toEpoch)
+        console.log("Donations", recentDonations)
         validatorsIDH[0] = {
             lastCheckedEpoch: 0,
             rewards: recentDonations,
@@ -70,6 +75,7 @@ export async function setIncomeDetailHistory() {
         }
 
         // Calling contract
+        console.log("Building report")
         const report: Report = { from: fromEpoch, to: toEpoch, rewards: 0n, penalties: 0n }
         Object.keys(validatorsIDH).forEach((validatorIndex: string) => {
             const indexAsNumber = Number(validatorIndex)
@@ -81,7 +87,7 @@ export async function setIncomeDetailHistory() {
 
         console.log("Reporting epochs to contract")
         await stakingContract.reportEpochs(report, rewardsPerSecond)
-
+        console.log("Epochs reported successfully")
         // Setting new data for saving file
         Object.keys(validatorsIDH).forEach((index: string) => {
             const indexAsNumber = Number(index)
@@ -101,6 +107,7 @@ export async function setIncomeDetailHistory() {
         const jsonToSave: IncomeReport[] = Object.keys(incomeDetailHistory).map((index: string) => (
             incomeDetailHistory[Number(index)]
         ))
+        console.log("Saving IDH", JSON.stringify(jsonToSave))
         saveJSON(jsonToSave, filename)
     } catch (err: any) {
         console.error("Error reporting income detail", err.message, err.stack)
