@@ -38,6 +38,9 @@ export async function setIncomeDetailHistory() {
             fromEpoch = incomeDetailHistory[Number(firstKey)].atEpoch.epoch + 1
         }
         console.log("Getting IDH from epoch", fromEpoch, "to epoch", toEpoch)
+        if(fromEpoch >= toEpoch) {
+            throw new Error("From epoch is higher or equal than toEpoch")
+        }
         // Obtaining validatorsIndexes filtering out undefined ones
         if (!beaconChainData.validatorsData) throw new Error("Validators data not set")
         const validatorIndexes: number[] = beaconChainData.validatorsData
@@ -110,7 +113,7 @@ export async function setIncomeDetailHistory() {
         console.log("Saving IDH", JSON.stringify(jsonToSave))
         saveJSON(jsonToSave, filename)
     } catch (err: any) {
-        console.error("Error reporting income detail", err.message, err.stack)
+        console.error("ERROR reporting income detail", err.message, err.stack)
     }
 }
 

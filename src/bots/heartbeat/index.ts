@@ -23,6 +23,7 @@ import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } f
 import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
+import { sLeftToTimeLeft } from "../../utils/timeUtils";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -567,8 +568,13 @@ async function beat() {
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
     if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
+        console.log("Ms since las IDH report", Date.now() - globalPersistentData.lastIDHTs!)
+        const msLeft = 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES - (Date.now() - globalPersistentData.lastIDHTs!)
+        console.log("Time remaining for next IDH call", sLeftToTimeLeft(msLeft / 1000))
         if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES) {
+            console.log("Calling IDH in the middle of the day")
             globalPersistentData.lastIDHTs = Date.now()
+            saveGlobalPersistentData()
             if(!isDebug) await setIncomeDetailHistory()
         }
     }

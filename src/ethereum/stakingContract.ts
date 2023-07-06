@@ -52,19 +52,19 @@ export class StakingContract extends EthContract {
     }
 
     estimatedRewardsPerSecond(): Promise<bigint> {
-        return this.contract.estimatedRewardsPerSecond()
+        return this.contract.estimatedRewardsPerSecond().catch(this.decodeError)
     }
 
     submitReportUnlockTime(): Promise<bigint> {
-        return this.contract.submitReportUnlockTime()
+        return this.contract.submitReportUnlockTime().catch(this.decodeError)
     }
     
     nodesAndWithdrawalTotalBalance(): Promise<bigint> {
-        return this.contract.nodesAndWithdrawalTotalBalance()
+        return this.contract.nodesAndWithdrawalTotalBalance().catch(this.decodeError)
     }
 
     reportEpochs(report: Report, rewardsPerSecond: bigint): Promise<any> {
-        return this.contract.reportEpochs(report, rewardsPerSecond)
+        return this.contract.reportEpochs(report, rewardsPerSecond).catch(this.decodeError)
     }
 }
 
