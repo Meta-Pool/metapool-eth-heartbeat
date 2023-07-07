@@ -157,9 +157,9 @@ export function fromGlobalState(): Record<string,any> {
 
     const output: Record<string, string|number> = snap
     
-    Object.keys(globalPersistentData.nodesBalances).forEach((pubkey: any) => {
-        output[`nodeBalance_${pubkey}`] = globalPersistentData.nodesBalances[pubkey]
-    });
+    // Object.keys(globalPersistentData.nodesBalances).forEach((pubkey: any) => {
+    //     output[`nodeBalance_${pubkey}`] = globalPersistentData.nodesBalances[pubkey]
+    // });
 
     Object.keys(beaconChainData.validatorsStatusesQty).forEach((status: any) => {
         output[`validatorsStatusesQty_${status}`] = beaconChainData.validatorsStatusesQty[status]
