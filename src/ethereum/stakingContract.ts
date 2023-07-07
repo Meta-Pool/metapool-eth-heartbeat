@@ -66,6 +66,10 @@ export class StakingContract extends EthContract {
     reportEpochs(report: Report, rewardsPerSecond: bigint): Promise<any> {
         return this.contract.reportEpochs(report, rewardsPerSecond).catch(this.decodeError)
     }
+
+    lastEpochReported(): Promise<bigint> {
+        return this.contract.lastEpochReported().catch(this.decodeError)
+    }
 }
 
 

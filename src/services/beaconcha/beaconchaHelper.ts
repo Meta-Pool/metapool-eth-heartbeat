@@ -32,11 +32,7 @@ export async function setIncomeDetailHistory() {
         const incomeDetailHistory: Record<number, IncomeReport> = {}
         loadJSON<IncomeReport[]>(filename, true).forEach((e: IncomeReport) => incomeDetailHistory[e.index] = new IncomeReport(e.index, e.atEpoch, e.prevAtEpoch))
         console.log("Income report file read successfully")
-        let fromEpoch = 186000
-        if (Object.keys(incomeDetailHistory).length > 0) { // All atEpoch.epoch should be the same for all registries
-            const firstKey = Object.keys(incomeDetailHistory)[0]
-            fromEpoch = incomeDetailHistory[Number(firstKey)].atEpoch.epoch + 1
-        }
+        let fromEpoch = Number(await stakingContract.lastEpochReported())
         console.log("Getting IDH from epoch", fromEpoch, "to epoch", toEpoch)
         if(fromEpoch >= toEpoch) {
             throw new Error("From epoch is higher or equal than toEpoch")

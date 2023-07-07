@@ -750,9 +750,7 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
-        // await refreshStakingData()
-        // const apy = snapshot.mpEthPromotionApy()
-        // console.log(1, apy)
+        // await setIncomeDetailHistory()
         // return
     }
 
