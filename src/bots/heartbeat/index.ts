@@ -427,6 +427,7 @@ async function refreshWithdrawData() {
         startTimestamp,
         totalPendingWithdraw,
         withdrawalsStartEpoch,
+        validatorsDisassembleTime
     ] = await Promise.all([
         withdrawContract.getWalletBalance(withdrawContract.address),
         withdrawContract.getEpoch(),
@@ -434,6 +435,7 @@ async function refreshWithdrawData() {
         withdrawContract.startTimestamp(),
         withdrawContract.totalPendingWithdraw(),
         withdrawContract.withdrawalsStartEpoch(),
+        withdrawContract.validatorsDisassembleTime(),
     ])
     
 
@@ -444,6 +446,7 @@ async function refreshWithdrawData() {
         startTimestamp: Number(startTimestamp),
         totalPendingWithdraw,
         withdrawalsStartEpoch: Number(withdrawalsStartEpoch),
+        validatorsDisassembleTime,
     }
     if(isDebug) console.log("Withdraw data refreshed")
 }

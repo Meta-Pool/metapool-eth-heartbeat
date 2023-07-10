@@ -42,4 +42,5 @@ export interface WithdrawData {
     startTimestamp: number
     totalPendingWithdraw: bigint
     withdrawalsStartEpoch: number
+    validatorsDisassembleTime: bigint
 }

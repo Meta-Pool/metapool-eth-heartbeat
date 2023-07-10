@@ -40,6 +40,11 @@ export class WithdrawContract extends EthContract {
     withdrawalsStartEpoch(): Promise<bigint> {
         return this.contract.withdrawalsStartEpoch().catch(this.decodeError)
     }
+
+    validatorsDisassembleTime(): Promise<bigint> {
+        return this.contract.validatorsDisassembleTime().catch(this.decodeError)
+    }
+
 }
 
 
