@@ -10,14 +10,14 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9, getNodesBalance } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, getDeactivateValidatorsReport } from "../validatorsAlerts";
+import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateValidatorsReport } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
 import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
-import { IDailyReportHelper, Severity } from "../../entities/emailUtils";
+import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
@@ -609,6 +609,14 @@ async function beat() {
         await registerValidatorsProposals()
     } // Calls made every 6 hours
 
+    const decativateReport: IMailReportHelper = await getDeactivateValidatorsReport()
+    console.log(decativateReport.body)
+    if(decativateReport.severity !== Severity.OK) {
+        console.log("Disassemble validators require an action")
+        buildAndSendDailyReport([decativateReport])
+    }
+
+
     // Aurora
     console.log("--Checking if order queue should be moved for new contract")
     const wasDelayedUnstakeOrderQueueRunForNewContract = await checkAuroraDelayedUnstakeOrders(false)
@@ -637,16 +645,16 @@ function saveGlobalPersistentData() {
 
 async function runDailyActionsAndReport() {
     console.log("Sending daily report")
-    const reportHelpersPromises: Promise<IDailyReportHelper>[] = [
+    const reportHelpersPromises: Promise<IMailReportHelper>[] = [
         // updateNodesBalance(),
-        getDeactivateValidatorsReport(),
+        // getDeactivateValidatorsReport(),
         alertCreateValidators(),
         alertCheckProfit()
     ];
     console.log("--Checking if validators should be created")
     
     // Resolving reports and catching in case of an error
-    const reports: IDailyReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IDailyReportHelper>, index: number) => {
+    const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
         return promise.catch((err: any) => {
             return {
                 ok: false,
@@ -661,8 +669,8 @@ async function runDailyActionsAndReport() {
     buildAndSendDailyReport(reports)    
 }
 
-function buildAndSendDailyReport(reports: IDailyReportHelper[]) {
-    const body = reports.reduce((acc: string, curr: IDailyReportHelper) => {
+function buildAndSendDailyReport(reports: IMailReportHelper[]) {
+    const body = reports.reduce((acc: string, curr: IMailReportHelper) => {
         return `
             ${acc}
             ${"-".repeat(100)}
@@ -672,8 +680,8 @@ function buildAndSendDailyReport(reports: IDailyReportHelper[]) {
     }, "https://eth-stats.narwallets.com/metrics_json")
 
     // const severity: number = Math.max(reports.map((currReport: IDailyReportHelper) => currReport.severity))
-    const severity: number = reports.reduce((max: number, currReport: IDailyReportHelper) => Math.max(max, currReport.severity), Severity.OK)
-    let subject: string = reports.reduce((acc: string, currReport: IDailyReportHelper) => {
+    const severity: number = reports.reduce((max: number, currReport: IMailReportHelper) => Math.max(max, currReport.severity), Severity.OK)
+    let subject: string = reports.reduce((acc: string, currReport: IMailReportHelper) => {
         if(currReport.ok) {
             return acc 
         } else {

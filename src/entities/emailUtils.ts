@@ -4,7 +4,7 @@ export enum Severity {
     ERROR = 2
 }
 
-export interface IDailyReportHelper {
+export interface IMailReportHelper {
     ok: boolean
     function: string
     subject: string
@@ -12,9 +12,9 @@ export interface IDailyReportHelper {
     severity: Severity
 }
 
-export const EMPTY_DAILY_REPORT: IDailyReportHelper = {
+export const EMPTY_MAIL_REPORT: IMailReportHelper = {
     ok: false,
-    function: "EMPTY_DAILY_REPORT",
+    function: "EMPTY_MAIL_REPORT",
     subject: "",
     body: "",
     severity: Severity.ERROR,

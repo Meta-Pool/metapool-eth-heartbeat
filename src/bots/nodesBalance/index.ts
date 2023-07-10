@@ -1,4 +1,4 @@
-import { IDailyReportHelper, Severity } from "../../entities/emailUtils"
+import { IMailReportHelper, Severity } from "../../entities/emailUtils"
 import { Report } from "../../entities/staking"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
@@ -17,7 +17,7 @@ export const ZEROS_9 = "0".repeat(9)
  * and after getting the nodesBalance.
  * @returns An array with 4 values, telling whether has been any error, a sujested topic for an email and a body to append, and the error severity
  */
-export async function updateNodesBalance(): Promise<IDailyReportHelper> {
+export async function updateNodesBalance(): Promise<IMailReportHelper> {
     const functionName = "updateNodesBalance"
     console.log("Updating mpeth price")
     let retries = 5
