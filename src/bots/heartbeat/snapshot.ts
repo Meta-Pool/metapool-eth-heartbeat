@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { beaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, PriceData } from "./index"
+import { beaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
@@ -225,6 +225,37 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         
         nodesBalances,
         validatorsTypesQty: beaconChainData.validatorsStatusesQty
+    }
+
+    // Object.assign(snap,globalPersistentData.extraData)
+    return snap
+
+}
+
+export function forFront(): Record<string,any> {
+
+    let stakingData: Record<string, number|string|bigint> = {}
+    Object.entries(globalStakingData).forEach(([k, v]) => {
+        const value = typeof v === "bigint" ? v.toString() : v
+        stakingData[k] = value
+    })
+
+    let liquidityData: Record<string, number|string|bigint> = {}
+    Object.entries(globalLiquidityData).forEach(([k, v]) => {
+        const value = typeof v === "bigint" ? v.toString() : v
+        liquidityData[k] = value
+    })
+
+    let withdrawData: Record<string, number|string|bigint> = {}
+    Object.entries(globalWithdrawdata).forEach(([k, v]) => {
+        const value = typeof v === "bigint" ? v.toString() : v
+        withdrawData[k] = value
+    })
+
+    let snap: Record<string, any> = {
+        stakingData,
+        liquidityData,
+        withdrawData
     }
 
     // Object.assign(snap,globalPersistentData.extraData)

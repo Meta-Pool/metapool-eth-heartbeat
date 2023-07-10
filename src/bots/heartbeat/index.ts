@@ -5,7 +5,7 @@ import * as url from 'url';
 import * as os from 'os';
 import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
-import { LiquidityData, StakingData } from "./contractData";
+import { LiquidityData, StakingData, WithdrawData } from "./contractData";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9, getNodesBalance } from "../nodesBalance";
@@ -38,6 +38,7 @@ export let isDebug: boolean = false
 let loopsExecuted = 0;
 export let globalStakingData: StakingData
 export let globalLiquidityData: LiquidityData
+export let globalWithdrawdata: WithdrawData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
@@ -201,6 +202,13 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
                 resp.end()
                 return true;
             }
+            if (rest === "_front") {
+                // metrics_hr human readable
+                resp.setHeader("content-type", 'application/json; version=0.0.4; charset=utf-8')
+                resp.write(JSON.stringify(snapshot.forFront()))
+                resp.end()
+                return true;
+            }
             // let assume all responses are text
             resp.setHeader("content-type", 'text/plain; version=0.0.4; charset=utf-8')
             if (rest === "") {
@@ -312,6 +320,15 @@ async function refreshStakingData() {
         estimatedRewardsPerSecond,
         submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
         // nodesAndWithdrawalTotalBalance,
+        decimals,
+        name,
+        rewardsFee,
+        symbol,
+        totalNodesActivated,
+        whitelistEnabled,
+        depositFee,
+        submitReportTimelock,
+        minDeposit
     ] = await Promise.all([
         stakingContract.getWalletBalance(stakingContract.address),
         stakingContract.totalAssets(),
@@ -319,6 +336,16 @@ async function refreshStakingData() {
         stakingContract.totalUnderlying(),
         stakingContract.estimatedRewardsPerSecond(),
         stakingContract.submitReportUnlockTime(),
+
+        stakingContract.decimals(),
+        stakingContract.name(),
+        stakingContract.rewardsFee(),
+        stakingContract.symbol(),
+        stakingContract.totalNodesActivated(),
+        stakingContract.whitelistEnabled(),
+        stakingContract.depositFee(),
+        stakingContract.submitReportTimelock(),
+        stakingContract.minDeposit(),
     ])
     
     globalStakingData = {
@@ -328,75 +355,112 @@ async function refreshStakingData() {
         totalUnderlying,
         estimatedRewardsPerSecond,
         submitReportUnlockTime,
+
+        decimals: Number(decimals),
+        name,
+        rewardsFee: Number(rewardsFee),
+        symbol,
+        totalNodesActivated: Number(totalNodesActivated),
+        whitelistEnabled,
+        depositFee: Number(depositFee),
+        submitReportTimelock: Number(submitReportTimelock),
+        minDeposit
     }
     
     if(isDebug) console.log("Staking data refreshed")
 }
 
 async function refreshLiquidityData() {
-    const liquidityTotalAssets = await liquidityContract.totalAssets()
-    const liquidityTotalSupply = await liquidityContract.totalSupply()
+    const [
+        totalAssets, 
+        totalSupply, 
+
+        mpEthBalance,
+        name,
+        symbol,
+        MAX_FEE,
+        MIN_FEE,
+        targetLiquidity,
+        decimals,
+        minDeposit,
+        liquidityBalance,
+    ] = await Promise.all([
+        liquidityContract.totalAssets(),
+        liquidityContract.totalSupply(),
+
+        stakingContract.balanceOf(liquidityContract.address),
+        liquidityContract.name(),
+        liquidityContract.symbol(),
+        liquidityContract.MAX_FEE(),
+        liquidityContract.MIN_FEE(),
+        liquidityContract.targetLiquidity(),
+        liquidityContract.decimals(),
+        liquidityContract.minDeposit(),
+        liquidityContract.getWalletBalance(liquidityContract.address),
+    ])
+    
 
     globalLiquidityData = {
-        totalAssets: liquidityTotalAssets,
-        totalSupply: liquidityTotalSupply
+        totalAssets, 
+        totalSupply, 
+        
+        liquidityBalance,
+        mpEthBalance,
+        name,
+        symbol,
+        MAX_FEE: Number(MAX_FEE),
+        MIN_FEE: Number(MIN_FEE),
+        targetLiquidity,
+        decimals: Number(decimals),
+        minDeposit,
     }
 
     globalPersistentData.lpPrice = calculateLpPrice().toString()
     if(isDebug) console.log("Liq data refreshed")
 }
 
-async function refreshContractData() {
+async function refreshWithdrawData() {
     const [
-        // stakingBalance,
-        // stakingTotalAssets,
-        // stakingTotalSupply,
-        // stakingTotalUnderlying,
-        
-
-        liquidityBalance,
-        liquidityMpEthBalance,
-        liqTotalSupply,
-
-        withdrawBalance,
+        balance,
+        epoch,
+        epochTimeLeft,
+        startTimestamp,
         totalPendingWithdraw,
-        secondsUntilNextEpoch,
-
-        // nodesBalances
+        withdrawalsStartEpoch,
     ] = await Promise.all([
-        // Staking
-        // stakingContract.getWalletBalance(stakingContract.address),
-        // stakingContract.totalAssets(),
-        // stakingContract.totalSupply(),
-        // stakingContract.totalUnderlying(),
-        
-        // stakingContract.nodesAndWithdrawalTotalBalance(),
-
-        // Liquidity
-        liquidityContract.getWalletBalance(liquidityContract.address),
-        stakingContract.balanceOf(liquidityContract.address),
-        liquidityContract.totalSupply(),
-
-        // Withdraw
         withdrawContract.getWalletBalance(withdrawContract.address),
-        withdrawContract.totalPendingWithdraw(),
+        withdrawContract.getEpoch(),
         withdrawContract.getEpochTimeLeft(),
+        withdrawContract.startTimestamp(),
+        withdrawContract.totalPendingWithdraw(),
+        withdrawContract.withdrawalsStartEpoch(),
+    ])
+    
 
-        // Nodes
-        // getValidatorsData()
-    ])   
+    globalWithdrawdata = {
+        balance,
+        epoch: Number(epoch),
+        epochTimeLeft: Number(epochTimeLeft),
+        startTimestamp: Number(startTimestamp),
+        totalPendingWithdraw,
+        withdrawalsStartEpoch: Number(withdrawalsStartEpoch),
+    }
+    if(isDebug) console.log("Withdraw data refreshed")
+}
+
+function refreshContractData() {
     globalPersistentData.stakingBalance = globalStakingData.stakingBalance.toString()
-    globalPersistentData.liqBalance = liquidityBalance.toString()
-    globalPersistentData.liqMpEthBalance = liquidityMpEthBalance.toString()
-    globalPersistentData.withdrawBalance = withdrawBalance.toString()
-    globalPersistentData.totalPendingWithdraws = totalPendingWithdraw.toString()
-    globalPersistentData.withdrawAvailableEthForValidators = (withdrawBalance - totalPendingWithdraw).toString()
-    globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
+    globalPersistentData.liqBalance = globalLiquidityData.liquidityBalance.toString()
+    globalPersistentData.liqMpEthBalance = globalLiquidityData.mpEthBalance.toString()
+    globalPersistentData.withdrawBalance = globalWithdrawdata.balance.toString()
+    globalPersistentData.totalPendingWithdraws = globalWithdrawdata.totalPendingWithdraw.toString()
+    globalPersistentData.withdrawAvailableEthForValidators = (globalWithdrawdata.balance - globalWithdrawdata.totalPendingWithdraw).toString()
+    globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(globalWithdrawdata.epochTimeLeft.toString())
     
     globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
     globalPersistentData.estimatedMpEthPrice = calculateEstimatedMpEthPrice().toString()
     globalPersistentData.stakingTotalSupply = globalStakingData.totalSupply.toString()
-    globalPersistentData.liqTotalSupply = liqTotalSupply.toString()
+    globalPersistentData.liqTotalSupply = globalLiquidityData.totalSupply.toString()
     globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
 
     globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
@@ -427,9 +491,10 @@ async function refreshMetrics() {
     await Promise.all([
         refreshStakingData(),
         refreshLiquidityData(),
+        refreshWithdrawData(),
         refreshBeaconChainData()
     ]) // These calls can be executed in parallel
-    await refreshContractData() // Contract data depends on previous refreshes
+    refreshContractData() // Contract data depends on previous refreshes
     console.log("Metrics promises fullfilled")
 }
 

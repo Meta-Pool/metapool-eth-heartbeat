@@ -14,11 +14,11 @@ export class WithdrawContract extends EthContract {
     }
     
     startTimestamp(): Promise<bigint> {
-        return this.contract.startTimestamp()
+        return this.contract.startTimestamp().catch(this.decodeError)
     }
 
     pendingWithdraws(address: string): Promise<WithdrawRequest> {
-        return this.contract.pendingWithdraws(address)
+        return this.contract.pendingWithdraws(address).catch(this.decodeError)
     }
 
     // ethRemaining(): Promise<bigint> {
@@ -26,15 +26,19 @@ export class WithdrawContract extends EthContract {
     // }
 
     totalPendingWithdraw(): Promise<bigint> {
-        return this.contract.totalPendingWithdraw()
+        return this.contract.totalPendingWithdraw().catch(this.decodeError)
     }
 
     getEpoch(): Promise<number> {
-        return this.contract.getEpoch().then(e => Number(e))
+        return this.contract.getEpoch().then(e => Number(e)).catch(this.decodeError)
     }
 
     getEpochTimeLeft(): Promise<bigint> {
-        return this.contract.getEpochTimeLeft()
+        return this.contract.getEpochTimeLeft().catch(this.decodeError)
+    }
+
+    withdrawalsStartEpoch(): Promise<bigint> {
+        return this.contract.withdrawalsStartEpoch().catch(this.decodeError)
     }
 }
 

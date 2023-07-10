@@ -21,6 +21,34 @@ export class LiquidityContract extends EthContract {
     getAvailableEthForValidator(): Promise<bigint> {
         return this.contract.getAvailableEthForValidator().catch(this.decodeError)
     }
+
+    name(): Promise<string> {
+        return this.contract.name().catch(this.decodeError)
+    }
+    
+    symbol(): Promise<string> {
+        return this.contract.symbol().catch(this.decodeError)
+    }
+    
+    MAX_FEE(): Promise<bigint> {
+        return this.contract.MAX_FEE().catch(this.decodeError)
+    }
+    
+    MIN_FEE(): Promise<bigint> {
+        return this.contract.MIN_FEE().catch(this.decodeError)
+    }
+    
+    targetLiquidity(): Promise<bigint> {
+        return this.contract.targetLiquidity().catch(this.decodeError)
+    }
+    
+    decimals(): Promise<bigint> {
+        return this.contract.decimals().catch(this.decodeError)
+    }
+    
+    minDeposit(): Promise<bigint> {
+        return this.contract.MIN_DEPOSIT().catch(this.decodeError)
+    }
 }
 
 

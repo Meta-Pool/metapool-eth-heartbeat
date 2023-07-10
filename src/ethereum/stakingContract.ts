@@ -70,6 +70,42 @@ export class StakingContract extends EthContract {
     lastEpochReported(): Promise<bigint> {
         return this.contract.lastEpochReported().catch(this.decodeError)
     }
+
+    decimals(): Promise<bigint> {
+        return this.contract.decimals()
+    }
+
+    name(): Promise<string> {
+        return this.contract.name()
+    }
+
+    rewardsFee(): Promise<bigint> {
+        return this.contract.rewardsFee()
+    }
+
+    symbol(): Promise<string> {
+        return this.contract.symbol()
+    }
+
+    totalNodesActivated(): Promise<bigint> {
+        return this.contract.totalNodesActivated()
+    }
+
+    whitelistEnabled(): Promise<boolean> {
+        return this.contract.whitelistEnabled()
+    }
+
+    depositFee(): Promise<bigint> {
+        return this.contract.depositFee()
+    }
+
+    submitReportTimelock(): Promise<bigint> {
+        return this.contract.SUBMIT_REPORT_TIMELOCK()
+    }
+
+    minDeposit(): Promise<bigint> {
+        return this.contract.MIN_DEPOSIT()
+    }
 }
 
 
