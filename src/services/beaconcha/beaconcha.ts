@@ -94,7 +94,7 @@ export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promis
  * 
  * @param epoch Epoch number, the string latest or the string finalized
  */
-export function getEpoch(epoch: string = "latest"): Promise<IEpochResponse> {
+export function getEpoch(epoch: string = "finalized"): Promise<IEpochResponse> {
     const url = BASE_URL + "epoch/" + epoch
     return fetch(url).then(r => r.json().then(json => json))
 }

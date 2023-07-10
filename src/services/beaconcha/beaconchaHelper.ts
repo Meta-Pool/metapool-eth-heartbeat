@@ -26,7 +26,7 @@ export async function setBeaconchaData() {
 
 export async function setIncomeDetailHistory() {
     try {
-        const toEpoch: number = (await getEpoch()).data.epoch - 3 // Last 3 epochs are still getting processed, so they shouldn't be added
+        const toEpoch: number = (await getEpoch()).data.epoch
         const filename = "income_detail_history.json"
         // When coming from file, it's not the class, but the structure.
         const incomeDetailHistory: Record<number, IncomeReport> = {}
@@ -108,6 +108,10 @@ export async function setIncomeDetailHistory() {
         ))
         console.log("Saving IDH", JSON.stringify(jsonToSave))
         saveJSON(jsonToSave, filename)
+        console.log("Saving persistent data")
+        globalPersistentData.lastRewards = report.rewards.toString()
+        globalPersistentData.lastPenalties = report.penalties.toString()
+        
     } catch (err: any) {
         console.error("ERROR reporting income detail", err.message, err.stack)
     }

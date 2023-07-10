@@ -7,6 +7,8 @@ import { ZEROS_9 } from "../nodesBalance";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
 import { calculateMpEthPrice } from "../../utils/priceUtils";
 
+export type U128String = string
+
 export function mpEthPromotionApy(): number {
     const estimatedTotalAssetsAfterAYear = wtoe(globalStakingData.totalAssets) + 0.75 / 7 * 365
     return (estimatedTotalAssetsAfterAYear / wtoe(globalStakingData.totalAssets) - 1) * 100
@@ -47,7 +49,7 @@ export type Snapshot = {
 
     mpethPriceUnderlying: number
     mpethPrice: number
-    rewardsPerSecondInWei: string
+    rewardsPerSecondInWei: U128String
     lpPrice: number
     mp_eth_3_day_apy: number
     mp_eth_7_day_apy: number
@@ -58,21 +60,24 @@ export type Snapshot = {
     lp_15_day_apy: number
     lp_30_day_apy: number
 
-    stakingBalance: string
-    liquidityEthBalance: string
-    liquidityMpethBalance: string
-    withdrawBalance: string
-    totalPendingWithdraws: string
-    totalNodesBalances: string
+    stakingBalance: U128String
+    liquidityEthBalance: U128String
+    liquidityMpethBalance: U128String
+    withdrawBalance: U128String
+    totalPendingWithdraws: U128String
+    totalNodesBalances: U128String
 
-    stakingTotalUnderlying: string
-    stakingTotalAssets: string
-    stakingTotalSupply: string
-    liqTotalAssets: string
-    liqTotalSupply: string
+    stakingTotalUnderlying: U128String
+    stakingTotalAssets: U128String
+    stakingTotalSupply: U128String
+    liqTotalAssets: U128String
+    liqTotalSupply: U128String
     activatedValidators: number
     createdValidatorsLeft: number
     secondsRemainingToFinishEpoch: number
+
+    lastRewards: U128String
+    lastPenalties: U128String
     
     // nodesBalances: Record<string, number>
     // validatorsTypesQty: Record<string, number>
@@ -109,6 +114,9 @@ export type SnapshotHR = {
     activatedValidators: number
     createdValidatorsLeft: number
     timeRemainingToFinishEpoch: string
+
+    lastRewards: number
+    lastPenalties: number
     
     nodesBalances: Record<string, number>
     validatorsTypesQty: Record<string, number>
@@ -152,7 +160,8 @@ export function fromGlobalState(): Record<string,any> {
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         secondsRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
     
-
+        lastRewards: globalPersistentData.lastRewards,
+        lastPenalties: globalPersistentData.lastPenalties
     }
 
     const output: Record<string, string|number> = snap
@@ -210,6 +219,9 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         timeRemainingToFinishEpoch: sLeftToTimeLeft(globalPersistentData.timeRemainingToFinishMetapoolEpoch),
+
+        lastRewards: wtoe(globalPersistentData.lastRewards),
+        lastPenalties: wtoe(globalPersistentData.lastPenalties),
         
         nodesBalances,
         validatorsTypesQty: beaconChainData.validatorsStatusesQty

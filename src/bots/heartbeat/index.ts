@@ -22,8 +22,8 @@ import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/be
 import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
-import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
+import { U128String } from "./snapshot.js";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -124,6 +124,8 @@ export interface PersistentData {
     validatorsLatestProposal: {[validatorIndex: number]: number}
     timeRemainingToFinishMetapoolEpoch: number
     rewardsPerSecondsInWei: string
+    lastRewards: U128String
+    lastPenalties: U128String
 
     // Chain data
     latestEpochChecked: number
@@ -463,6 +465,9 @@ async function initializeUninitializedGlobalData() {
         const nowMinus6Hours = now.setHours(now.getHours() - 6)
         globalPersistentData.lastIDHTs = nowMinus6Hours
     }
+
+    if(!globalPersistentData.lastRewards) globalPersistentData.lastRewards = "0"
+    if(!globalPersistentData.lastPenalties) globalPersistentData.lastPenalties = "0"
 
     if(isDebug) console.log("Global state initialized successfully")
 }
