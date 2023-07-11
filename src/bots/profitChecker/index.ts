@@ -28,7 +28,7 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
         return Promise.resolve(output)
     } // Price didn't increase enough
 
-    if (minExpectedValue > lastPrice) {
+    if (maxExpectedValue > lastPrice) {
         output.ok = false
         output.subject = "Strange mpeth update"
         output.body = `
