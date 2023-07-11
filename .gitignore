@@ -19,3 +19,7 @@ src/generateDonationsFile.ts
 
 src/validator_data/old_deposit_data-1677016004.json
 ssv-keys-0.0.5.tar.gz
+
+src/bots/assignOperatorsToValidator/
+src/bots/commons/
+src/bots/updateAssignedOperators/
