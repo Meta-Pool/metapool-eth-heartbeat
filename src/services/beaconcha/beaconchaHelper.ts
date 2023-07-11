@@ -50,18 +50,11 @@ export async function setIncomeDetailHistory() {
             return getValidatorsIncomeDetailHistory(validatorsGroup, fromEpoch, toEpoch)
         }))
 
-        // TODO Test
-        // let validatorsIDH: Record<number, MiniIDHReport> = {}
-        // for(let v of validatorsIDHArray) {
-        //     Object.assign(validatorsIDH, v)
-        // }
-        
         // Joining IDH
-        const validatorsIDH: Record<number, MiniIDHReport> = validatorsIDHArray.reduce((acc: Record<number, MiniIDHReport>, curr: Record<number, MiniIDHReport>) => {
-            Object.keys(curr).forEach((validatorIndex: string) => acc[Number(validatorIndex)] = curr[Number(validatorIndex)])
-            return acc
-        }, {})
-        // console.log("Validators IDH", JSON.stringify(validatorsIDH))
+        let validatorsIDH: Record<number, MiniIDHReport> = {}
+        for(let v of validatorsIDHArray) {
+            Object.assign(validatorsIDH, v)
+        }
 
         // Adding new donations
         console.log("Getting donations")

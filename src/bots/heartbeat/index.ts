@@ -831,10 +831,7 @@ async function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     if(isDebug) {
-        const contract = new StakingContract()
-        const env = getEnv()
-        const balance = await contract.getWalletBalance("0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5")
-        console.log(1, balance.toString())
+        setIncomeDetailHistory()
         // await setIncomeDetailHistory()
         return
     }

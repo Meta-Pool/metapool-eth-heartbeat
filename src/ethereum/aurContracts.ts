@@ -2,10 +2,10 @@ import { Contract, ethers } from "ethers";
 import { ENV, getEnv } from "../entities/env";
 import { GenericContract } from "./contract";
 
-const NETWORK = 'goerli'
-const RPC_URL = "https://goerli.infura.io/v3/"
-// TODO regenerate private data and get from .env
-const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
+// const NETWORK = 'goerli'
+// const RPC_URL = "https://goerli.infura.io/v3/"
+// // TODO regenerate private data and get from .env
+// const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
 
 export class AurContract extends GenericContract {
 
