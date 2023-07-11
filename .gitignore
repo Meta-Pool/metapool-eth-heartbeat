@@ -5,6 +5,8 @@ src/validatorsData/
 validator_keys.rar
 validator_keys/
 .env
+.env.mainnet
+.env.goerli
 
 assigned.json
 persistent.json
