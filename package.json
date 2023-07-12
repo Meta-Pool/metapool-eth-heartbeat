@@ -4,7 +4,7 @@
     "@types/nodemailer": "^6.4.7",
     "typescript": "^4.9.4"
   },
-  "name": "meta-pool-ssv-bots",
+  "name": "meta-pool-eth-bots",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {

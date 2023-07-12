@@ -8,6 +8,6 @@ module.exports = {
     out_file: 'main.log',
     error_file: 'main.log',
     log_date_format: 'YYYY-MM-DD HH:mm:ss:SSS',
-  }]
+  }],
 };
 

@@ -50,8 +50,6 @@ export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
 const INTERVAL = 5 * MS_IN_MINUTES
 
-
-
 const TotalCalls = {
     beats: 0,
     stake: 0,
@@ -640,17 +638,17 @@ async function beat() {
     const currentDate = new Date(new Date().toLocaleString('en', {timeZone: 'America/New_York'})) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
-    if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
-        console.log("Ms since las IDH report", Date.now() - globalPersistentData.lastIDHTs!)
-        const msLeft = 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES - (Date.now() - globalPersistentData.lastIDHTs!)
-        console.log("Time remaining for next IDH call", sLeftToTimeLeft(msLeft / 1000))
-        if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES) {
-            console.log("Calling IDH in the middle of the day")
-            globalPersistentData.lastIDHTs = Date.now()
-            saveGlobalPersistentData()
-            if(!isDebug) await setIncomeDetailHistory()
-        }
-    }
+    // if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
+    //     console.log("Ms since las IDH report", Date.now() - globalPersistentData.lastIDHTs!)
+    //     const msLeft = 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES - (Date.now() - globalPersistentData.lastIDHTs!)
+    //     console.log("Time remaining for next IDH call", sLeftToTimeLeft(msLeft / 1000))
+    //     if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES) {
+    //         console.log("Calling IDH in the middle of the day")
+    //         globalPersistentData.lastIDHTs = Date.now()
+    //         saveGlobalPersistentData()
+    //         if(!isDebug) await setIncomeDetailHistory()
+    //     }
+    // }
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
         truncateLongGlobalArrays()       
@@ -665,10 +663,10 @@ async function beat() {
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
         
-        if(!isDebug) {
-            globalPersistentData.lastIDHTs = Date.now()
-            await setIncomeDetailHistory()
-        }
+        // if(!isDebug) {
+        //     globalPersistentData.lastIDHTs = Date.now()
+        //     await setIncomeDetailHistory()
+        // }
         
         await runDailyActionsAndReport()
     } // Calls made once a day
@@ -759,6 +757,7 @@ function buildAndSendDailyReport(reports: IMailReportHelper[]) {
 
     // Enum[Enum.value] returns the Enum key
     subject = `[${Severity[severity]}] ${subject}`
+    if(isDebug) subject = "[TESTNET]" + subject
 
     sendEmail(subject, body)
 }
@@ -823,6 +822,11 @@ function processArgs() {
                 throw new Error(`Unknown arg ${process.argv[i]}`)
         }
     }
+    const network = getEnv().NETWORK
+    if(network === "goerli") {
+        isDebug = true
+                MONITORING_PORT = 7001
+    }
 }
 
 async function run() {
@@ -830,11 +834,9 @@ async function run() {
 
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
-    if(isDebug) {
-        setIncomeDetailHistory()
-        // await setIncomeDetailHistory()
-        return
-    }
+    // if(isDebug) {
+        
+    // }
 
     if (process.argv.includes("also-80")) {
         try {
