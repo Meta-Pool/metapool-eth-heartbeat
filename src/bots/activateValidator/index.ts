@@ -90,7 +90,7 @@ async function getNextNodesToActivate(qty: number): Promise<Node[]> {
     return nodes.slice(0, qty).map((node: any) => {
         return {
             pubkey: "0x" + node.pubkey,
-            withdrawCredentials: "0x" + node.withdrawal_credentials,
+            // withdrawCredentials: "0x" + node.withdrawal_credentials,
             signature: "0x" + node.signature,
             depositDataRoot: "0x" + node.deposit_data_root
         } 

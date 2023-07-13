@@ -1,6 +1,6 @@
 module.exports = {
   apps : [{
-    name: 'ssv-heartbeat',
+    name: 'eth-heartbeat',
     cwd: 'dist',
     script: 'bots/heartbeat/index.js',
     restart_delay: 1000,

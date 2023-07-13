@@ -9,7 +9,7 @@ import { getEnv } from "../entities/env"
 
 export interface Node {
     pubkey: string
-    withdrawCredentials: string
+    // withdrawCredentials: string
     signature: string
     depositDataRoot: string
 }
