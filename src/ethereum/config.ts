@@ -16,10 +16,10 @@ export interface EthConfig {
 const MAINNET_CONFIG: EthConfig = {
     network: 'mainnet',
     // Ethereum
-    stakingContractAddress: "0x748c905130CC15b92B97084Fd1eEBc2d2419146f",
-    liquidityContractAddress: "0x37774000C885e9355eA7C6B025EbF1704141093C",
-    withdrawContractAddress: "0x1A8c25ADc96Fb62183C4CB5B9F0c47746B847e05",
-    ssvContractAddress: "0xb9e155e65B5c4D66df28Da8E9a0957f06F11Bc04",
+    stakingContractAddress: "0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710",
+    liquidityContractAddress: "0xdF261F967E87B2aa44e18a22f4aCE5d7f74f03Cc",
+    withdrawContractAddress: "0xE55E5fDe6C25ac4AD75D867817D2d8a45836Af49",
+    ssvContractAddress: "0x0000000000000000000000000000000000000000",
     validatorOwnerAddress: "0x52e5219EF6Af019776c0a64925370f92caB282EC",
     // Aurora
     stakingManagerAddress: "0xfbC1423a2A4453E162cDd535991bCC4143E5d336",
