@@ -35,6 +35,7 @@ let MONITORING_PORT = 7000
 let serverStartedTimestamp: number;
 let executing: boolean = false
 export let isDebug: boolean = false
+let isTestnet: boolean = false
 let loopsExecuted = 0;
 export let globalStakingData: StakingData
 export let globalLiquidityData: LiquidityData
@@ -757,7 +758,7 @@ function buildAndSendDailyReport(reports: IMailReportHelper[]) {
 
     // Enum[Enum.value] returns the Enum key
     subject = `[${Severity[severity]}] ${subject}`
-    if(isDebug) subject = "[TESTNET]" + subject
+    if(isTestnet) subject = "[TESTNET]" + subject
 
     sendEmail(subject, body)
 }
@@ -824,8 +825,8 @@ function processArgs() {
     }
     const network = getEnv().NETWORK
     if(network === "goerli") {
-        isDebug = true
-                MONITORING_PORT = 7001
+        isTestnet = true
+        MONITORING_PORT = 7001
     }
 }
 
