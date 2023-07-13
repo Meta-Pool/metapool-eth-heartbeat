@@ -1,14 +1,15 @@
 import { ethers } from "ethers"
 import { existsSync, readFileSync, writeFileSync } from "fs"
 import { Node, StakingContract } from "../../ethereum/stakingContract"
-import depositData from "../../validator_data/deposit_data-1677016004.json"
+import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
+import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
 import { EthConfig, getConfig } from "../../ethereum/config"
 import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, beaconChainData, globalPersistentData, isTestnet } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { LiquidityContract } from "../../ethereum/liquidity"
 
@@ -27,6 +28,14 @@ export interface Balances {
     liqAvailableEthForValidators: bigint
     withdrawBalance: bigint
     totalPendingWithdraw: bigint
+}
+
+function getDepositData() {
+    if(isTestnet) {
+        return testnetDepositData
+    } else {
+        return mainnetDepositData
+    }
 }
 
 export async function activateValidator(): Promise<boolean> {    
@@ -78,7 +87,7 @@ export async function activateValidator(): Promise<boolean> {
 async function getValidatorsToActivate(): Promise<any[]> {
     // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
     const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
-    return depositData.filter((depData: any) => {
+    return getDepositData().filter((depData: any) => {
         return validatorsDataResponse.every((v: ValidatorDataResponse) => {
             return v.data.pubkey !== `0x${depData.pubkey}`
         })

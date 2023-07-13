@@ -35,7 +35,7 @@ let MONITORING_PORT = 7000
 let serverStartedTimestamp: number;
 let executing: boolean = false
 export let isDebug: boolean = false
-let isTestnet: boolean = false
+export let isTestnet: boolean = false
 let loopsExecuted = 0;
 export let globalStakingData: StakingData
 export let globalLiquidityData: LiquidityData
