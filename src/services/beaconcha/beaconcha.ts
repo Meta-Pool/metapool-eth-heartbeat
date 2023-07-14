@@ -1,10 +1,13 @@
-import { isDebug } from "../../bots/heartbeat"
+import { isDebug, isTestnet } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
 import { IBalanceHistory } from "../../entities/beaconcha/validator"
+import { getEnv } from "../../entities/env"
 import { getConfig } from "../../ethereum/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "./entities"
 
-const BASE_URL = "https://prater.beaconcha.in/api/v1/"
+const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
+const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
+const BASE_URL = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL : TESTNET_BASE_URL
 
 const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
