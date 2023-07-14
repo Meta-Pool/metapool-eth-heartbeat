@@ -49,6 +49,14 @@ export class LiquidityContract extends EthContract {
     minDeposit(): Promise<bigint> {
         return this.contract.MIN_DEPOSIT().catch(this.decodeError)
     }
+
+    minFee(): Promise<bigint> {
+        return this.contract.minFee().catch(this.decodeError)
+    }
+
+    maxFee(): Promise<bigint> {
+        return this.contract.maxFee().catch(this.decodeError)
+    }
 }
 
 

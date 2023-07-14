@@ -377,12 +377,14 @@ async function refreshLiquidityData() {
         mpEthBalance,
         name,
         symbol,
-        MAX_FEE,
-        MIN_FEE,
+        // MAX_FEE,
+        // MIN_FEE,
         targetLiquidity,
         decimals,
         minDeposit,
         liquidityBalance,
+        minFee,
+        maxFee,
     ] = await Promise.all([
         liquidityContract.totalAssets(),
         liquidityContract.totalSupply(),
@@ -390,12 +392,14 @@ async function refreshLiquidityData() {
         stakingContract.balanceOf(liquidityContract.address),
         liquidityContract.name(),
         liquidityContract.symbol(),
-        liquidityContract.MAX_FEE(),
-        liquidityContract.MIN_FEE(),
+        // liquidityContract.MAX_FEE(),
+        // liquidityContract.MIN_FEE(),
         liquidityContract.targetLiquidity(),
         liquidityContract.decimals(),
         liquidityContract.minDeposit(),
         liquidityContract.getWalletBalance(liquidityContract.address),
+        liquidityContract.minFee(),
+        liquidityContract.maxFee(),
     ])
     
 
@@ -407,11 +411,13 @@ async function refreshLiquidityData() {
         mpEthBalance,
         name,
         symbol,
-        MAX_FEE: Number(MAX_FEE),
-        MIN_FEE: Number(MIN_FEE),
+        // MAX_FEE: Number(MAX_FEE),
+        // MIN_FEE: Number(MIN_FEE),
         targetLiquidity,
         decimals: Number(decimals),
         minDeposit,
+        minFee: Number(minFee),
+        maxFee: Number(maxFee),
     }
 
     globalPersistentData.lpPrice = calculateLpPrice().toString()

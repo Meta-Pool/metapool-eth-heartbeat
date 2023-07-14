@@ -26,12 +26,14 @@ export interface LiquidityData {
     mpEthBalance: bigint
     name: string
     symbol: string
-    MAX_FEE: number
-    MIN_FEE: number
+    // MAX_FEE: number
+    // MIN_FEE: number
     targetLiquidity: bigint
     decimals: number
     minDeposit: bigint
     liquidityBalance: bigint
+    minFee: number
+    maxFee: number
     
 }
 
