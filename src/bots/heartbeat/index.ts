@@ -14,7 +14,7 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_URL, getValidatorProposal } from "../../services/beaconcha/beaconcha";
+import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
