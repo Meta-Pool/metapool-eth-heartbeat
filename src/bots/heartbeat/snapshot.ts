@@ -10,6 +10,7 @@ import { calculateMpEthPrice } from "../../utils/priceUtils";
 export type U128String = string
 
 export function mpEthPromotionApy(): number {
+    if(globalStakingData.totalAssets === 0n) return (((64 + 0.75 / 7 * 365) / 64) - 1) * 100 // 61.1
     const estimatedTotalAssetsAfterAYear = wtoe(globalStakingData.totalAssets) + 0.75 / 7 * 365
     return (estimatedTotalAssetsAfterAYear / wtoe(globalStakingData.totalAssets) - 1) * 100
 
