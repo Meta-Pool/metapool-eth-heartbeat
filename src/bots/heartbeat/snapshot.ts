@@ -87,8 +87,8 @@ export type Snapshot = {
 
 export type SnapshotHR = {
 
+    mpethPriceUnderlying: number
     mpethPrice: number
-    estimatedMpEthPrice: number
     rewardsPerSecondInETH: number
     lpPrice: number
     mp_eth_3_day_apy: number
@@ -192,8 +192,8 @@ export function fromGlobalStateForHuman(): Record<string,any> {
     })
 
     let snap: SnapshotHR = {
-        mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
-        estimatedMpEthPrice: wtoe(globalPersistentData.estimatedMpEthPrice),
+        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
+        mpethPrice: wtoe(globalPersistentData.estimatedMpEthPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         stakingTotalUnderlying: wtoe(globalStakingData.totalUnderlying),
