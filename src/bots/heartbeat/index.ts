@@ -31,7 +31,7 @@ const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
 let server: BareWebServer;
 let server80: BareWebServer;
-let MONITORING_PORT = 7000
+let MONITORING_PORT = 7010
 let serverStartedTimestamp: number;
 let executing: boolean = false
 export let isDebug: boolean = false
@@ -817,7 +817,7 @@ function processArgs() {
         switch(process.argv[i]) {
             case "--debug":
                 isDebug = true
-                MONITORING_PORT = 7001
+                MONITORING_PORT = 7011
                 break
             default:
                 throw new Error(`Unknown arg ${process.argv[i]}`)
@@ -826,7 +826,7 @@ function processArgs() {
     const network = getEnv().NETWORK
     if(network === "goerli") {
         isTestnet = true
-        MONITORING_PORT = 7001
+        MONITORING_PORT = 7011
     }
 }
 
