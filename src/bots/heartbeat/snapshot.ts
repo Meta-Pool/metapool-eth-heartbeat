@@ -132,8 +132,7 @@ export function fromGlobalState(): Record<string,any> {
 
     
     let snap: Snapshot = {
-        mpethPriceUnderlying: wtoe(calculateMpEthPrice().toString()),
-        mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
+        mpethPrice: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
         rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
@@ -151,7 +150,7 @@ export function fromGlobalState(): Record<string,any> {
         withdrawBalance: globalPersistentData.withdrawBalance,
         totalPendingWithdraws: globalPersistentData.totalPendingWithdraws,
         totalNodesBalances: nodesBalanceSum.toString(),
-
+        
         stakingTotalUnderlying: globalStakingData.totalUnderlying.toString(),
         stakingTotalAssets: globalStakingData.totalAssets.toString(),
         stakingTotalSupply: globalStakingData.totalSupply.toString(),
@@ -160,9 +159,10 @@ export function fromGlobalState(): Record<string,any> {
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         secondsRemainingToFinishEpoch: globalPersistentData.timeRemainingToFinishMetapoolEpoch,
-    
+        
         lastRewards: globalPersistentData.lastRewards,
-        lastPenalties: globalPersistentData.lastPenalties
+        lastPenalties: globalPersistentData.lastPenalties,
+        mpethPriceUnderlying: wtoe(calculateMpEthPrice().toString()),
     }
 
     const output: Record<string, string|number> = snap
@@ -192,7 +192,6 @@ export function fromGlobalStateForHuman(): Record<string,any> {
     })
 
     let snap: SnapshotHR = {
-        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         mpethPrice: wtoe(globalPersistentData.estimatedMpEthPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
@@ -209,7 +208,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
         lp_30_day_apy: computeRollingApy(globalPersistentData.lpPrices, 30),
-
+        
         stakingBalance: wtoe(globalPersistentData.stakingBalance),
         liquidityEthBalance: wtoe(globalPersistentData.liqBalance),
         liquidityMpethBalance: wtoe(globalPersistentData.liqMpEthBalance),
@@ -220,12 +219,13 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
         timeRemainingToFinishEpoch: sLeftToTimeLeft(globalPersistentData.timeRemainingToFinishMetapoolEpoch),
-
+        
         lastRewards: wtoe(globalPersistentData.lastRewards),
         lastPenalties: wtoe(globalPersistentData.lastPenalties),
+        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         
         nodesBalances,
-        validatorsTypesQty: beaconChainData.validatorsStatusesQty
+        validatorsTypesQty: beaconChainData.validatorsStatusesQty,
     }
 
     // Object.assign(snap,globalPersistentData.extraData)

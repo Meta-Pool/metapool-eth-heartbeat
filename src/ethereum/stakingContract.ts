@@ -1,11 +1,10 @@
-import { isDebug } from "../bots/heartbeat"
+// import { isDebug } from "../bots/heartbeat"
 import stakingAbi from "./abi/Staking.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"
 import { max, min } from "../utils/numberUtils"
 import { ethers } from "ethers"
 import { Report } from "../entities/staking"
-import { getEnv } from "../entities/env"
 
 export interface Node {
     pubkey: string
@@ -25,7 +24,7 @@ export class StakingContract extends EthContract {
     }
     
     pushToBeacon(node: Node[], ethFromLiq: BigInt, withdrawEthAvailableForStaking: bigint) {
-        if(isDebug) console.log("Activating node. ethFromLiq", ethFromLiq, "ethFromWith", withdrawEthAvailableForStaking)
+        // if(isDebug) console.log("Activating node. ethFromLiq", ethFromLiq, "ethFromWith", withdrawEthAvailableForStaking)
         const ethToRequestFromWithdraw = min(ethers.parseEther("32"), withdrawEthAvailableForStaking)
         // const ethToRequestFromWithdraw = ethers.parseEther("32")
         return this.contract.pushToBeacon(node, ethFromLiq, ethToRequestFromWithdraw).catch(this.decodeError)
