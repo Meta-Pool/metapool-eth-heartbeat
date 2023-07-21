@@ -1,6 +1,9 @@
 import { Contract, ethers } from "ethers";
 import { ENV, getEnv } from "../entities/env";
 import { GenericContract } from "./contract";
+import { readFileSync } from "fs";
+import path from "path";
+import os from "os";
 
 // const NETWORK = 'goerli'
 // const RPC_URL = "https://goerli.infura.io/v3/"
@@ -10,7 +13,9 @@ import { GenericContract } from "./contract";
 export class AurContract extends GenericContract {
 
     constructor(address: string, abi: ethers.InterfaceAbi, network: string = "goerli") {
-        super(address, abi, getEnv().AURORA_ACCOUNT_PRIVATE_KEY, network)
+        const filename = getEnv().NETWORK === "mainnet" ? "aurBot" : "testAurBot"
+        const pk = readFileSync(path.join(os.homedir(), `.config/${filename}.txt`)).toString()
+        super(address, abi, pk, network)
     }
 
     getProvider(network: string, apiKey: string) {

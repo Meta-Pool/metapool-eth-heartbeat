@@ -25,3 +25,6 @@ ssv-keys-0.0.5.tar.gz
 src/bots/assignOperatorsToValidator/
 src/bots/commons/
 src/bots/updateAssignedOperators/
+
+src/testerHelper.ts
+src/ethereum/abi/StakedAuroraVault.json
