@@ -37,6 +37,8 @@ let executing: boolean = false
 export let isDebug: boolean = false
 export let isTestnet: boolean = false
 let loopsExecuted = 0;
+let blockedExecutionCount = 0;
+const MAX_BLOCKED_EXECUTION_COUNT = 3;
 export let globalStakingData: StakingData
 export let globalLiquidityData: LiquidityData
 export let globalWithdrawdata: WithdrawData
@@ -769,31 +771,11 @@ function buildAndSendDailyReport(reports: IMailReportHelper[]) {
     sendEmail(subject, body)
 }
 
-async function heartLoop() {
+function heartLoop() {
     console.log("Running heartLoop")
-    if (executing) {
-        console.error("heartLoop, executing=true, missing await")
-        return; // in case there's a missing `await`
-    }
-    const beatStartMs = Date.now();
-    try {
-        executing = true;
-        await beat();
-    }
-    catch (ex: any) {
-        console.error("ERR", JSON.stringify(ex))
-        console.error("ERR", ex.message)
-        console.error("ERR", ex.stack)
-    }
-    finally {
-        executing = false;
-    }
-
-    loopsExecuted++;
-    // 2022-4-4, 24 executions => 2 hs
-    if (Date.now() >= serverStartedTimestamp + 2 * MS_IN_HOUR) {
+    if (Date.now() >= serverStartedTimestamp + 2 * MS_IN_HOUR || blockedExecutionCount >= MAX_BLOCKED_EXECUTION_COUNT) {
         // 2 hs loops cycle finished- gracefully end process, pm2 will restart it
-        console.log(loopsExecuted, "cycle finished- gracefully end process")
+        console.log(loopsExecuted, "cycle finished- gracefully end process. BEC:", blockedExecutionCount)
         if (server80 != undefined) {
             try { server80.close() } catch (ex) {
                 console.error("server80.close", JSON.stringify(ex))
@@ -803,17 +785,34 @@ async function heartLoop() {
             console.error("server.close", JSON.stringify(ex))
         }
         // 2022-4-4 make sure program ends
-        await sleep(2000);
-        process.exit(0);
+        setTimeout(() => {
+            process.exit(0)
+        }, 2000)
         return;
     }
-    else {
-        const elapsedMs = Date.now() - beatStartMs
-        //check again in INTERVAL minutes from the start of the beat. Minimun is 20 seconds
-        let nextBeatIn = atLeast(20 * MS_IN_SECOND, INTERVAL - elapsedMs);
-        console.log("next beat in", Math.trunc(nextBeatIn / MS_IN_SECOND), "seconds")
-        setTimeout(heartLoop, nextBeatIn)
+
+    let nextBeatIn = atLeast(20 * MS_IN_SECOND, INTERVAL);
+    console.log("next beat in", Math.trunc(nextBeatIn / MS_IN_SECOND), "seconds")
+    setTimeout(heartLoop, nextBeatIn)
+
+    if (executing) {
+        blockedExecutionCount++
+        console.error("heartLoop, executing=true, missing await")
+        return; // in case there's a missing `await`
     }
+    blockedExecutionCount = 0
+    const beatStartMs = Date.now();
+    executing = true;
+    beat().catch((ex: any) => {
+        console.error("ERR", JSON.stringify(ex))
+        console.error("ERR", ex.message)
+        console.error("ERR", ex.stack)        
+    }).finally(() => {
+        executing = false;
+        const elapsedMs = Date.now() - beatStartMs
+        console.log("Beat finished after", elapsedMs, "ms")
+        loopsExecuted++;
+    })
 }
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }
@@ -836,7 +835,7 @@ function processArgs() {
     }
 }
 
-async function run() {
+function run() {
     processArgs()
 
     globalPersistentData = loadJSON("persistent.json")
@@ -858,7 +857,7 @@ async function run() {
     server.start()
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
-    await heartLoop();
+    heartLoop();
 }
 
-run().catch((reason: any) => console.error("Main err", reason.message, reason.stack));
+run()//.catch((reason: any) => console.error("Main err", reason.message, reason.stack));
