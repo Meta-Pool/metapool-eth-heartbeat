@@ -79,6 +79,8 @@ export type Snapshot = {
 
     lastRewards: U128String
     lastPenalties: U128String
+    ethBotBalance: U128String
+    aurBotBalance: U128String
     
     // nodesBalances: Record<string, number>
     // validatorsTypesQty: Record<string, number>
@@ -118,6 +120,8 @@ export type SnapshotHR = {
 
     lastRewards: number
     lastPenalties: number
+    ethBotBalance: number
+    aurBotBalance: number
     
     nodesBalances: Record<string, number>
     validatorsTypesQty: Record<string, number>
@@ -162,6 +166,9 @@ export function fromGlobalState(): Record<string,any> {
         
         lastRewards: globalPersistentData.lastRewards,
         lastPenalties: globalPersistentData.lastPenalties,
+        ethBotBalance: globalPersistentData.ethBotBalance,
+        aurBotBalance: globalPersistentData.aurBotBalance,
+
         mpethPriceUnderlying: wtoe(calculateMpEthPrice().toString()),
     }
 
@@ -222,6 +229,8 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         
         lastRewards: wtoe(globalPersistentData.lastRewards),
         lastPenalties: wtoe(globalPersistentData.lastPenalties),
+        ethBotBalance: wtoe(globalPersistentData.ethBotBalance),
+        aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
         mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         
         nodesBalances,

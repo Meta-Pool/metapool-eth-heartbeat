@@ -24,6 +24,7 @@ import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } fr
 import { alertCheckProfit } from "../profitChecker";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { U128String } from "./snapshot.js";
+import { reportWalletsBalances } from "../reports/reports";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -128,6 +129,8 @@ export interface PersistentData {
     rewardsPerSecondsInWei: string
     lastRewards: U128String
     lastPenalties: U128String
+    ethBotBalance: U128String
+    aurBotBalance: U128String
 
     // Chain data
     latestEpochChecked: number
@@ -721,10 +724,9 @@ function saveGlobalPersistentData() {
 async function runDailyActionsAndReport() {
     console.log("Sending daily report")
     const reportHelpersPromises: Promise<IMailReportHelper>[] = [
-        // updateNodesBalance(),
-        // getDeactivateValidatorsReport(),
         alertCreateValidators(),
-        alertCheckProfit()
+        alertCheckProfit(),
+        reportWalletsBalances(),
     ];
     console.log("--Checking if validators should be created")
     
@@ -752,7 +754,7 @@ function buildAndSendDailyReport(reports: IMailReportHelper[]) {
             Function: ${curr.function}
             Report: ${curr.body}
         `
-    }, "https://eth-stats.narwallets.com/metrics_json")
+    }, "https://eth-metapool.narwallets.com/metrics_json")
 
     // const severity: number = Math.max(reports.map((currReport: IDailyReportHelper) => currReport.severity))
     const severity: number = reports.reduce((max: number, currReport: IMailReportHelper) => Math.max(max, currReport.severity), Severity.OK)
