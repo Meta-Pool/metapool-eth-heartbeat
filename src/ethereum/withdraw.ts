@@ -21,10 +21,6 @@ export class WithdrawContract extends EthContract {
         return this.contract.pendingWithdraws(address).catch(this.decodeError)
     }
 
-    // ethRemaining(): Promise<bigint> {
-    //     return this.contract.ethRemaining()
-    // }
-
     totalPendingWithdraw(): Promise<bigint> {
         return this.contract.totalPendingWithdraw().catch(this.decodeError)
     }

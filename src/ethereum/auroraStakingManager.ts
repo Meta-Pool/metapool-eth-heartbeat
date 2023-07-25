@@ -19,7 +19,7 @@ export class StakingManagerContract extends AurContract {
     }
 
     cleanOrdersQueue(): Promise<any> {                          
-        return this.contract.cleanOrdersQueue()
+        return this.call("cleanOrdersQueue")
     }
 }
 

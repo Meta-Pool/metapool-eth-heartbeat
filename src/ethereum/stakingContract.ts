@@ -24,10 +24,8 @@ export class StakingContract extends EthContract {
     }
     
     pushToBeacon(node: Node[], ethFromLiq: BigInt, withdrawEthAvailableForStaking: bigint) {
-        // if(isDebug) console.log("Activating node. ethFromLiq", ethFromLiq, "ethFromWith", withdrawEthAvailableForStaking)
         const ethToRequestFromWithdraw = min(ethers.parseEther("32"), withdrawEthAvailableForStaking)
-        // const ethToRequestFromWithdraw = ethers.parseEther("32")
-        return this.contract.pushToBeacon(node, ethFromLiq, ethToRequestFromWithdraw).catch(this.decodeError)
+        return this.call("pushToBeacon", node, ethFromLiq, ethToRequestFromWithdraw)
     }
     
     totalSupply(): Promise<bigint> {
@@ -42,32 +40,32 @@ export class StakingContract extends EthContract {
         return this.contract.totalUnderlying()
     }
     
-    updateNodesBalance(balance: String, rewardsPerSecond: bigint) {
-        return this.contract.updateNodesBalance(balance, max(0n, rewardsPerSecond)).catch(this.decodeError)
-    }
+    // updateNodesBalance(balance: String, rewardsPerSecond: bigint) {
+    //     return this.call("updateNodesBalance", balance, max(0n, rewardsPerSecond))
+    // }
 
     requestEthFromLiquidPoolToWithdrawal(amount: bigint) {
-        return this.contract.requestEthFromLiquidPoolToWithdrawal(amount).catch(this.decodeError)
+        return this.call("requestEthFromLiquidPoolToWithdrawal", amount)
     }
 
     estimatedRewardsPerSecond(): Promise<bigint> {
-        return this.contract.estimatedRewardsPerSecond().catch(this.decodeError)
+        return this.call("estimatedRewardsPerSecond")
     }
 
     submitReportUnlockTime(): Promise<bigint> {
-        return this.contract.submitReportUnlockTime().catch(this.decodeError)
+        return this.call("submitReportUnlockTime")
     }
     
     nodesAndWithdrawalTotalBalance(): Promise<bigint> {
-        return this.contract.nodesAndWithdrawalTotalBalance().catch(this.decodeError)
+        return this.call("nodesAndWithdrawalTotalBalance")
     }
 
     reportEpochs(report: Report, rewardsPerSecond: bigint): Promise<any> {
-        return this.contract.reportEpochs(report, rewardsPerSecond).catch(this.decodeError)
+        return this.call("reportEpochs", report, rewardsPerSecond)
     }
 
     lastEpochReported(): Promise<bigint> {
-        return this.contract.lastEpochReported().catch(this.decodeError)
+        return this.contract.lastEpochReported()
     }
 
     decimals(): Promise<bigint> {
@@ -104,6 +102,10 @@ export class StakingContract extends EthContract {
 
     minDeposit(): Promise<bigint> {
         return this.contract.MIN_DEPOSIT()
+    }
+
+    allowance(owner: string, spender: string): Promise<bigint> {
+        return this.call("allowance", owner, spender)
     }
 }
 
