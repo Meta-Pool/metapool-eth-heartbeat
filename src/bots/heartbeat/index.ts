@@ -25,6 +25,8 @@ import { alertCheckProfit } from "../profitChecker";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { U128String } from "./snapshot.js";
 import { reportWalletsBalances } from "../reports/reports";
+import { AurContract } from "../../ethereum/aurContracts";
+import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 
 export let globalPersistentData: PersistentData
 export let beaconChainData: IBeaconChainHeartBeatData
@@ -315,6 +317,22 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
     return true;
 }
 
+async function refreshOtherMetrics() {
+    const aurContract = new StakingManagerContract()
+    const [
+        ethBotWalletBalance,
+        aurBotWalletBalance,
+    ] = await Promise.all([
+        stakingContract.getWalletBalance(stakingContract.connectedWallet.address),
+        aurContract.getWalletBalance(aurContract.connectedWallet.address),
+    ])
+    
+    globalPersistentData.ethBotBalance = ethBotWalletBalance.toString()
+    globalPersistentData.aurBotBalance = aurBotWalletBalance.toString()
+    
+    if(isDebug) console.log("Other metrics refreshed")
+}
+
 async function refreshStakingData() {
     const [
         stakingBalance,
@@ -505,7 +523,8 @@ async function refreshMetrics() {
         refreshStakingData(),
         refreshLiquidityData(),
         refreshWithdrawData(),
-        refreshBeaconChainData()
+        refreshBeaconChainData(),
+        refreshOtherMetrics(),
     ]) // These calls can be executed in parallel
     refreshContractData() // Contract data depends on previous refreshes
     console.log("Metrics promises fullfilled")

@@ -13,8 +13,6 @@ const MAINNET_RESPONSIBLES = [
     "agustin@metapool.app",
 ]
 
-// const responsibles = isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
-
 function getResponsibles() {
     return isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
 }
@@ -22,6 +20,7 @@ function getResponsibles() {
 export function sendEmail(subject: string, body: string) {
     const env: ENV = getEnv()
 
+    console.log(1, "Sending mails to", getResponsibles())
     const options: MailOptions = {
         from: env.MAIL_USER,
         cc: getResponsibles(),
