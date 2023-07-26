@@ -76,7 +76,7 @@ export abstract class GenericContract {
                 await tx.wait()
             }
         } catch(err: any) {
-            console.error(err.message)
+            console.error("ERR calling", fnName, err.message)
             this.decodeError(err)
         }
     }
