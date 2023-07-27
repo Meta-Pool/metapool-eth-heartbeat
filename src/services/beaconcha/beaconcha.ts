@@ -1,9 +1,12 @@
 import { isDebug, isTestnet } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
-import { IBalanceHistory } from "../../entities/beaconcha/validator"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../ethereum/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "./entities"
+
+const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
+const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
+export const BASE_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
 
 const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
 const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
@@ -97,7 +100,7 @@ export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promis
  * 
  * @param epoch Epoch number, the string latest or the string finalized
  */
-export function getEpoch(epoch: string = "finalized"): Promise<IEpochResponse> {
+export function getBeaconChainEpoch(epoch: string = "finalized"): Promise<IEpochResponse> {
     const url = BASE_URL + "epoch/" + epoch
     return fetch(url).then(r => r.json().then(json => json))
 }
@@ -134,6 +137,7 @@ export async function getValidatorsIncomeDetailHistory(indexes: number[], firstE
     let queryEpoch = lastEpoch
     while(queryEpoch > firstEpoch) {
         const epochIDHUrl = validatorsUrl.replace("{epoch}", queryEpoch.toString())
+        // console.log(3, epochIDHUrl)
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
         output = await processIDHResponse(output, idhResponse, firstEpoch)
         queryEpoch -= 100
@@ -143,15 +147,17 @@ export async function getValidatorsIncomeDetailHistory(indexes: number[], firstE
 }
 
 async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, any>> {
+    if(!idhResponse || !idhResponse.data) return output
     const errorMessages: string[] = []
     idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
         if(data.epoch < firstEpoch) return
         const validatorIDH = output[data.validatorindex]
 
         const incomeResponseProperties = Object.keys(data.income)
+        // console.log(5, incomeResponseProperties)
         const isIncluded = incomeResponseProperties.some((e: string) => INCOME_DATA_KEYS.includes(e))
-        if(!isIncluded) {
-            const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked.`
+        if(!isIncluded && incomeResponseProperties.length > 0) {
+            const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked. Expected keys:${INCOME_DATA_KEYS}. Response: ${incomeResponseProperties}`
             errorMessages.push(message)
             throw new Error(message)
         }

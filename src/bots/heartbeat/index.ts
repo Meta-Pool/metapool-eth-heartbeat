@@ -24,7 +24,7 @@ import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } fr
 import { alertCheckProfit } from "../profitChecker";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { U128String } from "./snapshot.js";
-import { reportWalletsBalances } from "../reports/reports";
+import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
 import { AurContract } from "../../ethereum/aurContracts";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 
@@ -135,7 +135,8 @@ export interface PersistentData {
     aurBotBalance: U128String
 
     // Chain data
-    latestEpochChecked: number
+    latestEpochCheckedForReport: number
+    latestEpochCheckedForPenalties: number
 
     // Testnet helper data
     lastIDHTs?: number
@@ -565,6 +566,7 @@ async function initializeUninitializedGlobalData() {
 
     if(!globalPersistentData.lastRewards) globalPersistentData.lastRewards = "0"
     if(!globalPersistentData.lastPenalties) globalPersistentData.lastPenalties = "0"
+    if(!globalPersistentData.latestEpochCheckedForPenalties) globalPersistentData.latestEpochCheckedForPenalties = 192000
 
     if(isDebug) console.log("Global state initialized successfully")
 }
@@ -706,13 +708,15 @@ async function beat() {
         await registerValidatorsProposals()
     } // Calls made every 6 hours
 
-    const decativateReport: IMailReportHelper = await getDeactivateValidatorsReport()
-    console.log(decativateReport.body)
-    if(decativateReport.severity !== Severity.OK) {
-        console.log("Disassemble validators require an action")
-        buildAndSendDailyReport([decativateReport])
-    }
+    const reports: IMailReportHelper[] = await Promise.all([
+        checkForPenalties(), // May fail if beaconchain has many calls. Move to be called every 6 hours if needed
+        getDeactivateValidatorsReport(),
+    ])
 
+    const errorReports = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
+    if(errorReports.length) {
+        buildAndSendDailyReport(errorReports)
+    }
 
     // Aurora
     console.log("--Checking if order queue should be moved for new contract")
