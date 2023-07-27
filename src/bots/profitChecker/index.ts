@@ -6,7 +6,7 @@ import { wtoe } from "../../utils/numberUtils";
 export function alertCheckProfit(): Promise<IMailReportHelper> {
     let output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: "alertCheckProfit" }
     if(globalPersistentData.mpEthPrices.length < 2) return Promise.resolve({...output, ok: true, body: "Not enough prices to calculate", severity: Severity.OK})
-    const lastPrice = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 1].price)
+    const lastPrice = wtoe(globalPersistentData.mpethPrice)
     const priceBefore = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 2].price)
 
     const minExpectedDailyPercentageIncrease = 0.01
@@ -28,7 +28,7 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
         return Promise.resolve(output)
     } // Price didn't increase enough
 
-    if (maxExpectedValue > lastPrice) {
+    if (maxExpectedValue < lastPrice) {
         output.ok = false
         output.subject = "Strange mpeth update"
         output.body = `
@@ -51,7 +51,7 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
             Min expected value: ${minExpectedValue}
             Max expected value: ${maxExpectedValue}
         `
-    output.severity = Severity.IMPORTANT
+    output.severity = Severity.OK
 
     return Promise.resolve(output)
 }

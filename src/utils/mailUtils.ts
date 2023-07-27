@@ -3,7 +3,7 @@ import { MailOptions } from "nodemailer/lib/json-transport"
 import { ENV, getEnv } from "../entities/env"
 import { isDebug } from "../bots/heartbeat"
 
-const TESTNET_RESPONSIBLES = [
+const DEBUG_RESPONSIBLES = [
     "danieljseidler@gmail.com",
 ]
 
@@ -14,7 +14,7 @@ const MAINNET_RESPONSIBLES = [
 ]
 
 function getResponsibles() {
-    return isDebug ? TESTNET_RESPONSIBLES : MAINNET_RESPONSIBLES
+    return isDebug ? DEBUG_RESPONSIBLES : MAINNET_RESPONSIBLES
 }
 
 export function sendEmail(subject: string, body: string) {

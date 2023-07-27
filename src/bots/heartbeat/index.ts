@@ -22,10 +22,8 @@ import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/be
 import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
-import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
-import { AurContract } from "../../ethereum/aurContracts";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 
 export let globalPersistentData: PersistentData
@@ -715,7 +713,7 @@ async function beat() {
 
     const errorReports = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
     if(errorReports.length) {
-        buildAndSendDailyReport(errorReports)
+        buildAndSendReport(errorReports)
     }
 
     // Aurora
@@ -766,10 +764,14 @@ async function runDailyActionsAndReport() {
         })
     }))
 
-    buildAndSendDailyReport(reports)    
+    buildAndSendReport(reports)    
 }
 
-function buildAndSendDailyReport(reports: IMailReportHelper[]) {
+function getMetricsUrl() {
+    return isDebug || isTestnet ? "https://eth-test.narwallets.com/metrics_hr" : "https://eth-metapool.narwallets.com/metrics_hr"
+}
+
+function buildAndSendReport(reports: IMailReportHelper[]) {
     const body = reports.reduce((acc: string, curr: IMailReportHelper) => {
         return `
             ${acc}
@@ -777,9 +779,8 @@ function buildAndSendDailyReport(reports: IMailReportHelper[]) {
             Function: ${curr.function}
             Report: ${curr.body}
         `
-    }, "https://eth-metapool.narwallets.com/metrics_json")
+    }, getMetricsUrl())
 
-    // const severity: number = Math.max(reports.map((currReport: IDailyReportHelper) => currReport.severity))
     const severity: number = reports.reduce((max: number, currReport: IMailReportHelper) => Math.max(max, currReport.severity), Severity.OK)
     let subject: string = reports.reduce((acc: string, currReport: IMailReportHelper) => {
         if(currReport.ok) {
@@ -791,7 +792,7 @@ function buildAndSendDailyReport(reports: IMailReportHelper[]) {
 
     // Enum[Enum.value] returns the Enum key
     subject = `[${Severity[severity]}] ${subject}`
-    if(isTestnet) subject = "[TESTNET]" + subject
+    if(isTestnet || isDebug) subject = "[TESTNET]" + subject
 
     sendEmail(subject, body)
 }
