@@ -6,12 +6,10 @@ import { AurContract } from "./aurContracts"
 export class StakingManagerContract extends AurContract {
 
     constructor(old: boolean = false) {
-        const network = "mainnet"
-        const config = getConfig(network)
+        const config = getConfig()
         const address = old && config.oldStakingManagerAddress? config.oldStakingManagerAddress : config.stakingManagerAddress
         const abi = old ? oldStakingManagerAbi.abi : stakingManagerAbi.abi
-        // Network is hardcoded here since ETH is not in prod, but Aur is
-        super(address, abi, network)
+        super(address, abi, config.network)
     }
 
     nextCleanOrderQueue() {
