@@ -665,6 +665,8 @@ async function beat() {
     await refreshMetrics();
     console.log("Metrics refreshed successfully")
 
+    const mailReportsToSend: IMailReportHelper[] = []
+
     // keep record of stNEAR & LP price to compute APY%
     const currentDate = new Date(new Date().toLocaleString('en', {timeZone: 'America/New_York'})) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
@@ -699,21 +701,30 @@ async function beat() {
         //     await setIncomeDetailHistory()
         // }
         
-        await runDailyActionsAndReport()
+        const dailyReports = await runDailyActionsAndReport()
+        mailReportsToSend.push(...dailyReports)
     } // Calls made once a day
 
-    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
+    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) { // Calls made every 6 hours
         await registerValidatorsProposals()
+        const reportsMadeEvery6Hours: IMailReportHelper[] = await Promise.all([
+            checkForPenalties(),
+        ])
+        mailReportsToSend.push(...reportsMadeEvery6Hours)        
+
     } // Calls made every 6 hours
 
     const reports: IMailReportHelper[] = await Promise.all([
-        checkForPenalties(), // May fail if beaconchain has many calls. Move to be called every 6 hours if needed
         getDeactivateValidatorsReport(),
     ])
 
-    const errorReports = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
-    if(errorReports.length) {
-        buildAndSendReport(errorReports)
+    const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
+    if(reportsWithErrors.length) {
+        mailReportsToSend.push(...reportsWithErrors)
+    }
+
+    if(mailReportsToSend.length) {
+        buildAndSendReport(mailReportsToSend)
     }
 
     // Aurora
@@ -742,7 +753,7 @@ function saveGlobalPersistentData() {
     saveJSON(globalPersistentData, "persistent.json");
 }
 
-async function runDailyActionsAndReport() {
+async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
     console.log("Sending daily report")
     const reportHelpersPromises: Promise<IMailReportHelper>[] = [
         alertCreateValidators(),
@@ -763,8 +774,8 @@ async function runDailyActionsAndReport() {
             }
         })
     }))
-
-    buildAndSendReport(reports)    
+    return reports
+    // buildAndSendReport(reports)    
 }
 
 function getMetricsUrl() {
