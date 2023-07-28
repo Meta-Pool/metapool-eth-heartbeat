@@ -12,7 +12,7 @@ export async function setBeaconchaData() {
     beaconChainData.validatorsData = await getValidatorsData()
 
     beaconChainData.validatorsStatusesQty = beaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorDataResponse) => {
-        if (!curr.data.status) return acc
+        if (!curr.data || !curr.data.status) return acc
         if (!acc[curr.data.status]) acc[curr.data.status] = 0
         acc[curr.data.status] += 1
         return acc
