@@ -867,7 +867,11 @@ function run() {
     globalPersistentData = loadJSON("persistent.json")
     beaconChainData = loadJSON("beaconChainPersistentData.json")
     // if(isDebug) {
-    //     console.log(1, BASE_URL)   
+    //     checkForPenalties(192754).then(a => {
+    //         console.log(a)
+    //         buildAndSendReport([a])
+    //     })
+
     //     return
     // }
 

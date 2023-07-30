@@ -3,7 +3,7 @@ import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
-import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory } from "./beaconcha";
+import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistoryCount, getValidatorsIncomeDetailHistorySums } from "./beaconcha";
 import { Donations as Donation, IBeaconChainHeartBeatData, IEpochResponse, MiniIDHReport } from "./entities";
 
 
@@ -34,11 +34,34 @@ export async function getValidatorsIDH(fromEpoch: number, toEpoch: number): Prom
     const validatorsGroups = getValidatorsGroups(validatorIndexes)
     const validatorsIDHArray: Record<number, MiniIDHReport>[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
         console.log("Getting IDH for validators", validatorsGroup)
-        return getValidatorsIncomeDetailHistory(validatorsGroup, fromEpoch, toEpoch)
+        return getValidatorsIncomeDetailHistorySums(validatorsGroup, fromEpoch, toEpoch)
     }))
 
     // Joining IDH
     let validatorsIDH: Record<number, MiniIDHReport> = {}
+    for(let v of validatorsIDHArray) {
+        Object.assign(validatorsIDH, v)
+    }
+    return validatorsIDH
+}
+
+export async function getValidatorsIDHPenaltyCount(fromEpoch: number, toEpoch: number): Promise<Record<number, number>> {
+    // Obtaining validatorsIndexes filtering out undefined ones
+    console.log("Getting validators IDH")
+    if (!beaconChainData.validatorsData) throw new Error("Validators data not set")
+    const validatorIndexes: number[] = beaconChainData.validatorsData
+        .map((v: ValidatorDataResponse) => v.data.validatorindex)
+        .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
+
+    // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
+    const validatorsGroups = getValidatorsGroups(validatorIndexes)
+    const validatorsIDHArray: Record<number, number>[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
+        console.log("Getting IDH for validators", validatorsGroup)
+        return getValidatorsIncomeDetailHistoryCount(validatorsGroup, fromEpoch, toEpoch)
+    }))
+
+    // Joining IDH
+    let validatorsIDH: Record<number, number> = {}
     for(let v of validatorsIDHArray) {
         Object.assign(validatorsIDH, v)
     }

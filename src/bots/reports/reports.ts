@@ -3,7 +3,7 @@ import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/e
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { BASE_URL_SITE } from "../../services/beaconcha/beaconcha";
-import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
+import { getValidatorsIDH, getValidatorsIDHPenaltyCount } from "../../services/beaconcha/beaconchaHelper";
 import { MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
 import { beaconChainData, globalPersistentData } from "../heartbeat";
@@ -55,7 +55,7 @@ export async function reportWalletsBalances(): Promise<IMailReportHelper> {
     return output
 }
 
-export async function checkForPenalties(): Promise<IMailReportHelper> {
+export async function checkForPenalties(fromEpochAux?: number): Promise<IMailReportHelper> {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: checkForPenalties.name}
     try {
         if(beaconChainData.currentEpoch === globalPersistentData.latestEpochCheckedForPenalties) {
@@ -64,32 +64,33 @@ export async function checkForPenalties(): Promise<IMailReportHelper> {
             return output
         }
 
-        const fromEpoch = globalPersistentData.latestEpochCheckedForPenalties
+        const fromEpoch = fromEpochAux ?? globalPersistentData.latestEpochCheckedForPenalties
         const toEpoch = beaconChainData.currentEpoch
         console.log(1, fromEpoch, toEpoch)
 
-        const validatorsIDH: Record<number, MiniIDHReport> = await getValidatorsIDH(fromEpoch, toEpoch)
-        const indexesWithPenalties: string[] = Object.keys(validatorsIDH).filter((validatorIndex: string) => {
-            const indexAsNum = Number(validatorIndex)
-            const report = validatorsIDH[indexAsNum]
-            return report.penalties > 0n
-        })
+        const validatorsIDH: Record<number, number> = await getValidatorsIDHPenaltyCount(fromEpoch, toEpoch)
+        // const indexesWithPenalties: string[] = Object.keys(validatorsIDH).filter((validatorIndex: string) => {
+        //     const indexAsNum = Number(validatorIndex)
+        //     const penaltiesAmount = validatorsIDH[indexAsNum]
+        //     return report.penalties > 0n
+        // })
 
         globalPersistentData.latestEpochCheckedForPenalties = beaconChainData.currentEpoch
 
-        if(indexesWithPenalties.length) {
+        if(Object.keys(validatorsIDH).length) {
             console.log("Validators with penalties")
             output.subject = "Validators with penalties"
             output.severity = Severity.ERROR
-            const errorBody = indexesWithPenalties.map((validatorIndex: string) => {
+            const errorBody = Object.keys(validatorsIDH).map((validatorIndex: string) => {
                 const indexAsNum = Number(validatorIndex)
-                const report = validatorsIDH[indexAsNum]
-                return `${indexAsNum} has ${wtoe(report.penalties)} penalties: ${BASE_URL_SITE}${indexAsNum}`
+                const penaltiesCount = validatorsIDH[indexAsNum]
+                return `${indexAsNum} has ${penaltiesCount} penalties: ${BASE_URL_SITE}${indexAsNum}`
             })
             output.body = `
                 The following validators have penalties between epochs ${fromEpoch} and ${toEpoch}:
-                ${errorBody.join("\n")}
-            `
+                
+                ${errorBody.join("\n\n")}
+            `.replace(/^ +/gm, "")
             return output
         }
         
