@@ -2,7 +2,7 @@ import { SERVFAIL } from "dns";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import { StakingContract } from "../../ethereum/stakingContract";
-import { BASE_URL_SITE } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE } from "../../services/beaconcha/beaconcha";
 import { getValidatorsIDH, getValidatorsIDHPenaltyCount } from "../../services/beaconcha/beaconchaHelper";
 import { MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
@@ -84,7 +84,7 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
             const errorBody = Object.keys(validatorsIDH).map((validatorIndex: string) => {
                 const indexAsNum = Number(validatorIndex)
                 const penaltiesCount = validatorsIDH[indexAsNum]
-                return `${indexAsNum} has ${penaltiesCount} penalties: ${BASE_URL_SITE}${indexAsNum}`
+                return `${indexAsNum} has ${penaltiesCount} penalties: ${BASE_BEACON_CHAIN_URL_SITE}${indexAsNum}`
             })
             output.body = `
                 The following validators have penalties between epochs ${fromEpoch} and ${toEpoch}:

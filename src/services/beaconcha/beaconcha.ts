@@ -6,7 +6,7 @@ import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IInc
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
-export const BASE_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
+export const BASE_BEACON_CHAIN_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
 
 const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
 const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
