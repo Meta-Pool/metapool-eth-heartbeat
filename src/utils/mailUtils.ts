@@ -20,7 +20,7 @@ function getResponsibles() {
 export function sendEmail(subject: string, body: string) {
     const env: ENV = getEnv()
 
-    console.log(1, "Sending mails to", getResponsibles())
+    console.log("Sending mails to", getResponsibles())
     const options: MailOptions = {
         from: env.MAIL_USER,
         cc: getResponsibles(),

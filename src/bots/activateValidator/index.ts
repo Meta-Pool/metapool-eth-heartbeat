@@ -9,7 +9,7 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, beaconChainData, globalPersistentData, isTestnet } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isTestnet } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { LiquidityContract } from "../../ethereum/liquidity"
 
@@ -86,7 +86,7 @@ export async function activateValidator(): Promise<boolean> {
 
 async function getValidatorsToActivate(): Promise<any[]> {
     // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
-    const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
+    const validatorsDataResponse: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
     return getDepositData().filter((depData: any) => {
         return validatorsDataResponse.every((v: ValidatorDataResponse) => {
             return v.data.pubkey !== `0x${depData.pubkey}`

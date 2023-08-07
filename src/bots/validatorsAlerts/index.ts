@@ -4,7 +4,7 @@ import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
-import { beaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
+import { globalBeaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
 import { etow } from '../../utils/numberUtils'
 
 const THRESHOLD: number = 5
@@ -33,9 +33,9 @@ function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
 export async function alertCreateValidators(): Promise<IMailReportHelper> {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
-    const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
+    const validatorsData: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
 
-    const validatorsQtyByType = beaconChainData.validatorsStatusesQty
+    const validatorsQtyByType = globalBeaconChainData.validatorsStatusesQty
     const activatedValidatorsAmount = validatorsData.length
     // const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
 

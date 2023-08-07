@@ -15,3 +15,11 @@ export function wtoe(wei: bigint|string): number {
 export function etow(eth: number|string): bigint {
     return ethers.parseEther(eth.toString())
 }
+
+export function weiToGWei(wei: bigint|string): number {
+    return wtoe(wei) * 10 ** 9
+}
+
+export function ethToGwei(eth: number): number {
+    return eth * (10 ** 9)
+}
