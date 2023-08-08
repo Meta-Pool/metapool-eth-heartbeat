@@ -6,7 +6,7 @@ import { IBalanceHistoryData, ValidatorDataResponse, getBeaconChainEpoch, getVal
 import { IEpochResponse } from "../../services/beaconcha/entities"
 import { sendEmail } from "../../utils/mailUtils"
 import { etow, max, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_SECOND, beaconChainData, globalPersistentData } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_SECOND, globalBeaconChainData, globalPersistentData } from "../heartbeat"
 import { computeRollingApy } from "../heartbeat/snapshot"
 
 export const ZEROS_9 = "0".repeat(9)
@@ -76,9 +76,9 @@ export const ZEROS_9 = "0".repeat(9)
 
 export async function getNodesBalance(reloadNodesData: boolean = false): Promise<string> {
     if(reloadNodesData) {
-        beaconChainData.validatorsData = await getValidatorsData()
+        globalBeaconChainData.validatorsData = await getValidatorsData()
     }
-    const validatorDataArray: ValidatorDataResponse[] = beaconChainData.validatorsData
+    const validatorDataArray: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
 
     const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
     console.log("Validators balances", balances)
@@ -95,7 +95,7 @@ export async function checkValidatorsPenalization() {
     // const validatorDataArray: ValidatorDataResponse[] = beaconChainData.validatorsData
 
     // const validatorsBalanceHistory: IBalanceHistoryData[][] = await Promise.all(validatorDataArray.map((v: ValidatorDataResponse) => getValidatorBalanceHistory(v.data.pubkey)))
-    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsIncomeDetailHistory
+    const validatorsBalanceHistory: Record<string, IBalanceHistoryData[]> = globalBeaconChainData.validatorsIncomeDetailHistory
 
     // BalanceHistoryData is ordered so the index 0 has the most recent epoch
     const penalizedValidatorsKeys: string[] = Object.keys(validatorsBalanceHistory).filter((key: string) => validatorsBalanceHistory[key][0].balance < validatorsBalanceHistory[key][1].balance)
@@ -109,7 +109,7 @@ export async function checkValidatorsPenalization() {
 
 function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
     console.log("There are validators being penalized")
-    const balancesHistory: Record<string, IBalanceHistoryData[]> = beaconChainData.validatorsIncomeDetailHistory
+    const balancesHistory: Record<string, IBalanceHistoryData[]> = globalBeaconChainData.validatorsIncomeDetailHistory
 
     const subject = "[ERROR] Penalized validators"
 

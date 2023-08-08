@@ -2,11 +2,11 @@ import { SERVFAIL } from "dns";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import { StakingContract } from "../../ethereum/stakingContract";
-import { BASE_URL_SITE } from "../../services/beaconcha/beaconcha";
-import { getValidatorsIDH, getValidatorsIDHPenaltyCount } from "../../services/beaconcha/beaconchaHelper";
+import { BASE_BEACON_CHAIN_URL_SITE } from "../../services/beaconcha/beaconcha";
+import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
 import { MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
-import { beaconChainData, globalPersistentData } from "../heartbeat";
+import { globalBeaconChainData, globalPersistentData } from "../heartbeat";
 
 // In ETH
 const ETH_ESTIMATED_COST_PER_DAY = 0.001
@@ -60,24 +60,18 @@ export async function reportWalletsBalances(): Promise<IMailReportHelper> {
 export async function checkForPenalties(fromEpochAux?: number): Promise<IMailReportHelper> {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: checkForPenalties.name}
     try {
-        if(beaconChainData.currentEpoch === globalPersistentData.latestEpochCheckedForPenalties) {
+        if(globalBeaconChainData.currentEpoch === globalPersistentData.latestEpochCheckedForPenalties) {
             output.severity = Severity.OK
             output.subject = "Epoch hasn't changed"
             return output
         }
 
         const fromEpoch = fromEpochAux ?? globalPersistentData.latestEpochCheckedForPenalties
-        const toEpoch = beaconChainData.currentEpoch
-        console.log(1, fromEpoch, toEpoch)
+        const toEpoch = globalBeaconChainData.currentEpoch
 
-        const validatorsIDH: Record<number, number> = await getValidatorsIDHPenaltyCount(fromEpoch, toEpoch)
-        // const indexesWithPenalties: string[] = Object.keys(validatorsIDH).filter((validatorIndex: string) => {
-        //     const indexAsNum = Number(validatorIndex)
-        //     const penaltiesAmount = validatorsIDH[indexAsNum]
-        //     return report.penalties > 0n
-        // })
+        const validatorsIDH: Record<number, MiniIDHReport> = await getValidatorsIDH(fromEpoch, toEpoch)
 
-        globalPersistentData.latestEpochCheckedForPenalties = beaconChainData.currentEpoch
+        globalPersistentData.latestEpochCheckedForPenalties = globalBeaconChainData.currentEpoch
 
         if(Object.keys(validatorsIDH).length) {
             console.log("Validators with penalties")
@@ -85,8 +79,8 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
             output.severity = Severity.ERROR
             const errorBody = Object.keys(validatorsIDH).map((validatorIndex: string) => {
                 const indexAsNum = Number(validatorIndex)
-                const penaltiesCount = validatorsIDH[indexAsNum]
-                return `${indexAsNum} has ${penaltiesCount} penalties: ${BASE_URL_SITE}${indexAsNum}`
+                const report: MiniIDHReport = validatorsIDH[indexAsNum]
+                return `${indexAsNum} has ${report.penaltiesCount} penalties: ${BASE_BEACON_CHAIN_URL_SITE}${indexAsNum}`
             })
             output.body = `
                 The following validators have penalties between epochs ${fromEpoch} and ${toEpoch}:
