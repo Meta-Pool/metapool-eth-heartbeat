@@ -21,14 +21,12 @@ export async function refreshBeaconChainData() {
     const latestEpochData: IEpochResponse = await getBeaconChainEpoch()
     globalBeaconChainData.currentEpoch = latestEpochData.data.epoch
 
-    const lastEpochRegistered = globalPersistentData.latestBeaconChainEpochRegistered
     const latestEpoch = latestEpochData.data.epoch
+    const lastEpochRegistered = Math.max(globalPersistentData.latestBeaconChainEpochRegistered, latestEpoch - 100)
 
     if(lastEpochRegistered === latestEpoch) return
 
-    console.log(8, lastEpochRegistered, latestEpoch)
     const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
-    console.log(9, newIDH)
     globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
 
     const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
@@ -44,7 +42,7 @@ export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): P
     const validatorIndexes: number[] = globalBeaconChainData.validatorsData
         .map((v: ValidatorDataResponse) => v.data.validatorindex)
         .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
-    console.log(1, validatorIndexes)
+
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
     const validatorsGroups = getValidatorsGroups(validatorIndexes)
     const validatorsIDHArray: IIncomeDetailHistoryResponse[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
@@ -54,13 +52,13 @@ export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): P
             auxFrom = Math.min(toEpoch, auxFrom + 100)
             limits.push(auxFrom)
         }
-        console.log(3, limits)
+        
         const idhResponses: (IIncomeDetailHistoryResponse|undefined)[] = await Promise.all(limits.map((limitFrom: number, index: number) => {
             if(index + 1 === limits.length) return undefined
             const limitTo = limits[index + 1]
             return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
         }))
-        console.log(2, idhResponses)
+        
         return joinMultipleIDH(idhResponses.slice(0, -1) as IIncomeDetailHistoryResponse[])
     }))
 

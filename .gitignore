@@ -28,3 +28,5 @@ src/bots/updateAssignedOperators/
 
 src/testerHelper.ts
 src/ethereum/abi/StakedAuroraVault.json
+
+deleteme_ssv.ts
