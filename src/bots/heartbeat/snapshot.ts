@@ -5,7 +5,7 @@ import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
-import { calculateMpEthPrice } from "../../utils/priceUtils";
+import { calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
 
 export type U128String = string
 
@@ -167,7 +167,7 @@ export function fromGlobalState(): Record<string,any> {
         ethBotBalance: globalPersistentData.ethBotBalance,
         aurBotBalance: globalPersistentData.aurBotBalance,
 
-        mpethPriceUnderlying: wtoe(calculateMpEthPrice().toString()),
+        mpethPriceUnderlying: wtoe(calculateMpEthPriceTotalUnderlying().toString()),
     }
 
     const output: Record<string, string|number> = snap
