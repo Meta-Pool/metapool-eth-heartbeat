@@ -9,8 +9,10 @@ import { wtoe } from "../../utils/numberUtils";
 import { beaconChainData, globalPersistentData } from "../heartbeat";
 
 // In ETH
-const ETH_MIN_BALANCE = 0.1
-const AUR_MIN_BALANCE = 0.01
+const ETH_ESTIMATED_COST_PER_DAY = 0.001
+const AUR_ESTIMATED_COST_PER_DAY = 0.00001
+const ETH_MIN_BALANCE = ETH_ESTIMATED_COST_PER_DAY * 60
+const AUR_MIN_BALANCE = AUR_ESTIMATED_COST_PER_DAY * 60
 
 export async function reportWalletsBalances(): Promise<IMailReportHelper> {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportWalletsBalances.name}
