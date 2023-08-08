@@ -31,7 +31,6 @@ export async function refreshBeaconChainData() {
 
     const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
     globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
-    console.log(7, globalBeaconChainData.incomeDetailHistory[globalBeaconChainData.incomeDetailHistory.length - 1])
 
 }
 

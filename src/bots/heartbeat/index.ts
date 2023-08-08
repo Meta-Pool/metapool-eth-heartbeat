@@ -168,9 +168,6 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             return validatorData.data.status !== "exited"
         })
 
-        // console.log(4, idh)
-        console.log(5, latestCheckedEpoch)
-
         const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
             return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
         })
@@ -240,11 +237,6 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<th>rewards</th>`);
             resp.write(`<th>penalties</th>`);
             resp.write(`<th>apy</th>`);
-            //   resp.write(`<th>mp Stake</th>`);
-            //   resp.write(`<th>mp Unstk</th>`);
-            //   resp.write(`<th>Unstk epoch</th>`);
-            //   resp.write(`<th>Depo/ Wtdr</th>`);
-            //   resp.write(`<th>Total stake</th> <th>Bl prod</th> <th>Fee</th>`);
             resp.write(`<th style="text-align:left">Pool</th>`);
 
             resp.write(`
@@ -254,7 +246,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             for (let item of asArray) {
                 resp.write(`
           <tr>
-          <td><a href=${path.join(BASE_BEACON_CHAIN_URL_SITE, item.name.toString())} target="_blank">${item.name}</a></td>
+          <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
           `);
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
@@ -264,20 +256,12 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     else {
                         let rewardsText = info.rewards.toFixed(0)
                         if (rewardsText == "0") rewardsText = "-";
-                        // if (info.monitoredBalance && yton(info.monitoredBalance) >= 10) {
-                        //   valueText += `<br><span style="font-size:75%;color:dark-gray">/${(yton(info.monitoredBalance) / 1e3).toFixed(4)}</span>`;
-                        // }
                         resp.write(`<td>${rewardsText}</td>`);
 
                         let penaltiesText = info.penalties.toFixed(0)
                         if (penaltiesText == "0") penaltiesText = "-";
-                        // if (info.monitoredBalance && yton(info.monitoredBalance) >= 10) {
-                        //   valueText += `<br><span style="font-size:75%;color:dark-gray">/${(yton(info.monitoredBalance) / 1e3).toFixed(4)}</span>`;
-                        // }
                         resp.write(`<td>${penaltiesText}</td>`);
 
-                        //resp.write(`<td>${pctInterestEpoch.toFixed(5)}%</td>`);
-                        //const apy = ((1 + pctInterestEpoch / 100) ** (epochsInYear) - 1) * 100
                         let apy = info.apy
                         if (isNaN(apy)) {
                             apy = 0
