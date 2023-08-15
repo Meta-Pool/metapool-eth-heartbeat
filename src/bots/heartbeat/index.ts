@@ -19,7 +19,7 @@ import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal } from "../../services/beaconcha/entities";
-import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
+import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
 import { getAllValidatorsIDH, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
@@ -697,7 +697,7 @@ function refreshContractData() {
     globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(globalWithdrawdata.epochTimeLeft.toString())
 
     globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
-    globalPersistentData.estimatedMpEthPrice = calculateEstimatedMpEthPrice().toString()
+    globalPersistentData.estimatedMpEthPrice = calculateMpEthPriceTotalUnderlying().toString()
     globalPersistentData.stakingTotalSupply = globalStakingData.totalSupply.toString()
     globalPersistentData.liqTotalSupply = globalLiquidityData.totalSupply.toString()
     globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
@@ -792,7 +792,7 @@ function updateDailyGlobalData(currentDateISO: string) {
 
     globalPersistentData.mpEthPrices.push({
         dateISO: currentDateISO,
-        price: calculateEstimatedMpEthPrice().toString(),
+        price: calculateMpEthPrice().toString(),
         assets: globalStakingData.totalAssets.toString(),
         supply: globalStakingData.totalSupply.toString(),
     });
