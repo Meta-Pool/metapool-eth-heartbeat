@@ -27,6 +27,8 @@ import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
+import { SsvViewsContract } from "../../ethereum/ssvViews";
+import { getEstimatedRunwayInDays } from "../../utils/ssvUtils";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -49,6 +51,7 @@ export let globalWithdrawdata: WithdrawData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
+export const ssvViewsContract: SsvViewsContract = new SsvViewsContract() 
 
 //time in ms
 export const MS_IN_SECOND = 1000
@@ -1088,20 +1091,10 @@ function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    // if(isDebug) {
-    //     // const validatorsIndexes = [198491, 198492, 198493]
-    //     const toEpoch = 193758
-    //     const fromEpoch = toEpoch - 200
-    //     getAllValidatorsIDH(fromEpoch, toEpoch).then((idh: IIncomeDetailHistoryResponse) => {
-    //         saveJSON(idh, "idh_test.json")
-    //         console.log(idh)
-    //     })
-    //     // getIncomeDetailHistory(validatorsIndexes, fromEpoch, toEpoch).then((idh: IIncomeDetailHistoryResponse) => {
-    //     //     saveJSON(idh, "idh_test.json")
-    //     //     console.log(idh)
-    //     // })
-    //     return
-    // }
+    if(isDebug) {
+        getEstimatedRunwayInDays().then((r) => console.log(r))
+        return
+    }
 
     if (process.argv.includes("also-80")) {
         try {
