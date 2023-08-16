@@ -7,6 +7,9 @@ import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
 import { MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
 import { globalBeaconChainData, globalPersistentData } from "../heartbeat";
+import { readdirSync } from "fs";
+import { getConfig } from "../../ethereum/config";
+import { getEstimatedRunwayInDays } from "../../utils/ssvUtils";
 
 // In ETH
 const ETH_ESTIMATED_COST_PER_DAY = 0.001
@@ -104,4 +107,57 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
     }
     return output
     
+}
+
+export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
+    let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportSsvClusterBalances.name}
+
+    try {
+        const operatorIdsFilenames: string[] = readdirSync(`./db/clustersDataSsv/${getConfig().network}/`)
+        const estimatedRunwaysWithOperatorIds: any[] = await Promise.all(operatorIdsFilenames.map(async (operatorIdsFilename: string) => {
+            const operatorIds: number[] = operatorIdsFilename.split(".")[0].split(",").map(Number)
+            return { 
+                operatorIds,
+                days: await getEstimatedRunwayInDays(operatorIds)
+            }
+        }))
+
+        const clustersToReport = estimatedRunwaysWithOperatorIds.filter((runways: any) => {
+            console.log(runways.operatorIds, runways.days)
+            return runways.days < 300
+        })
+
+        if(clustersToReport.length > 0) {
+            output.ok = false
+            output.severity = Severity.IMPORTANT
+            output.subject = "Ssv cluster needs deposit"
+
+            const body = clustersToReport.map((cluster: any) => {
+                return `${cluster.operatorIds}: ${cluster.days} days remaining`
+            })
+            output.body = `
+                The following operatorIds belong to clusters that need funding.
+                ${body}
+            `
+            return output
+        }
+
+        output.ok = true
+        output.severity = Severity.OK
+        output.subject = ""
+        output.body = "Ssv clusters have enough funding for more than 60 days"
+
+        return output
+
+    } catch(err: any) {
+        const errorMessage = `Unexpected error while checking for reportSsvClusterBalances ${err.message}`
+        console.error("ERROR:", errorMessage)
+        output.ok = false
+        output.severity = Severity.ERROR
+        output.subject = "Ssv cluster balances check error"
+        output.body = errorMessage
+
+        return output
+    }
+
 }

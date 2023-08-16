@@ -7,11 +7,9 @@ const blocksPerDay = 7160
 const blocksPerYear = blocksPerDay * 365
 
 export async function getEstimatedRunwayInDays(operatorIds: number[]) {
-    // const balance = 3.91
-    // const fees = [1,1,1,0]
-    // const clusterValidatorsCount = 1
-
-    const ownerAddress = getConfig().ownerAddress
+    const config = getConfig()
+    
+    const ownerAddress = config.ownerAddress
     const clusterData = getClusterData(operatorIds)
     
     const [
@@ -38,7 +36,7 @@ export async function getEstimatedRunwayInDays(operatorIds: number[]) {
 }
 
 function getClusterData(operatorIds: number[]) {
-    const file = readFileSync(`./db/clustersDataSsv/${operatorIds.join(",")}.txt`).toString()
+    const file = readFileSync(`./db/clustersDataSsv/${getConfig().network}/${operatorIds.join(",")}.txt`).toString()
     const clusterSplitted = file.split("cluster")
     const cluster = clusterSplitted[clusterSplitted.length - 1].substring(2).split("}")[0]
     return JSON.parse(cluster)

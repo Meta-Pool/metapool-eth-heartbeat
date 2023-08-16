@@ -23,7 +23,7 @@ import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlyi
 import { getAllValidatorsIDH, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
-import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
+import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
@@ -974,6 +974,7 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
+        reportSsvClusterBalances(),
     ];
     console.log("--Checking if validators should be created")
 
@@ -1094,27 +1095,6 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        const ownerAddress = getConfig().ownerAddress
-        const operatorIds = [30,58,67,96]
-
-        console.log(process.cwd())
-        const operatorIdsArray = JSON.parse(readFileSync("../db/clusters.json").toString())
-        operatorIdsArray.forEach((operatorIds: number[]) => {
-            getEstimatedRunwayInDays(operatorIds).then((a) => {
-                console.log(a)
-            })
-        })
-        
-
-        // const file = readFileSync(`./db/clustersDataSsv/${operatorIds.join(",")}.txt`).toString()
-        // const clusterSplitted = file.split("cluster")
-        // const cluster = clusterSplitted[clusterSplitted.length - 1].substring(2).split("}")[0]
-        // console.log(cluster)
-        // const clusterObject = JSON.parse(cluster)
-        // console.log(clusterObject)
-        // ssvViewsContract.getBalance(ownerAddress, operatorIds, clusterObject).then((a) => {
-        //     console.log(a)
-        // })
         return
     }
 
