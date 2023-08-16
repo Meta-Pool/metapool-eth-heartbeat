@@ -14,6 +14,7 @@ export interface EthConfig {
 
     // SSV
     ssvNetworkViews: string
+    ownerAddress: string
 }
 
 const MAINNET_CONFIG: EthConfig = {
@@ -30,6 +31,7 @@ const MAINNET_CONFIG: EthConfig = {
 
     // SSV
     ssvNetworkViews: "0xafE830B6Ee262ba11cce5F32fDCd760FFE6a66e4",
+    ownerAddress: "0x0000000000000000000000000000000000000000",
 }
 
 const GOERLI_CONFIG: EthConfig = {
@@ -45,6 +47,7 @@ const GOERLI_CONFIG: EthConfig = {
 
     // SSV
     ssvNetworkViews: "0xAE2C84c48272F5a1746150ef333D5E5B51F68763",
+    ownerAddress: "0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6",
 }
 
 export function getConfig(network?: string): EthConfig {

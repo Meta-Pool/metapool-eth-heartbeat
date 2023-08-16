@@ -19,4 +19,12 @@ export class SsvViewsContract extends EthContract {
     getNetworkFee() {
         return this.contract.getNetworkFee()
     }
+
+    getBalance(ownerAddress: string, operatorIds: number[], cluster: any): Promise<bigint> {
+        return this.contract.getBalance(ownerAddress, operatorIds, cluster)
+    }
+
+    getBurnRate(ownerAddress: string, operatorIds: number[], cluster: any): Promise<bigint> {
+        return this.contract.getBurnRate(ownerAddress, operatorIds, cluster)
+    }
 } 

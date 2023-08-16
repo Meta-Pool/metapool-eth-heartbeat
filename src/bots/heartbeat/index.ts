@@ -29,6 +29,8 @@ import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
 import { getEstimatedRunwayInDays } from "../../utils/ssvUtils";
+import { getConfig } from "../../ethereum/config";
+import { readFileSync } from "fs";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -1092,7 +1094,27 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        getEstimatedRunwayInDays().then((r) => console.log(r))
+        const ownerAddress = getConfig().ownerAddress
+        const operatorIds = [30,58,67,96]
+
+        console.log(process.cwd())
+        const operatorIdsArray = JSON.parse(readFileSync("../db/clusters.json").toString())
+        operatorIdsArray.forEach((operatorIds: number[]) => {
+            getEstimatedRunwayInDays(operatorIds).then((a) => {
+                console.log(a)
+            })
+        })
+        
+
+        // const file = readFileSync(`./db/clustersDataSsv/${operatorIds.join(",")}.txt`).toString()
+        // const clusterSplitted = file.split("cluster")
+        // const cluster = clusterSplitted[clusterSplitted.length - 1].substring(2).split("}")[0]
+        // console.log(cluster)
+        // const clusterObject = JSON.parse(cluster)
+        // console.log(clusterObject)
+        // ssvViewsContract.getBalance(ownerAddress, operatorIds, clusterObject).then((a) => {
+        //     console.log(a)
+        // })
         return
     }
 
