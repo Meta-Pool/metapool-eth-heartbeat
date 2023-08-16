@@ -152,6 +152,7 @@ export async function setIncomeDetailHistory() {
         }
         
         const validatorsIDH = await getValidatorsIDH(fromEpoch, toEpoch)
+        console.log("Validators IDH", validatorsIDH)
 
         // Adding new donations
         console.log("Getting donations")
@@ -174,6 +175,8 @@ export async function setIncomeDetailHistory() {
             report.penalties += validatorIDH.penalties
         })
         const rewardsPerSecond = await getEstimatedRewardsPerSecond(report)
+        console.log("Estimated rewards per second", rewardsPerSecond)
+        console.log("Report", report)
 
         console.log("Reporting epochs to contract")
         await stakingContract.reportEpochs(report, rewardsPerSecond)
