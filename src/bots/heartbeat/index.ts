@@ -909,8 +909,8 @@ async function beat() {
         console.log("Was validator created?", wasValidatorCreated)
 
         // if(!isDebug) {
-        //     globalPersistentData.lastIDHTs = Date.now()
-        //     await setIncomeDetailHistory()
+        globalPersistentData.lastIDHTs = Date.now()
+        await setIncomeDetailHistory()
         // }
         
         const dailyReports = await runDailyActionsAndReport()
