@@ -134,7 +134,7 @@ export function fromGlobalState(): Record<string,any> {
 
     
     let snap: Snapshot = {
-        mpethPrice: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
+        mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
@@ -167,7 +167,7 @@ export function fromGlobalState(): Record<string,any> {
         ethBotBalance: globalPersistentData.ethBotBalance,
         aurBotBalance: globalPersistentData.aurBotBalance,
 
-        mpethPriceUnderlying: wtoe(calculateMpEthPriceTotalUnderlying().toString()),
+        mpethPriceUnderlying: wtoe(globalPersistentData.estimatedMpEthPrice.toString()),
     }
 
     const output: Record<string, string|number> = snap
@@ -197,7 +197,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
     })
 
     let snap: SnapshotHR = {
-        mpethPrice: wtoe(globalPersistentData.estimatedMpEthPrice),
+        mpethPrice: wtoe(globalPersistentData.mpethPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         stakingTotalUnderlying: wtoe(globalStakingData.totalUnderlying),
@@ -229,7 +229,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         lastPenalties: wtoe(globalPersistentData.lastPenalties),
         ethBotBalance: wtoe(globalPersistentData.ethBotBalance),
         aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
-        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
+        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
         
         nodesBalances,
         validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,
