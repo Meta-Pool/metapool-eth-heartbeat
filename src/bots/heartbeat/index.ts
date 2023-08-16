@@ -14,20 +14,23 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { getValidatorProposal } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, getIncomeDetailHistory, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { IBeaconChainHeartBeatData, IValidatorProposal } from "../../services/beaconcha/entities";
-import { calculateEstimatedMpEthPrice, calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
-import { setBeaconchaData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal } from "../../services/beaconcha/entities";
+import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
+import { getAllValidatorsIDH, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
+import path from "path";
+import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 
 export let globalPersistentData: PersistentData
-export let beaconChainData: IBeaconChainHeartBeatData
+export let globalBeaconChainData: IBeaconChainHeartBeatData
+export let idhBeaconChainCopyData: Record<number, IIncomeDetailHistoryData[]>
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
 let server: BareWebServer;
@@ -61,7 +64,7 @@ const TotalCalls = {
     ping: 0,
     distribute_rewards: 0,
     retrieve: 0
-  }
+}
 
 export interface PriceData {
     dateISO: string
@@ -110,7 +113,8 @@ export interface PersistentData {
     historicalNodesBalances: Record<string, BalanceData[]> // Key is node pub key
     requestedDelayedUnstakeBalances: BalanceData[]
     historicalActiveValidators: SimpleNumberRecord[]
-    
+    incomeDetailHistory: IIncomeDetailHistoryData[]
+
     // Current data
     stakingBalance: string
     mpTotalAssets: string
@@ -124,7 +128,7 @@ export interface PersistentData {
     activeValidatorsQty: number
     createdValidatorsLeft: number
     nodesBalances: Record<string, string> // Key is node pub key
-    validatorsLatestProposal: {[validatorIndex: number]: number}
+    validatorsLatestProposal: { [validatorIndex: number]: number }
     timeRemainingToFinishMetapoolEpoch: number
     rewardsPerSecondsInWei: string
     lastRewards: U128String
@@ -135,6 +139,7 @@ export interface PersistentData {
     // Chain data
     latestEpochCheckedForReport: number
     latestEpochCheckedForPenalties: number
+    latestBeaconChainEpochRegistered: number
 
     // Testnet helper data
     lastIDHTs?: number
@@ -154,7 +159,211 @@ function showContractState(resp: http.ServerResponse) {
 }
 
 function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
-    resp.write("Show pool performance not implemented yet")
+    try {
+        const epochsToDisplay = 10
+        let latestCheckedEpoch = Number(globalPersistentData.latestBeaconChainEpochRegistered)
+
+        const idh = globalBeaconChainData.incomeDetailHistory
+        const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorDataResponse) => {
+            return validatorData.data.status !== "exited"
+        })
+
+        const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
+            return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
+        })
+
+        const validatorsWithIndex = validatorsData.filter((validatorData: ValidatorDataResponse) => {
+            return validatorData.data.validatorindex
+        })
+
+        const epochsInYear = 365 * 24 * 60 / 6.4
+        let apySum = 0
+        let apyCount = 0
+        
+
+        const asArray = validatorsWithIndex.map((validatorData: ValidatorDataResponse) => {
+            const validatorIndex = validatorData.data.validatorindex
+
+            const idhForValidator = idhFilteredByEpochDisplay.filter((idhRegistry: IIncomeDetailHistoryData) => {
+                return idhRegistry.validatorindex === validatorIndex
+            })
+            
+            const epochsData: Record<number, any> = {}
+            idhForValidator.forEach((currentIDH: IIncomeDetailHistoryData) => {
+                const rewards = weiToGWei(sumRewards(currentIDH.income))
+                const penalties = weiToGWei(sumPenalties(currentIDH.income))
+                const apy = (((rewards - penalties) * epochsInYear + ethToGwei(32)) / ethToGwei(32) - 1) * 100
+                apySum += apy
+                apyCount++
+                epochsData[currentIDH.epoch] = {
+                    rewards,
+                    penalties,
+                    apy,
+                }
+            })
+
+            return {
+                name: validatorIndex!,
+                data: epochsData
+            }
+        })
+
+        const estimatedAvgApy = apySum / apyCount
+
+        const olderReadEpoch = latestCheckedEpoch - epochsToDisplay + 1
+        if (resp) {
+            resp.write(`<h3>Rewards and penalties are in gWei (1gWei = 1e9 wei = 1e-9 ETH)</h3>`)
+            resp.write(`<div class="perf-table"><table><thead>`);
+            resp.write(`
+          <tr>
+          <th colspan=1>Pool</th>
+          `);
+            const COLSPAN = 3
+            for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
+                resp.write(`<th colspan=${COLSPAN}>${epoch}</th>`);
+            }
+            resp.write(`
+        <th colspan = 11 >Current ${latestCheckedEpoch} (KEth)</th>
+        </tr>
+        `);
+            resp.write(`
+          <tr>
+          <th colspan=1></th>
+          `);
+            for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
+                //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
+                resp.write(`<th>rewards</th><th>penalties</th><th>apy</th>`);
+            }
+            resp.write(`<th>rewards</th>`);
+            resp.write(`<th>penalties</th>`);
+            resp.write(`<th>apy</th>`);
+            resp.write(`<th style="text-align:left">Pool</th>`);
+
+            resp.write(`
+        </tr></thead>
+        `);
+
+            for (let item of asArray) {
+                resp.write(`
+          <tr>
+          <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
+          `);
+                for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
+                    const info = item.data[epoch]
+                    if (!info) {
+                        resp.write(`<td></td>`.repeat(COLSPAN));
+                    }
+                    else {
+                        let rewardsText = info.rewards.toFixed(0)
+                        if (rewardsText == "0") rewardsText = "-";
+                        resp.write(`<td>${rewardsText}</td>`);
+
+                        let penaltiesText = info.penalties.toFixed(0)
+                        if (penaltiesText == "0") penaltiesText = "-";
+                        resp.write(`<td>${penaltiesText}</td>`);
+
+                        let apy = info.apy
+                        if (isNaN(apy)) {
+                            apy = 0
+                        }
+                        
+                        let bgTone = 64 + (apy - estimatedAvgApy) * 128
+                        if (bgTone > 255) bgTone = 255;
+                        if (bgTone < -255) bgTone = -255;
+                        bgTone = Math.trunc(bgTone)
+                        if (bgTone >= 0) {
+                            resp.write(`<td style="background-color:rgb(${255 - bgTone},255,${255 - bgTone})">${apy.toFixed(2)}%</td>`);
+                        }
+                        else {
+                            resp.write(`<td style="background-color:rgb(255,${255 + bgTone / 2},${255 + bgTone})">${apy.toFixed(2)}%</td>`);
+                        }
+                    }
+
+                    if (epoch === latestCheckedEpoch) {
+                        resp.write(`
+                            <td><a href=${path.join(BASE_BEACON_CHAIN_URL_SITE, item.name.toString())} target="_blank">${item.name}</a></td>
+                            </tr>
+                        `);
+                    }
+                }
+
+                // last column, current info from near core + info from sp in contract
+                //     const sp = globalPools.find(asp => asp.account_id == item.name)
+                //       || {
+                //         inx: -1,
+                //         account_id: item.name,
+                //         weight_basis_points: 0,
+                //         staked: "0",//u128
+                //         unstaked: "0",//u128
+                //         unstaked_requested_epoch_height: "0", //U64String, 
+                //         last_asked_rewards_epoch_height: "0", //U64String,
+                //       } as StakingPoolJSONInfo;
+
+                //     // try to get current total stake from current+next validators list
+                //     const val = perfData.ncore[item.name]
+                //     let totalStakeString = "--"
+                //     let monitoredStakeString = "--"
+                //     let blockProductionPctString = "--"
+                //     let closeToSeatString = ""
+                //     let totalStakeStyle = `font-size:small`
+                //     let blockProductionStyle = ""
+                //     if (val) {
+                //       totalStakeString = (val.stake / 1000).toFixed(2)
+                //       blockProductionPctString = val.isCurrent ? val.blockProductionPct.toFixed() + "%" : "next"
+                //       if (val.isCurrent && val.blockProductionPct <= 92) blockProductionStyle = "background-color:orange"
+                //       if (globalSeatPrices && val.stake < globalSeatPrices.seatNextPrice * 1.1) {
+                //         const diff = val.stake - globalSeatPrices.seatNextPrice
+                //         closeToSeatString = (Math.sign(diff) == -1 ? "" : "+") + (diff / 1000).toFixed(2)
+                //         if (diff <= 0) {
+                //           totalStakeStyle += `;background-color:lightyellow`
+                //         }
+                //       }
+                //     }
+                //     if (totalStakeString == "--") {
+                //       const lastEpochData = item.data[latestCheckedEpoch - 1]
+                //       if (lastEpochData && lastEpochData.totalStake != "") totalStakeString = (yton(lastEpochData.totalStake) / 1000).toFixed(2)
+                //     }
+                //     // check if we have last performance data
+                //     const lpd = globalPersistentData.lastPerformanceCalculation.find(i => i.name == item.name)
+                //     const lpdText = lpd ? ((lpd.bp / 100).toFixed(2) + "%") : ""
+                //     resp.write(
+                //       `<td><small>${lpdText}</small></td>` +
+                //       `<td><small>${(sp.weight_basis_points / 100).toFixed(2)}%</small></td>` +
+                //       `<td>${asNearK((BigInt(globalContractState.total_for_staking) * BigInt(sp.weight_basis_points) / BigInt(10000)).toString())}</td>` +
+                //       `<td>${asNearK(sp.staked)}</td>` +
+                //       `<td>${asNearK(sp.unstaked)}</td>` +
+                //       `<td>${sp.unstaked_requested_epoch_height == "0" ? "" : Number(sp.unstaked_requested_epoch_height) - latestCheckedEpoch}</td>` +
+                //       `<td>${asNearK((BigInt(sp.staked) - BigInt(lastEpochStake) + BigInt(sp.unstaked)).toString())}</td>` +
+                //       `<td style="${totalStakeStyle}">${totalStakeString}</td>` +
+                //       //`<td style="${totalStakeStyle}">${closeToSeatString}</td>` +
+                //       `<td style="${blockProductionStyle}">${blockProductionPctString}</td>` +
+                //       `<td>${item.data[latestCheckedEpoch] ? item.data[latestCheckedEpoch].fee.toFixed() : "--"}</td>`
+                //     );
+                //     // pool name again
+                //     resp.write(`<td style="text-align:left">${item.name}</td>`)
+                //     resp.write(`</tr>`)
+            }
+
+            //   resp.write(`</tbody></table></div>`);
+            //   resp.write(`<p>Total old balance:${yton(perfData.oldBalance)}, Total rewards:${yton(perfData.totalRewards)},` +
+            //     ` Metapool epoch APY:${perfData.apy}, AVG Apy: ${perfData.avgApy}</p>`);
+            //   const epochsInYear = 365 * 24 / (epochInfo.prev_epoch_duration_ms / HOURS) // an epoch is 15 hs approx
+            //   resp.write(`<p>Last epoch:${Number(globalContractState.env_epoch_height) - 1}, duration:${(epochInfo.prev_epoch_duration_ms / HOURS).toFixed(2)} hs, Epochs per year:${epochsInYear.toFixed(2)}` +
+            //     `, Management Fee:${globalContractParams.operator_rewards_fee_basis_points / 100}%</p>`);
+
+            //   writeExtraStats(resp)
+            // resp.write(`<script>
+            // let table = document.querySelector(".perf-table")
+            // table.querySelectorAll("th").forEach((th, position) => {
+            //    th.addEventListener("click", evt => sortTable(table, position));
+            //   });
+            // </script>
+            // `);
+        }
+
+    } catch (ex: any) {
+        resp.write("<pre>" + ex.message + "</pre>");
+    }
 }
 
 export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQuery, req: http.IncomingMessage, resp: http.ServerResponse) {
@@ -325,11 +534,11 @@ async function refreshOtherMetrics() {
         stakingContract.getWalletBalance(stakingContract.connectedWallet.address),
         aurContract.getWalletBalance(aurContract.connectedWallet.address),
     ])
-    
+
     globalPersistentData.ethBotBalance = ethBotWalletBalance.toString()
     globalPersistentData.aurBotBalance = aurBotWalletBalance.toString()
-    
-    if(isDebug) console.log("Other metrics refreshed")
+
+    if (isDebug) console.log("Other metrics refreshed")
 }
 
 async function refreshStakingData() {
@@ -368,7 +577,7 @@ async function refreshStakingData() {
         stakingContract.submitReportTimelock(),
         stakingContract.minDeposit(),
     ])
-    
+
     globalStakingData = {
         stakingBalance,
         totalAssets,
@@ -387,14 +596,14 @@ async function refreshStakingData() {
         submitReportTimelock: Number(submitReportTimelock),
         minDeposit
     }
-    
-    if(isDebug) console.log("Staking data refreshed")
+
+    if (isDebug) console.log("Staking data refreshed")
 }
 
 async function refreshLiquidityData() {
     const [
-        totalAssets, 
-        totalSupply, 
+        totalAssets,
+        totalSupply,
 
         mpEthBalance,
         name,
@@ -423,12 +632,12 @@ async function refreshLiquidityData() {
         liquidityContract.minFee(),
         liquidityContract.maxFee(),
     ])
-    
+
 
     globalLiquidityData = {
-        totalAssets, 
-        totalSupply, 
-        
+        totalAssets,
+        totalSupply,
+
         liquidityBalance,
         mpEthBalance,
         name,
@@ -443,7 +652,7 @@ async function refreshLiquidityData() {
     }
 
     globalPersistentData.lpPrice = calculateLpPrice().toString()
-    if(isDebug) console.log("Liq data refreshed")
+    if (isDebug) console.log("Liq data refreshed")
 }
 
 async function refreshWithdrawData() {
@@ -464,7 +673,7 @@ async function refreshWithdrawData() {
         withdrawContract.withdrawalsStartEpoch(),
         withdrawContract.validatorsDisassembleTime(),
     ])
-    
+
 
     globalWithdrawdata = {
         balance,
@@ -475,7 +684,7 @@ async function refreshWithdrawData() {
         withdrawalsStartEpoch: Number(withdrawalsStartEpoch),
         validatorsDisassembleTime,
     }
-    if(isDebug) console.log("Withdraw data refreshed")
+    if (isDebug) console.log("Withdraw data refreshed")
 }
 
 function refreshContractData() {
@@ -486,26 +695,26 @@ function refreshContractData() {
     globalPersistentData.totalPendingWithdraws = globalWithdrawdata.totalPendingWithdraw.toString()
     globalPersistentData.withdrawAvailableEthForValidators = (globalWithdrawdata.balance - globalWithdrawdata.totalPendingWithdraw).toString()
     globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(globalWithdrawdata.epochTimeLeft.toString())
-    
+
     globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
-    globalPersistentData.estimatedMpEthPrice = calculateEstimatedMpEthPrice().toString()
+    globalPersistentData.estimatedMpEthPrice = calculateMpEthPriceTotalUnderlying().toString()
     globalPersistentData.stakingTotalSupply = globalStakingData.totalSupply.toString()
     globalPersistentData.liqTotalSupply = globalLiquidityData.totalSupply.toString()
     globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
 
-    globalPersistentData.activeValidatorsQty = beaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
-        if(curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
+    globalPersistentData.activeValidatorsQty = globalBeaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
+        if (curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
             return acc + 1
         } else {
             return acc
         }
     }, 0)
-    
-    if(!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
-    beaconChainData.validatorsData.forEach((node: ValidatorDataResponse) => {
+
+    if (!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
+    globalBeaconChainData.validatorsData.forEach((node: ValidatorDataResponse) => {
         globalPersistentData.nodesBalances[node.data.pubkey] = node.data.balance.toString() + ZEROS_9
     })
-    if(isDebug) console.log("Contract data refreshed")
+    if (isDebug) console.log("Contract data refreshed")
 }
 
 //utility
@@ -513,8 +722,8 @@ async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function loga(label:string, amount:number){
-    console.log(label.padEnd(26),":",amount.toFixed(5).padStart(16))
+function loga(label: string, amount: number) {
+    console.log(label.padEnd(26), ":", amount.toFixed(5).padStart(16))
 }
 
 async function refreshMetrics() {
@@ -536,37 +745,40 @@ async function initializeUninitializedGlobalData() {
     if (!globalPersistentData.mpEthPrices) {
         globalPersistentData.mpEthPrices = []
     }
-    if(!globalPersistentData.delayedUnstakeEpoch) {
+    if (!globalPersistentData.delayedUnstakeEpoch) {
         globalPersistentData.delayedUnstakeEpoch = 0
     }
-    if(!globalPersistentData.validatorsLatestProposal) {
+    if (!globalPersistentData.validatorsLatestProposal) {
         globalPersistentData.validatorsLatestProposal = {}
     }
 
-    if(!globalPersistentData.stakingBalances) globalPersistentData.stakingBalances = []
-    if(!globalPersistentData.liquidityBalances) globalPersistentData.liquidityBalances = []
-    if(!globalPersistentData.liquidityMpEthBalances) globalPersistentData.liquidityMpEthBalances = []
-    if(!globalPersistentData.withdrawBalances) globalPersistentData.withdrawBalances = []
-    if(!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
-    if(!globalPersistentData.stakingTotalSupplies) globalPersistentData.stakingTotalSupplies = []
-    if(!globalPersistentData.liqTotalSupplies) globalPersistentData.liqTotalSupplies = []
-    if(!globalPersistentData.historicalActiveValidators) globalPersistentData.historicalActiveValidators = []
-    
-    if(!globalPersistentData.historicalNodesBalances) globalPersistentData.historicalNodesBalances = {}
+    if (!globalPersistentData.stakingBalances) globalPersistentData.stakingBalances = []
+    if (!globalPersistentData.liquidityBalances) globalPersistentData.liquidityBalances = []
+    if (!globalPersistentData.liquidityMpEthBalances) globalPersistentData.liquidityMpEthBalances = []
+    if (!globalPersistentData.withdrawBalances) globalPersistentData.withdrawBalances = []
+    if (!globalPersistentData.requestedDelayedUnstakeBalances) globalPersistentData.requestedDelayedUnstakeBalances = []
+    if (!globalPersistentData.stakingTotalSupplies) globalPersistentData.stakingTotalSupplies = []
+    if (!globalPersistentData.liqTotalSupplies) globalPersistentData.liqTotalSupplies = []
+    if (!globalPersistentData.historicalActiveValidators) globalPersistentData.historicalActiveValidators = []
 
-    if(!globalPersistentData.lastValidatorCheckProposalTimestamp) globalPersistentData.lastValidatorCheckProposalTimestamp = 0
+    if (!globalPersistentData.historicalNodesBalances) globalPersistentData.historicalNodesBalances = {}
 
-    if(!globalPersistentData.lastIDHTs) {
+    if (!globalPersistentData.lastValidatorCheckProposalTimestamp) globalPersistentData.lastValidatorCheckProposalTimestamp = 0
+
+    if (!globalPersistentData.lastIDHTs) {
         const now = new Date()
         const nowMinus6Hours = now.setHours(now.getHours() - 6)
         globalPersistentData.lastIDHTs = nowMinus6Hours
     }
 
-    if(!globalPersistentData.lastRewards) globalPersistentData.lastRewards = "0"
-    if(!globalPersistentData.lastPenalties) globalPersistentData.lastPenalties = "0"
-    if(!globalPersistentData.latestEpochCheckedForPenalties) globalPersistentData.latestEpochCheckedForPenalties = 192000
+    if (!globalPersistentData.lastRewards) globalPersistentData.lastRewards = "0"
+    if (!globalPersistentData.lastPenalties) globalPersistentData.lastPenalties = "0"
+    if (!globalPersistentData.latestEpochCheckedForPenalties) globalPersistentData.latestEpochCheckedForPenalties = 192000
+    if (!globalPersistentData.latestBeaconChainEpochRegistered) globalPersistentData.latestBeaconChainEpochRegistered = 192000
+    
+    if (!globalBeaconChainData.incomeDetailHistory) globalBeaconChainData.incomeDetailHistory = []
 
-    if(isDebug) console.log("Global state initialized successfully")
+    if (isDebug) console.log("Global state initialized successfully")
 }
 
 function updateDailyGlobalData(currentDateISO: string) {
@@ -577,14 +789,14 @@ function updateDailyGlobalData(currentDateISO: string) {
         assets: globalLiquidityData.totalAssets.toString(),
         supply: globalLiquidityData.totalSupply.toString(),
     });
-    
+
     globalPersistentData.mpEthPrices.push({
         dateISO: currentDateISO,
-        price: calculateEstimatedMpEthPrice().toString(),
+        price: calculateMpEthPrice().toString(),
         assets: globalStakingData.totalAssets.toString(),
         supply: globalStakingData.totalSupply.toString(),
     });
-    
+
     globalPersistentData.stakingBalances.push({
         dateISO: currentDateISO,
         balance: globalPersistentData.stakingBalance
@@ -609,7 +821,7 @@ function updateDailyGlobalData(currentDateISO: string) {
         dateISO: currentDateISO,
         balance: globalPersistentData.stakingTotalSupply
     })
-    
+
     globalPersistentData.liqTotalSupplies.push({
         dateISO: currentDateISO,
         balance: globalPersistentData.liqTotalSupply
@@ -618,16 +830,16 @@ function updateDailyGlobalData(currentDateISO: string) {
         dateISO: currentDateISO,
         number: globalPersistentData.activeValidatorsQty
     })
-    
+
     Object.keys(globalPersistentData.nodesBalances).forEach((pubKey: string) => {
-        if(!globalPersistentData.historicalNodesBalances[pubKey]) globalPersistentData.historicalNodesBalances[pubKey] = []
+        if (!globalPersistentData.historicalNodesBalances[pubKey]) globalPersistentData.historicalNodesBalances[pubKey] = []
         globalPersistentData.historicalNodesBalances[pubKey].push({
             dateISO: currentDateISO,
-            balance: globalPersistentData.nodesBalances[pubKey]    
+            balance: globalPersistentData.nodesBalances[pubKey]
         })
     });
 
-    if(isDebug) console.log("Global data refreshed successfully")
+    if (isDebug) console.log("Global data refreshed successfully")
 }
 
 function truncateLongGlobalArrays() {
@@ -641,12 +853,12 @@ function truncateLongGlobalArrays() {
 
 async function registerValidatorsProposals() {
     globalPersistentData.lastValidatorCheckProposalTimestamp = Date.now()
-    const validatorsData: ValidatorDataResponse[] = beaconChainData.validatorsData
+    const validatorsData: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
     validatorsData.map(async (v: ValidatorDataResponse) => {
         const index = v.data.validatorindex
-        if(!index || v.data.status !== "active_online") return
+        if (!index || v.data.status !== "active_online") return
         const proposalData: IValidatorProposal = await getValidatorProposal(index)
-        if(proposalData.data && proposalData.data.length > 0) {
+        if (proposalData.data && proposalData.data.length > 0) {
             globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
         }
     })
@@ -665,8 +877,10 @@ async function beat() {
     await refreshMetrics();
     console.log("Metrics refreshed successfully")
 
+    const mailReportsToSend: IMailReportHelper[] = []
+
     // keep record of stNEAR & LP price to compute APY%
-    const currentDate = new Date(new Date().toLocaleString('en', {timeZone: 'America/New_York'})) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
+    const currentDate = new Date(new Date().toLocaleString('en', { timeZone: 'America/New_York' })) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
     // if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
@@ -682,7 +896,7 @@ async function beat() {
     // }
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
-        truncateLongGlobalArrays()       
+        truncateLongGlobalArrays()
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
 
         saveGlobalPersistentData()
@@ -693,27 +907,36 @@ async function beat() {
         console.log("--Checking if a validator can be activated")
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
-        
+
         // if(!isDebug) {
         //     globalPersistentData.lastIDHTs = Date.now()
         //     await setIncomeDetailHistory()
         // }
         
-        await runDailyActionsAndReport()
+        const dailyReports = await runDailyActionsAndReport()
+        mailReportsToSend.push(...dailyReports)
     } // Calls made once a day
 
-    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) {
+    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) { // Calls made every 6 hours
         await registerValidatorsProposals()
+        const reportsMadeEvery6Hours: IMailReportHelper[] = await Promise.all([
+            checkForPenalties(),
+        ])
+        mailReportsToSend.push(...reportsMadeEvery6Hours)        
+
     } // Calls made every 6 hours
 
     const reports: IMailReportHelper[] = await Promise.all([
-        checkForPenalties(), // May fail if beaconchain has many calls. Move to be called every 6 hours if needed
         getDeactivateValidatorsReport(),
     ])
 
-    const errorReports = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
-    if(errorReports.length) {
-        buildAndSendReport(errorReports)
+    const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
+    if(reportsWithErrors.length) {
+        mailReportsToSend.push(...reportsWithErrors)
+    }
+
+    if(mailReportsToSend.length) {
+        buildAndSendReport(mailReportsToSend)
     }
 
     // Aurora
@@ -729,20 +952,18 @@ async function beat() {
     console.log("Refresh metrics")
     await refreshMetrics();
     console.log("Metrics refreshed successfully")
-    
+
     //END OF BEAT
     globalPersistentData.beatCount++;
     saveGlobalPersistentData()
-    // saveJSON(globalPersistentData, "persistent.json");
-    saveJSON(beaconChainData, "beaconChainPersistentData.json");
-
 }
 
 function saveGlobalPersistentData() {
     saveJSON(globalPersistentData, "persistent.json");
+    saveJSON(globalBeaconChainData, "beaconChainPersistentData.json");
 }
 
-async function runDailyActionsAndReport() {
+async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
     console.log("Sending daily report")
     const reportHelpersPromises: Promise<IMailReportHelper>[] = [
         alertCreateValidators(),
@@ -750,7 +971,7 @@ async function runDailyActionsAndReport() {
         reportWalletsBalances(),
     ];
     console.log("--Checking if validators should be created")
-    
+
     // Resolving reports and catching in case of an error
     const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
         return promise.catch((err: any) => {
@@ -763,8 +984,8 @@ async function runDailyActionsAndReport() {
             }
         })
     }))
-
-    buildAndSendReport(reports)    
+    return reports
+    // buildAndSendReport(reports)    
 }
 
 function getMetricsUrl() {
@@ -783,8 +1004,8 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
 
     const severity: number = reports.reduce((max: number, currReport: IMailReportHelper) => Math.max(max, currReport.severity), Severity.OK)
     let subject: string = reports.reduce((acc: string, currReport: IMailReportHelper) => {
-        if(currReport.ok) {
-            return acc 
+        if (currReport.ok) {
+            return acc
         } else {
             return acc + " - " + currReport.subject
         }
@@ -792,7 +1013,7 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
 
     // Enum[Enum.value] returns the Enum key
     subject = `[${Severity[severity]}] ${subject}`
-    if(isTestnet || isDebug) subject = "[TESTNET]" + subject
+    if (isTestnet || isDebug) subject = "[TESTNET]" + subject
 
     sendEmail(subject, body)
 }
@@ -832,7 +1053,7 @@ function heartLoop() {
     beat().catch((ex: any) => {
         console.error("ERR", JSON.stringify(ex))
         console.error("ERR", ex.message)
-        console.error("ERR", ex.stack)        
+        console.error("ERR", ex.stack)
     }).finally(() => {
         executing = false;
         const elapsedMs = Date.now() - beatStartMs
@@ -844,8 +1065,8 @@ function heartLoop() {
 function atLeast(a: number, b: number): number { return Math.max(a, b) }
 
 function processArgs() {
-    for(let i = 2; i < process.argv.length; i++) {
-        switch(process.argv[i]) {
+    for (let i = 2; i < process.argv.length; i++) {
+        switch (process.argv[i]) {
             case "--debug":
                 isDebug = true
                 MONITORING_PORT = 7011
@@ -855,7 +1076,7 @@ function processArgs() {
         }
     }
     const network = getEnv().NETWORK
-    if(network === "goerli") {
+    if (network === "goerli") {
         isTestnet = true
         MONITORING_PORT = 7011
     }
@@ -865,9 +1086,20 @@ function run() {
     processArgs()
 
     globalPersistentData = loadJSON("persistent.json")
-    beaconChainData = loadJSON("beaconChainPersistentData.json")
+    globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
+    idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     // if(isDebug) {
-    //     console.log(1, BASE_URL)   
+    //     // const validatorsIndexes = [198491, 198492, 198493]
+    //     const toEpoch = 193758
+    //     const fromEpoch = toEpoch - 200
+    //     getAllValidatorsIDH(fromEpoch, toEpoch).then((idh: IIncomeDetailHistoryResponse) => {
+    //         saveJSON(idh, "idh_test.json")
+    //         console.log(idh)
+    //     })
+    //     // getIncomeDetailHistory(validatorsIndexes, fromEpoch, toEpoch).then((idh: IIncomeDetailHistoryResponse) => {
+    //     //     saveJSON(idh, "idh_test.json")
+    //     //     console.log(idh)
+    //     // })
     //     return
     // }
 

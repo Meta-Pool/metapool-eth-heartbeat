@@ -6,7 +6,7 @@ import { divide } from "./mathUtils"
  * Assumes globalStakingData is always filled with data. This should never happen
  * @returns MpETHPrice
  */
-export function calculateMpEthPrice(): BigInt {
+export function calculateMpEthPriceTotalUnderlying(): BigInt {
     if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
     
     const totalAssets = ethers.formatEther(globalStakingData.totalUnderlying.toString())
@@ -15,7 +15,7 @@ export function calculateMpEthPrice(): BigInt {
     return ethers.parseEther(divide(totalAssets, totalSupply))
 }
 
-export function calculateEstimatedMpEthPrice(): BigInt {
+export function calculateMpEthPrice(): BigInt {
     if(globalStakingData.totalSupply == 0n) return ethers.parseEther("1")
     
     const totalAssets = ethers.formatEther(globalStakingData.totalAssets.toString())

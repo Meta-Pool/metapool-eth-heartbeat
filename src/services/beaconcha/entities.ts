@@ -51,6 +51,7 @@ export interface IBeaconChainHeartBeatData {
     validatorsIncomeDetailHistory: Record<string, IBalanceHistoryData[]> // key is pubkey
     validatorsWithdrawalHistory: Record<string, IValidatorWithrawals[]> // key is pubkey
     currentEpoch: number
+    incomeDetailHistory: IIncomeDetailHistoryData[]
 }
 
 export const EMPTY_BEACON_CHAIN_DATA: IBeaconChainHeartBeatData = {
@@ -58,7 +59,8 @@ export const EMPTY_BEACON_CHAIN_DATA: IBeaconChainHeartBeatData = {
     validatorsStatusesQty: {},
     validatorsIncomeDetailHistory: {},
     validatorsWithdrawalHistory: {},
-    currentEpoch: 0
+    currentEpoch: 0,
+    incomeDetailHistory: []
 }
 
 export interface IValidatorWithrawals {
@@ -159,6 +161,8 @@ export interface MiniIDHReport {
     lastCheckedEpoch: number
     rewards: bigint
     penalties: bigint
+    penaltiesCount: number
+
 }
 
 export interface Donations {

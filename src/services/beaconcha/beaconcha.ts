@@ -6,7 +6,7 @@ import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IInc
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
-export const BASE_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
+export const BASE_BEACON_CHAIN_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
 
 const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
 const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
@@ -15,7 +15,7 @@ const BASE_URL = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL : TESTNET_BASE
 const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
 const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory"
-const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={epoch}"
+const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}"
 
 export interface DeployerDataResponse {
     status: string
@@ -123,21 +123,51 @@ export function getValidatorWithrawalInEpoch(indexOrPubKey: string|number, epoch
     return fetch(url).then(r => r.json())
 }
 
-export async function getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
+export async function getIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<IIncomeDetailHistoryResponse> {
+    if(lastEpoch - firstEpoch > 100) throw new Error("Max limit is 100")
+    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL
+        .replace("{indexes}", indexes.join(","))
+        .replace("{limit}", (lastEpoch - firstEpoch).toString())
+        .replace("{latest_epoch}", lastEpoch.toString())
+    return (await fetch(validatorsUrl)).json()
+    // let queryEpoch = lastEpoch
+    // const output: IIncomeDetailHistoryResponse = {
+    //     status: "OK",
+    //     data: []
+    // }
+    // while(queryEpoch > firstEpoch) {
+    //     const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
+    //     const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
+    //     if(idhResponse.status !== "OK") {
+    //         output.status = idhResponse.status
+    //     }
+    //     output.data.push(...idhResponse.data)
+    //     queryEpoch -= 100
+    // }
+    // output.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
+    //     if(data1.validatorindex === data2.validatorindex) {
+    //         return data1.epoch - data2.epoch
+    //     }
+    //     return data1.validatorindex - data2.validatorindex
+    // })
+    // return output
+}
+
+export async function  getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
     const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(","))
-    let output: Record<number, any> = {}
+    let output: Record<number, MiniIDHReport> = {}
     indexes.forEach((index: number) => {
         output[index] = {
             lastCheckedEpoch: lastEpoch + 1,
             rewards: 0n,
-            penalties: 0n
+            penalties: 0n,
+            penaltiesCount: 0,
         }
     })
 
     let queryEpoch = lastEpoch
     while(queryEpoch > firstEpoch) {
-        const epochIDHUrl = validatorsUrl.replace("{epoch}", queryEpoch.toString())
-        // console.log(3, epochIDHUrl)
+        const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
         output = await processIDHResponse(output, idhResponse, firstEpoch)
         queryEpoch -= 100
@@ -146,7 +176,25 @@ export async function getValidatorsIncomeDetailHistory(indexes: number[], firstE
     return output
 }
 
-async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, any>> {
+export async function getValidatorsIncomeDetailHistoryCount(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, number>> {
+    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(","))
+    let penaltiesAmount: Record<number, number> = {}
+    indexes.forEach((index: number) => {
+        penaltiesAmount[index] = 0
+    })
+
+    let queryEpoch = lastEpoch
+    while(queryEpoch > firstEpoch) {
+        const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
+        const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
+        penaltiesAmount = await countTotalPenalties(penaltiesAmount, idhResponse, firstEpoch)
+        queryEpoch -= 100
+    }
+
+    return penaltiesAmount
+}
+
+async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, MiniIDHReport>> {
     if(!idhResponse || !idhResponse.data) return output
     const errorMessages: string[] = []
     idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
@@ -154,7 +202,6 @@ async function processIDHResponse(output: Record<string|number, MiniIDHReport>, 
         const validatorIDH = output[data.validatorindex]
 
         const incomeResponseProperties = Object.keys(data.income)
-        // console.log(5, incomeResponseProperties)
         const isIncluded = incomeResponseProperties.some((e: string) => INCOME_DATA_KEYS.includes(e))
         if(!isIncluded && incomeResponseProperties.length > 0) {
             const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked. Expected keys:${INCOME_DATA_KEYS}. Response: ${incomeResponseProperties}`
@@ -164,13 +211,35 @@ async function processIDHResponse(output: Record<string|number, MiniIDHReport>, 
         validatorIDH.lastCheckedEpoch--
         validatorIDH.rewards += sumRewards(data.income)
         validatorIDH.penalties += sumPenalties(data.income)
+        validatorIDH.penaltiesCount += countPenalties(data.income)
 
         output[data.validatorindex] = {...validatorIDH}
     })
     return output
 }
 
-function sumRewards(data: IIncomeData): bigint {
+async function countTotalPenalties(output: Record<string|number, number>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, any>> {
+    if(!idhResponse || !idhResponse.data) return output
+    const errorMessages: string[] = []
+    idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
+        if(data.epoch < firstEpoch) return
+        const validatorIDH = output[data.validatorindex]
+
+        const incomeResponseProperties = Object.keys(data.income)
+        const isIncluded = incomeResponseProperties.some((e: string) => INCOME_DATA_KEYS.includes(e))
+        if(!isIncluded && incomeResponseProperties.length > 0) {
+            const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked. Expected keys:${INCOME_DATA_KEYS}. Response: ${incomeResponseProperties}`
+            errorMessages.push(message)
+            throw new Error(message)
+        }
+
+        const penaltiesInData = countPenalties(data.income)
+        output[data.validatorindex] = output[data.validatorindex] + penaltiesInData
+    })
+    return output
+}
+
+export function sumRewards(data: IIncomeData): bigint {
     return BigInt((data.attestation_head_reward|| 0) + ZEROS_9)
         + BigInt((data.attestation_source_reward|| 0) + ZEROS_9)
         + BigInt((data.attestation_target_reward|| 0) + ZEROS_9)
@@ -182,10 +251,20 @@ function sumRewards(data: IIncomeData): bigint {
         + BigInt(data.tx_fee_reward_wei || 0)
 }
 
-function sumPenalties(data: IIncomeData): bigint {
-    return BigInt((data.attestation_source_penalty|| 0) + ZEROS_9)
-        + BigInt((data.attestation_target_penalty|| 0) + ZEROS_9)
-        + BigInt((data.finality_delay_penalty|| 0) + ZEROS_9)
-        + BigInt((data.slashing_penalty|| 0) + ZEROS_9)
-        + BigInt((data.sync_committee_penalty|| 0) + ZEROS_9)
+export function sumPenalties(data: IIncomeData): bigint {
+    return BigInt((data.attestation_source_penalty || 0) + ZEROS_9)
+        + BigInt((data.attestation_target_penalty || 0) + ZEROS_9)
+        + BigInt((data.finality_delay_penalty || 0) + ZEROS_9)
+        + BigInt((data.slashing_penalty || 0) + ZEROS_9)
+        + BigInt((data.sync_committee_penalty || 0) + ZEROS_9)
+}
+
+function countPenalties(data: IIncomeData): number {
+    let penalties = 0
+    if(data.attestation_source_penalty) penalties++
+    if(data.attestation_target_penalty) penalties++
+    if(data.finality_delay_penalty) penalties++
+    if(data.slashing_penalty) penalties++
+    if(data.sync_committee_penalty) penalties++
+    return penalties
 }

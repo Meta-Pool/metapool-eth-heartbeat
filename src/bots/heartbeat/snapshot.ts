@@ -1,11 +1,11 @@
 import { ethers } from "ethers";
-import { beaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
-import { calculateMpEthPrice } from "../../utils/priceUtils";
+import { calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
 
 export type U128String = string
 
@@ -21,7 +21,6 @@ export function mpEthPromotionApy(): number {
 export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays: number, isForStaking: boolean = false): number {
 
     if (!priceArray) {
-        console.log(2)
         return isForStaking ? mpEthPromotionApy() : 0;
     }
     // check how many prices
@@ -33,7 +32,6 @@ export function computeRollingApy(priceArray: PriceData[] | undefined, deltaDays
     const currentPrice = priceArray[l - 1].price
     const priceAtStart = priceArray[l - 1 - deltaDays].price
     if (!priceAtStart || !currentPrice) {
-        console.log(4)
         return isForStaking ? mpEthPromotionApy() : 0;
     }
 
@@ -130,7 +128,7 @@ export type SnapshotHR = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    const nodesBalanceSum = beaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
         return acc + BigInt(v.data.balance + ZEROS_9)
     }, 0n)
 
@@ -169,7 +167,7 @@ export function fromGlobalState(): Record<string,any> {
         ethBotBalance: globalPersistentData.ethBotBalance,
         aurBotBalance: globalPersistentData.aurBotBalance,
 
-        mpethPriceUnderlying: wtoe(calculateMpEthPrice().toString()),
+        mpethPriceUnderlying: wtoe(calculateMpEthPriceTotalUnderlying().toString()),
     }
 
     const output: Record<string, string|number> = snap
@@ -178,8 +176,8 @@ export function fromGlobalState(): Record<string,any> {
     //     output[`nodeBalance_${pubkey}`] = globalPersistentData.nodesBalances[pubkey]
     // });
 
-    Object.keys(beaconChainData.validatorsStatusesQty).forEach((status: any) => {
-        output[`validatorsStatusesQty_${status}`] = beaconChainData.validatorsStatusesQty[status]
+    Object.keys(globalBeaconChainData.validatorsStatusesQty).forEach((status: any) => {
+        output[`validatorsStatusesQty_${status}`] = globalBeaconChainData.validatorsStatusesQty[status]
     });
 
     // Object.assign(snap,globalPersistentData.extraData)
@@ -189,12 +187,12 @@ export function fromGlobalState(): Record<string,any> {
 
 export function fromGlobalStateForHuman(): Record<string,any> {
 
-    const nodesBalanceSum = beaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
         return acc + BigInt(v.data.balance + ZEROS_9)
     }, 0n)
 
     const nodesBalances: Record<string, number> = {}
-    beaconChainData.validatorsData.forEach((v: ValidatorDataResponse) => {
+    globalBeaconChainData.validatorsData.forEach((v: ValidatorDataResponse) => {
         nodesBalances[v.data.pubkey] = wtoe(v.data.balance + ZEROS_9)
     })
 
@@ -234,7 +232,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         
         nodesBalances,
-        validatorsTypesQty: beaconChainData.validatorsStatusesQty,
+        validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,
     }
 
     // Object.assign(snap,globalPersistentData.extraData)
