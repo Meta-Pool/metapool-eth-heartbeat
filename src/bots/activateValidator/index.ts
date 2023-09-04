@@ -4,7 +4,7 @@ import { Node, StakingContract } from "../../ethereum/stakingContract"
 import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
 import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
 import { EthConfig, getConfig } from "../../ethereum/config"
-import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
@@ -86,10 +86,10 @@ export async function activateValidator(): Promise<boolean> {
 
 async function getValidatorsToActivate(): Promise<any[]> {
     // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
-    const validatorsDataResponse: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
+    const validatorsDataResponse: ValidatorData[] = globalBeaconChainData.validatorsData
     return getDepositData().filter((depData: any) => {
-        return validatorsDataResponse.every((v: ValidatorDataResponse) => {
-            return v.data.pubkey !== `0x${depData.pubkey}`
+        return validatorsDataResponse.every((v: ValidatorData) => {
+            return v.pubkey !== `0x${depData.pubkey}`
         })
     })
 }

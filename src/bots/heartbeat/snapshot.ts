@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
-import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { ValidatorData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
 import { calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
@@ -128,8 +128,8 @@ export type SnapshotHR = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
-        return acc + BigInt(v.data.balance + ZEROS_9)
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
+        return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
     
@@ -187,13 +187,13 @@ export function fromGlobalState(): Record<string,any> {
 
 export function fromGlobalStateForHuman(): Record<string,any> {
 
-    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
-        return acc + BigInt(v.data.balance + ZEROS_9)
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
+        return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
     const nodesBalances: Record<string, number> = {}
-    globalBeaconChainData.validatorsData.forEach((v: ValidatorDataResponse) => {
-        nodesBalances[v.data.pubkey] = wtoe(v.data.balance + ZEROS_9)
+    globalBeaconChainData.validatorsData.forEach((v: ValidatorData) => {
+        nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
 
     let snap: SnapshotHR = {

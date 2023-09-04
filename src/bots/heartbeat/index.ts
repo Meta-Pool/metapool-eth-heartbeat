@@ -14,7 +14,7 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, getIncomeDetailHistory, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
@@ -164,16 +164,16 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         let latestCheckedEpoch = Number(globalPersistentData.latestBeaconChainEpochRegistered)
 
         const idh = globalBeaconChainData.incomeDetailHistory
-        const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorDataResponse) => {
-            return validatorData.data.status !== "exited"
+        const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorData) => {
+            return validatorData.status !== "exited"
         })
 
         const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
             return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
         })
 
-        const validatorsWithIndex = validatorsData.filter((validatorData: ValidatorDataResponse) => {
-            return validatorData.data.validatorindex
+        const validatorsWithIndex = validatorsData.filter((validatorData: ValidatorData) => {
+            return validatorData.validatorindex
         })
 
         const epochsInYear = 365 * 24 * 60 / 6.4
@@ -181,8 +181,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         let apyCount = 0
         
 
-        const asArray = validatorsWithIndex.map((validatorData: ValidatorDataResponse) => {
-            const validatorIndex = validatorData.data.validatorindex
+        const asArray = validatorsWithIndex.map((validatorData: ValidatorData) => {
+            const validatorIndex = validatorData.validatorindex
 
             const idhForValidator = idhFilteredByEpochDisplay.filter((idhRegistry: IIncomeDetailHistoryData) => {
                 return idhRegistry.validatorindex === validatorIndex
@@ -702,8 +702,8 @@ function refreshContractData() {
     globalPersistentData.liqTotalSupply = globalLiquidityData.totalSupply.toString()
     globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
 
-    globalPersistentData.activeValidatorsQty = globalBeaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
-        if (curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
+    globalPersistentData.activeValidatorsQty = globalBeaconChainData.validatorsData.reduce((acc: number, curr: ValidatorData) => {
+        if (curr.status === "active" || curr.status === "active_offline" || curr.status === "active_online") {
             return acc + 1
         } else {
             return acc
@@ -711,8 +711,8 @@ function refreshContractData() {
     }, 0)
 
     if (!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
-    globalBeaconChainData.validatorsData.forEach((node: ValidatorDataResponse) => {
-        globalPersistentData.nodesBalances[node.data.pubkey] = node.data.balance.toString() + ZEROS_9
+    globalBeaconChainData.validatorsData.forEach((node: ValidatorData) => {
+        globalPersistentData.nodesBalances[node.pubkey] = node.balance.toString() + ZEROS_9
     })
     if (isDebug) console.log("Contract data refreshed")
 }
@@ -853,10 +853,10 @@ function truncateLongGlobalArrays() {
 
 async function registerValidatorsProposals() {
     globalPersistentData.lastValidatorCheckProposalTimestamp = Date.now()
-    const validatorsData: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
-    validatorsData.map(async (v: ValidatorDataResponse) => {
-        const index = v.data.validatorindex
-        if (!index || v.data.status !== "active_online") return
+    const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
+    validatorsData.map(async (v: ValidatorData) => {
+        const index = v.validatorindex
+        if (!index || v.status !== "active_online") return
         const proposalData: IValidatorProposal = await getValidatorProposal(index)
         if (proposalData.data && proposalData.data.length > 0) {
             globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
