@@ -20,7 +20,7 @@ import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getAllValidatorsIDH, getValidatorPubKey, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
@@ -202,9 +202,12 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 }
             })
 
+            const pubKey = getValidatorPubKey(validatorIndex!)
+
             return {
                 name: validatorIndex!,
-                data: epochsData
+                data: epochsData,
+                pubKey,
             }
         })
 
@@ -223,7 +226,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 resp.write(`<th colspan=${COLSPAN}>${epoch}</th>`);
             }
             resp.write(`
-        <th colspan = 11 >Current ${latestCheckedEpoch} (KEth)</th>
+        <th colspan = 3>Current ${latestCheckedEpoch} (KEth)</th>
+        <th colspan=2>Pool</th>
         </tr>
         `);
             resp.write(`
@@ -237,7 +241,9 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<th>rewards</th>`);
             resp.write(`<th>penalties</th>`);
             resp.write(`<th>apy</th>`);
-            resp.write(`<th style="text-align:left">Pool</th>`);
+
+            resp.write(`<th>Index</th>`);
+            resp.write(`<th>Pub key</th>`);
 
             resp.write(`
         </tr></thead>
@@ -281,7 +287,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
 
                     if (epoch === latestCheckedEpoch) {
                         resp.write(`
-                            <td><a href=${path.join(BASE_BEACON_CHAIN_URL_SITE, item.name.toString())} target="_blank">${item.name}</a></td>
+                            <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}" target="_blank">${item.name}</a></td>
+                            <td>${item.pubKey.slice(0, 6)}...${item.pubKey.slice(-5)}</td>
                             </tr>
                         `);
                     }
@@ -1089,10 +1096,10 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        const profitReport = alertCheckProfit().then((profitReport) => {
-            console.log(1, profitReport)
-        })
-        return
+        // const profitReport = alertCheckProfit().then((profitReport) => {
+        //     console.log(1, profitReport)
+        // })
+        // return
     }
 
     if (process.argv.includes("also-80")) {
