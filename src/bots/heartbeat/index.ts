@@ -1088,20 +1088,12 @@ function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    // if(isDebug) {
-    //     // const validatorsIndexes = [198491, 198492, 198493]
-    //     const toEpoch = 193758
-    //     const fromEpoch = toEpoch - 200
-    //     getAllValidatorsIDH(fromEpoch, toEpoch).then((idh: IIncomeDetailHistoryResponse) => {
-    //         saveJSON(idh, "idh_test.json")
-    //         console.log(idh)
-    //     })
-    //     // getIncomeDetailHistory(validatorsIndexes, fromEpoch, toEpoch).then((idh: IIncomeDetailHistoryResponse) => {
-    //     //     saveJSON(idh, "idh_test.json")
-    //     //     console.log(idh)
-    //     // })
-    //     return
-    // }
+    if(isDebug) {
+        const profitReport = alertCheckProfit().then((profitReport) => {
+            console.log(1, profitReport)
+        })
+        return
+    }
 
     if (process.argv.includes("also-80")) {
         try {
