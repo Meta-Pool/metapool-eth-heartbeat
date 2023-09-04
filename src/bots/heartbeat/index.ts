@@ -926,9 +926,11 @@ async function beat() {
 
     if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) { // Calls made every 6 hours
         await registerValidatorsProposals()
-        const reportsMadeEvery6Hours: IMailReportHelper[] = await Promise.all([
+        const reportsMadeEvery6Hours: IMailReportHelper[] = (await Promise.all([
             checkForPenalties(),
-        ])
+        ])).filter((report: IMailReportHelper) => {
+            report.severity !== Severity.OK
+        })
         mailReportsToSend.push(...reportsMadeEvery6Hours)        
 
     } // Calls made every 6 hours
@@ -1096,9 +1098,7 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        // const profitReport = alertCheckProfit().then((profitReport) => {
-        //     console.log(1, profitReport)
-        // })
+        // checkForPenalties().then((r) => console.log(r))
         // return
     }
 
