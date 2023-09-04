@@ -9,8 +9,8 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
     const lastPrice = wtoe(globalPersistentData.mpethPrice)
     const priceBefore = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 2].price)
 
-    const minExpectedDailyPercentageIncrease = 0.01
-    const maxExpectedDailyPercentageIncrease = 0.014
+    const minExpectedDailyPercentageIncrease = 2 / 365 // Validators give normally 2% 
+    const maxExpectedDailyPercentageIncrease = 15 / 365 // With donations, the APY increases to 11% currently
     const minExpectedValue = (1 + minExpectedDailyPercentageIncrease / 100) * priceBefore
     const maxExpectedValue = (1 + maxExpectedDailyPercentageIncrease / 100) * priceBefore
 
