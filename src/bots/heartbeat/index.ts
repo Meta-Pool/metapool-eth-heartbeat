@@ -23,10 +23,14 @@ import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlyi
 import { getAllValidatorsIDH, getValidatorPubKey, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
-import { checkForPenalties, reportWalletsBalances } from "../reports/reports";
+import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
+import { SsvViewsContract } from "../../ethereum/ssvViews";
+import { getEstimatedRunwayInDays } from "../../utils/ssvUtils";
+import { getConfig } from "../../ethereum/config";
+import { readFileSync } from "fs";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -49,6 +53,7 @@ export let globalWithdrawdata: WithdrawData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
+export const ssvViewsContract: SsvViewsContract = new SsvViewsContract() 
 
 //time in ms
 export const MS_IN_SECOND = 1000
@@ -978,6 +983,7 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
+        reportSsvClusterBalances(),
     ];
     console.log("--Checking if validators should be created")
 
