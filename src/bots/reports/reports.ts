@@ -76,19 +76,24 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
 
         globalPersistentData.latestEpochCheckedForPenalties = globalBeaconChainData.currentEpoch
 
-        if(Object.keys(validatorsIDH).length) {
-            console.log("Validators with penalties")
+        
+            
+        const validatorsWithPenalties = Object.keys(validatorsIDH).filter((validatorIndex: string) => {
+            const indexAsNum = Number(validatorIndex)
+            const report: MiniIDHReport = validatorsIDH[indexAsNum]
+            return report.penaltiesCount > 0
+        }).map((validatorIndex: string) => {
+            const indexAsNum = Number(validatorIndex)
+            const report: MiniIDHReport = validatorsIDH[indexAsNum]
+            return `${indexAsNum} has ${report.penaltiesCount} penalties: ${BASE_BEACON_CHAIN_URL_SITE}${indexAsNum}`
+        })
+        if(validatorsWithPenalties.length) {
             output.subject = "Validators with penalties"
             output.severity = Severity.ERROR
-            const errorBody = Object.keys(validatorsIDH).map((validatorIndex: string) => {
-                const indexAsNum = Number(validatorIndex)
-                const report: MiniIDHReport = validatorsIDH[indexAsNum]
-                return `${indexAsNum} has ${report.penaltiesCount} penalties: ${BASE_BEACON_CHAIN_URL_SITE}${indexAsNum}`
-            })
             output.body = `
                 The following validators have penalties between epochs ${fromEpoch} and ${toEpoch}:
                 
-                ${errorBody.join("\n\n")}
+                ${validatorsWithPenalties.join("\n\n")}
             `.replace(/^ +/gm, "")
             return output
         }

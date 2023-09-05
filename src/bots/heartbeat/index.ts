@@ -14,13 +14,13 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, getIncomeDetailHistory, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getAllValidatorsIDH, getValidatorPubKey, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
@@ -169,16 +169,16 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         let latestCheckedEpoch = Number(globalPersistentData.latestBeaconChainEpochRegistered)
 
         const idh = globalBeaconChainData.incomeDetailHistory
-        const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorDataResponse) => {
-            return validatorData.data.status !== "exited"
+        const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorData) => {
+            return validatorData.status !== "exited"
         })
 
         const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
             return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
         })
 
-        const validatorsWithIndex = validatorsData.filter((validatorData: ValidatorDataResponse) => {
-            return validatorData.data.validatorindex
+        const validatorsWithIndex = validatorsData.filter((validatorData: ValidatorData) => {
+            return validatorData.validatorindex
         })
 
         const epochsInYear = 365 * 24 * 60 / 6.4
@@ -186,8 +186,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         let apyCount = 0
         
 
-        const asArray = validatorsWithIndex.map((validatorData: ValidatorDataResponse) => {
-            const validatorIndex = validatorData.data.validatorindex
+        const asArray = validatorsWithIndex.map((validatorData: ValidatorData) => {
+            const validatorIndex = validatorData.validatorindex
 
             const idhForValidator = idhFilteredByEpochDisplay.filter((idhRegistry: IIncomeDetailHistoryData) => {
                 return idhRegistry.validatorindex === validatorIndex
@@ -207,9 +207,12 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 }
             })
 
+            const pubKey = getValidatorPubKey(validatorIndex!)
+
             return {
                 name: validatorIndex!,
-                data: epochsData
+                data: epochsData,
+                pubKey,
             }
         })
 
@@ -228,7 +231,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 resp.write(`<th colspan=${COLSPAN}>${epoch}</th>`);
             }
             resp.write(`
-        <th colspan = 11 >Current ${latestCheckedEpoch} (KEth)</th>
+        <th colspan = 3>Current ${latestCheckedEpoch} (KEth)</th>
+        <th colspan=2>Pool</th>
         </tr>
         `);
             resp.write(`
@@ -242,7 +246,9 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<th>rewards</th>`);
             resp.write(`<th>penalties</th>`);
             resp.write(`<th>apy</th>`);
-            resp.write(`<th style="text-align:left">Pool</th>`);
+
+            resp.write(`<th>Index</th>`);
+            resp.write(`<th>Pub key</th>`);
 
             resp.write(`
         </tr></thead>
@@ -286,7 +292,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
 
                     if (epoch === latestCheckedEpoch) {
                         resp.write(`
-                            <td><a href=${path.join(BASE_BEACON_CHAIN_URL_SITE, item.name.toString())} target="_blank">${item.name}</a></td>
+                            <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}" target="_blank">${item.name}</a></td>
+                            <td>${item.pubKey.slice(0, 6)}...${item.pubKey.slice(-5)}</td>
                             </tr>
                         `);
                     }
@@ -707,8 +714,8 @@ function refreshContractData() {
     globalPersistentData.liqTotalSupply = globalLiquidityData.totalSupply.toString()
     globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
 
-    globalPersistentData.activeValidatorsQty = globalBeaconChainData.validatorsData.reduce((acc: number, curr: ValidatorDataResponse) => {
-        if (curr.data.status === "active" || curr.data.status === "active_offline" || curr.data.status === "active_online") {
+    globalPersistentData.activeValidatorsQty = globalBeaconChainData.validatorsData.reduce((acc: number, curr: ValidatorData) => {
+        if (curr.status === "active" || curr.status === "active_offline" || curr.status === "active_online") {
             return acc + 1
         } else {
             return acc
@@ -716,8 +723,8 @@ function refreshContractData() {
     }, 0)
 
     if (!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
-    globalBeaconChainData.validatorsData.forEach((node: ValidatorDataResponse) => {
-        globalPersistentData.nodesBalances[node.data.pubkey] = node.data.balance.toString() + ZEROS_9
+    globalBeaconChainData.validatorsData.forEach((node: ValidatorData) => {
+        globalPersistentData.nodesBalances[node.pubkey] = node.balance.toString() + ZEROS_9
     })
     if (isDebug) console.log("Contract data refreshed")
 }
@@ -858,10 +865,10 @@ function truncateLongGlobalArrays() {
 
 async function registerValidatorsProposals() {
     globalPersistentData.lastValidatorCheckProposalTimestamp = Date.now()
-    const validatorsData: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
-    validatorsData.map(async (v: ValidatorDataResponse) => {
-        const index = v.data.validatorindex
-        if (!index || v.data.status !== "active_online") return
+    const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
+    validatorsData.map(async (v: ValidatorData) => {
+        const index = v.validatorindex
+        if (!index || v.status !== "active_online") return
         const proposalData: IValidatorProposal = await getValidatorProposal(index)
         if (proposalData.data && proposalData.data.length > 0) {
             globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
@@ -914,8 +921,8 @@ async function beat() {
         console.log("Was validator created?", wasValidatorCreated)
 
         // if(!isDebug) {
-        //     globalPersistentData.lastIDHTs = Date.now()
-        //     await setIncomeDetailHistory()
+        globalPersistentData.lastIDHTs = Date.now()
+        await setIncomeDetailHistory()
         // }
         
         const dailyReports = await runDailyActionsAndReport()
@@ -924,9 +931,11 @@ async function beat() {
 
     if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) { // Calls made every 6 hours
         await registerValidatorsProposals()
-        const reportsMadeEvery6Hours: IMailReportHelper[] = await Promise.all([
+        const reportsMadeEvery6Hours: IMailReportHelper[] = (await Promise.all([
             checkForPenalties(),
-        ])
+        ])).filter((report: IMailReportHelper) => {
+            report.severity !== Severity.OK
+        })
         mailReportsToSend.push(...reportsMadeEvery6Hours)        
 
     } // Calls made every 6 hours
@@ -1095,7 +1104,8 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        return
+        // checkForPenalties().then((r) => console.log(r))
+        // return
     }
 
     if (process.argv.includes("also-80")) {

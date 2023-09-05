@@ -2,7 +2,7 @@ import { IMailReportHelper, Severity } from "../../entities/emailUtils"
 import { Report } from "../../entities/staking"
 import { StakingContract } from "../../ethereum/stakingContract"
 import { WithdrawContract } from "../../ethereum/withdraw"
-import { IBalanceHistoryData, ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
+import { IBalanceHistoryData, ValidatorData, ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
 import { IEpochResponse } from "../../services/beaconcha/entities"
 import { sendEmail } from "../../utils/mailUtils"
 import { etow, max, wtoe } from "../../utils/numberUtils"
@@ -78,9 +78,9 @@ export async function getNodesBalance(reloadNodesData: boolean = false): Promise
     if(reloadNodesData) {
         globalBeaconChainData.validatorsData = await getValidatorsData()
     }
-    const validatorDataArray: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
+    const validatorDataArray: ValidatorData[] = globalBeaconChainData.validatorsData
 
-    const balances: number[] = validatorDataArray.map((v: ValidatorDataResponse) => v.data.balance)
+    const balances: number[] = validatorDataArray.map((v: ValidatorData) => v.balance)
     console.log("Validators balances", balances)
     const totalBalance = balances.reduce((p: number, c: number) => p + c, 0)
 

@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, ETH_32, getBalances } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
@@ -33,7 +33,7 @@ function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
 export async function alertCreateValidators(): Promise<IMailReportHelper> {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
-    const validatorsData: ValidatorDataResponse[] = globalBeaconChainData.validatorsData
+    const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
 
     const validatorsQtyByType = globalBeaconChainData.validatorsStatusesQty
     const activatedValidatorsAmount = validatorsData.length

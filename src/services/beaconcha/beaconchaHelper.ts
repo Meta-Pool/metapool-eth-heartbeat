@@ -3,34 +3,41 @@ import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
-import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory as getValidatorsIncomeDetailHistory, getIncomeDetailHistory } from "./beaconcha";
+import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory as getValidatorsIncomeDetailHistory, getIncomeDetailHistory, ValidatorData } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport } from "./entities";
 
 
 
 export async function refreshBeaconChainData() {
-    globalBeaconChainData.validatorsData = await getValidatorsData()
+    try {
 
-    globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorDataResponse) => {
-        if (!curr.data.status) return acc
-        if (!acc[curr.data.status]) acc[curr.data.status] = 0
-        acc[curr.data.status] += 1
-        return acc
-    }, {})
-
-    const latestEpochData: IEpochResponse = await getBeaconChainEpoch()
-    globalBeaconChainData.currentEpoch = latestEpochData.data.epoch
-
-    const latestEpoch = latestEpochData.data.epoch
-    const lastEpochRegistered = Math.max(globalPersistentData.latestBeaconChainEpochRegistered, latestEpoch - 100)
-
-    if(lastEpochRegistered === latestEpoch) return
-
-    const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
-    globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
-
-    const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
-    globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+        globalBeaconChainData.validatorsData = await getValidatorsData()
+        console.log(globalBeaconChainData.validatorsData)
+        globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
+            console.log(3, curr)
+            if (!curr.status) return acc
+            if (!acc[curr.status]) acc[curr.status] = 0
+            acc[curr.status] += 1
+            return acc
+        }, {})
+    
+        const latestEpochData: IEpochResponse = await getBeaconChainEpoch()
+        globalBeaconChainData.currentEpoch = latestEpochData.data.epoch
+    
+        const latestEpoch = latestEpochData.data.epoch
+        const lastEpochRegistered = Math.max(globalPersistentData.latestBeaconChainEpochRegistered, latestEpoch - 100)
+    
+        if(lastEpochRegistered === latestEpoch) return
+    
+        const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
+        globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
+    
+        const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
+        globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+    } catch(err: any) {
+        console.error(err.message)
+        console.error(err.stack)
+    }
 
 }
 
@@ -39,7 +46,7 @@ export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): P
     console.log("Getting validators IDH")
     if (!globalBeaconChainData.validatorsData) throw new Error("Validators data not set")
     const validatorIndexes: number[] = globalBeaconChainData.validatorsData
-        .map((v: ValidatorDataResponse) => v.data.validatorindex)
+        .map((v: ValidatorData) => v.validatorindex)
         .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
 
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
@@ -96,7 +103,7 @@ export async function getValidatorsIDH(fromEpoch: number, toEpoch: number): Prom
     console.log("Getting validators IDH")
     if (!globalBeaconChainData.validatorsData) throw new Error("Validators data not set")
     const validatorIndexes: number[] = globalBeaconChainData.validatorsData
-        .map((v: ValidatorDataResponse) => v.data.validatorindex)
+        .map((v: ValidatorData) => v.validatorindex)
         .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
 
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
@@ -152,6 +159,7 @@ export async function setIncomeDetailHistory() {
         }
         
         const validatorsIDH = await getValidatorsIDH(fromEpoch, toEpoch)
+        console.log("Validators IDH", validatorsIDH)
 
         // Adding new donations
         console.log("Getting donations")
@@ -174,10 +182,14 @@ export async function setIncomeDetailHistory() {
             report.penalties += validatorIDH.penalties
         })
         const rewardsPerSecond = await getEstimatedRewardsPerSecond(report)
+        console.log("Estimated rewards per second", rewardsPerSecond)
+        console.log("Report", report)
 
-        console.log("Reporting epochs to contract")
-        await stakingContract.reportEpochs(report, rewardsPerSecond)
-        console.log("Epochs reported successfully")
+        if(!isDebug) {
+            console.log("Reporting epochs to contract")
+            await stakingContract.reportEpochs(report, rewardsPerSecond)
+            console.log("Epochs reported successfully")
+        }
         // Setting new data for saving file
         Object.keys(validatorsIDH).forEach((index: string) => {
             const indexAsNumber = Number(index)
@@ -197,8 +209,10 @@ export async function setIncomeDetailHistory() {
         const jsonToSave: IncomeReport[] = Object.keys(incomeDetailHistory).map((index: string) => (
             incomeDetailHistory[Number(index)]
         ))
-        console.log("Saving IDH", JSON.stringify(jsonToSave))
-        saveJSON(jsonToSave, filename)
+        if(!isDebug) {
+            console.log("Saving IDH", JSON.stringify(jsonToSave))
+            saveJSON(jsonToSave, filename)
+        }
         console.log("Saving persistent data")
         globalPersistentData.lastRewards = report.rewards.toString()
         globalPersistentData.lastPenalties = report.penalties.toString()
@@ -225,4 +239,10 @@ function getNewDonations(fromEpoch: number, toEpoch: number): bigint {
     })
     const recentDonationsWei = recentDonations.reduce((sum: bigint, curr: Donation) => sum + BigInt(curr.depositAmountWei), 0n)
     return recentDonationsWei
+}
+
+export function getValidatorPubKey(validatorIndex: number): string {
+    const validator: ValidatorData|undefined = globalBeaconChainData.validatorsData.find((validatorData: ValidatorData) => validatorData.validatorindex === validatorIndex)
+    if(!validator) throw new Error(`No validator with index ${validatorIndex}`)
+    return validator.pubkey
 }

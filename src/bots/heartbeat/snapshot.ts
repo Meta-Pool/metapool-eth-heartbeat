@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
-import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { ValidatorData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
 import { calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
@@ -128,13 +128,13 @@ export type SnapshotHR = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
-        return acc + BigInt(v.data.balance + ZEROS_9)
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
+        return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
     
     let snap: Snapshot = {
-        mpethPrice: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
+        mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
@@ -167,7 +167,7 @@ export function fromGlobalState(): Record<string,any> {
         ethBotBalance: globalPersistentData.ethBotBalance,
         aurBotBalance: globalPersistentData.aurBotBalance,
 
-        mpethPriceUnderlying: wtoe(calculateMpEthPriceTotalUnderlying().toString()),
+        mpethPriceUnderlying: wtoe(globalPersistentData.estimatedMpEthPrice.toString()),
     }
 
     const output: Record<string, string|number> = snap
@@ -187,17 +187,17 @@ export function fromGlobalState(): Record<string,any> {
 
 export function fromGlobalStateForHuman(): Record<string,any> {
 
-    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
-        return acc + BigInt(v.data.balance + ZEROS_9)
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
+        return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
     const nodesBalances: Record<string, number> = {}
-    globalBeaconChainData.validatorsData.forEach((v: ValidatorDataResponse) => {
-        nodesBalances[v.data.pubkey] = wtoe(v.data.balance + ZEROS_9)
+    globalBeaconChainData.validatorsData.forEach((v: ValidatorData) => {
+        nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
 
     let snap: SnapshotHR = {
-        mpethPrice: wtoe(globalPersistentData.estimatedMpEthPrice),
+        mpethPrice: wtoe(globalPersistentData.mpethPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
         stakingTotalUnderlying: wtoe(globalStakingData.totalUnderlying),
@@ -229,7 +229,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         lastPenalties: wtoe(globalPersistentData.lastPenalties),
         ethBotBalance: wtoe(globalPersistentData.ethBotBalance),
         aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
-        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
+        mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
         
         nodesBalances,
         validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,
