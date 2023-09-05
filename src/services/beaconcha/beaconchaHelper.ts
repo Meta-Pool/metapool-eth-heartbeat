@@ -185,9 +185,11 @@ export async function setIncomeDetailHistory() {
         console.log("Estimated rewards per second", rewardsPerSecond)
         console.log("Report", report)
 
-        console.log("Reporting epochs to contract")
-        await stakingContract.reportEpochs(report, rewardsPerSecond)
-        console.log("Epochs reported successfully")
+        if(!isDebug) {
+            console.log("Reporting epochs to contract")
+            await stakingContract.reportEpochs(report, rewardsPerSecond)
+            console.log("Epochs reported successfully")
+        }
         // Setting new data for saving file
         Object.keys(validatorsIDH).forEach((index: string) => {
             const indexAsNumber = Number(index)
@@ -207,8 +209,10 @@ export async function setIncomeDetailHistory() {
         const jsonToSave: IncomeReport[] = Object.keys(incomeDetailHistory).map((index: string) => (
             incomeDetailHistory[Number(index)]
         ))
-        console.log("Saving IDH", JSON.stringify(jsonToSave))
-        saveJSON(jsonToSave, filename)
+        if(!isDebug) {
+            console.log("Saving IDH", JSON.stringify(jsonToSave))
+            saveJSON(jsonToSave, filename)
+        }
         console.log("Saving persistent data")
         globalPersistentData.lastRewards = report.rewards.toString()
         globalPersistentData.lastPenalties = report.penalties.toString()

@@ -169,7 +169,7 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
 }
 
 export async function  getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
-    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(","))
+    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(",")).replace("{limit}", "100")
     let output: Record<number, MiniIDHReport> = {}
     indexes.forEach((index: number) => {
         output[index] = {
@@ -210,7 +210,8 @@ export async function getValidatorsIncomeDetailHistoryCount(indexes: number[], f
 }
 
 async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, MiniIDHReport>> {
-    if(!idhResponse || !idhResponse.data) return output
+    if(idhResponse.data === null) throw new Error(idhResponse.status)
+    if(!idhResponse || !idhResponse.data) return output // If you request epochs which wasn't validating returns empty array
     const errorMessages: string[] = []
     idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
         if(data.epoch < firstEpoch) return
