@@ -1028,7 +1028,7 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
 
     // Enum[Enum.value] returns the Enum key
     subject = `[${Severity[severity]}] ${subject}`
-    if (isTestnet || isDebug) subject = "[TESTNET]" + subject
+    if (isTestnet || isDebug) subject = "TESTNET: " + subject
 
     sendEmail(subject, body)
 }
