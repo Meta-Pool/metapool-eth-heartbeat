@@ -11,6 +11,10 @@ export interface EthConfig {
     // Aurora
     stakingManagerAddress: string
     oldStakingManagerAddress?: string
+
+    // SSV
+    ssvNetworkViews: string
+    ownerAddress: string
 }
 
 const MAINNET_CONFIG: EthConfig = {
@@ -24,6 +28,10 @@ const MAINNET_CONFIG: EthConfig = {
     // Aurora
     stakingManagerAddress: "0xfbC1423a2A4453E162cDd535991bCC4143E5d336",
     oldStakingManagerAddress: "0x69e3a362ffD379cB56755B142c2290AFbE5A6Cc8",
+
+    // SSV
+    ssvNetworkViews: "0xafE830B6Ee262ba11cce5F32fDCd760FFE6a66e4",
+    ownerAddress: "0x0000000000000000000000000000000000000000",
 }
 
 const GOERLI_CONFIG: EthConfig = {
@@ -36,6 +44,10 @@ const GOERLI_CONFIG: EthConfig = {
     validatorOwnerAddress: "0x52e5219EF6Af019776c0a64925370f92caB282EC",
     // Aurora
     stakingManagerAddress: "0x2da4A45AE7f78EABce1E3206c85383E9a98529d2",
+
+    // SSV
+    ssvNetworkViews: "0xAE2C84c48272F5a1746150ef333D5E5B51F68763",
+    ownerAddress: "0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6",
 }
 
 export function getConfig(network?: string): EthConfig {
