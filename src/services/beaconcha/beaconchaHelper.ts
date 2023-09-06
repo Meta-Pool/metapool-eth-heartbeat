@@ -12,9 +12,7 @@ export async function refreshBeaconChainData() {
     try {
 
         globalBeaconChainData.validatorsData = await getValidatorsData()
-        console.log(globalBeaconChainData.validatorsData)
         globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
-            console.log(3, curr)
             if (!curr.status) return acc
             if (!acc[curr.status]) acc[curr.status] = 0
             acc[curr.status] += 1

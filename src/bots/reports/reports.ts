@@ -116,9 +116,17 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
 
 export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportSsvClusterBalances.name}
-
+    const network = getConfig().network
+    if(network === "mainnet") {
+        return {
+            ...output,
+            ok: true,
+            severity: Severity.OK,
+            body: "Ssv is not yet set for mainnet"
+        }
+    }
     try {
-        const operatorIdsFilenames: string[] = readdirSync(`./db/clustersDataSsv/${getConfig().network}/`)
+        const operatorIdsFilenames: string[] = readdirSync(`./db/clustersDataSsv/${network}/`)
         const estimatedRunwaysWithOperatorIds: any[] = await Promise.all(operatorIdsFilenames.map(async (operatorIdsFilename: string) => {
             const operatorIds: number[] = operatorIdsFilename.split(".")[0].split(",").map(Number)
             return { 
