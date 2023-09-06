@@ -239,8 +239,8 @@ function getNewDonations(fromEpoch: number, toEpoch: number): bigint {
     return recentDonationsWei
 }
 
-export function getValidatorPubKey(validatorIndex: number): string {
+export function getValidatorData(validatorIndex: number): ValidatorData {
     const validator: ValidatorData|undefined = globalBeaconChainData.validatorsData.find((validatorData: ValidatorData) => validatorData.validatorindex === validatorIndex)
     if(!validator) throw new Error(`No validator with index ${validatorIndex}`)
-    return validator.pubkey
+    return validator
 }

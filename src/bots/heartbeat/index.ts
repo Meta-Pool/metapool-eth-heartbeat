@@ -20,7 +20,7 @@ import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, getValidatorPubKey, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
@@ -173,9 +173,13 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             return validatorData.status !== "exited"
         })
 
+        
+        
         const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
             return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
         })
+        saveJSON(idh, "deleteme_idh.json")
+        saveJSON(idhFilteredByEpochDisplay, "deleteme_idhFilteredByEpochDisplay.json")
 
         const validatorsWithIndex = validatorsData.filter((validatorData: ValidatorData) => {
             return validatorData.validatorindex
@@ -207,12 +211,13 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 }
             })
 
-            const pubKey = getValidatorPubKey(validatorIndex!)
+            const { pubkey, status } = getValidatorData(validatorIndex!)
 
             return {
                 name: validatorIndex!,
                 data: epochsData,
-                pubKey,
+                pubkey,
+                status,
             }
         })
 
@@ -224,7 +229,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<div class="perf-table"><table><thead>`);
             resp.write(`
           <tr>
-          <th colspan=1>Pool</th>
+          <th colspan=2>Pool</th>
           `);
             const COLSPAN = 3
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
@@ -237,7 +242,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         `);
             resp.write(`
           <tr>
-          <th colspan=1></th>
+          <th colspan=1>Index</th>
+          <th colspan=1>Status</th>
           `);
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
                 //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
@@ -255,9 +261,11 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         `);
 
             for (let item of asArray) {
+                console.log(1, item)
                 resp.write(`
           <tr>
           <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
+          <td>${item.status}</td>
           `);
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
@@ -293,7 +301,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     if (epoch === latestCheckedEpoch) {
                         resp.write(`
                             <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}" target="_blank">${item.name}</a></td>
-                            <td>${item.pubKey.slice(0, 6)}...${item.pubKey.slice(-5)}</td>
+                            <td>${item.pubkey.slice(0, 6)}...${item.pubkey.slice(-5)}</td>
                             </tr>
                         `);
                     }
