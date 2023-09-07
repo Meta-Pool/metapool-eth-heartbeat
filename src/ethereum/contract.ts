@@ -3,6 +3,7 @@ import { ENV, getEnv } from "../entities/env";
 import stakingAbi from "./abi/Staking.json"
 import liquidityAbi from "./abi/LiquidUnstakePool.json"
 import withdrawAbi from "./abi/withdrawAbi.json"
+import ssvAbi from "./abi/ssvAbi.json"
 import { parse } from "path";
 import { wtoe } from "../utils/numberUtils";
 
@@ -14,7 +15,8 @@ const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
 const abis = [
     stakingAbi.abi,
     liquidityAbi.abi,
-    withdrawAbi.abi
+    withdrawAbi.abi,
+    ssvAbi
 ]
 
 export abstract class GenericContract {
@@ -65,6 +67,7 @@ export abstract class GenericContract {
     
     async call(fnName: string, ...args: any[]): Promise<any> {
         try {
+            console.log(1, args)
             const tx = await this.contract[fnName](...args)
             console.log("Tx", tx)
             // const gasInWei: bigint = BigInt(tx.gasUsed * tx.gasPrice)

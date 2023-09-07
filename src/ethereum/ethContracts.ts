@@ -7,10 +7,10 @@ import os from "os";
 
 export class EthContract extends GenericContract {
 
-    constructor(address: string, abi: ethers.InterfaceAbi) {
-        const filename = getEnv().NETWORK === "mainnet" ? "ethBot" : "testEthBot"
-        const pk = readFileSync(path.join(os.homedir(), `.config/${filename}.txt`)).toString()
-        super(address, abi, pk, getEnv().NETWORK ?? "goerli")
+    constructor(address: string, abi: ethers.InterfaceAbi, walletPk?: string) {
+        const network = getEnv().NETWORK ?? "goerli"
+        const pk = walletPk ? walletPk : readFileSync(path.join(os.homedir(), `.config/${network}/ethBot.txt`)).toString()
+        super(address, abi, pk, network)
     }
 
     getProvider(network: string, apiKey: string) {
