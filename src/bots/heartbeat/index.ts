@@ -305,7 +305,6 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         `);
 
             for (let item of asArray) {
-                console.log(1, item)
                 resp.write(`
           <tr>
           <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
@@ -1008,9 +1007,7 @@ async function beat() {
     }
 
     if(mailReportsToSend.length) {
-        console.log(1)
         buildAndSendReport(mailReportsToSend)
-        console.log(2)
     }
 
     // Aurora

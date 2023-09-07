@@ -103,6 +103,7 @@ table thead tr:nth-child(2) th {
   
   th {
       text-align: center;
+      border-bottom: 2px solid black;
   }
   
   tr.DIFF{
