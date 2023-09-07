@@ -16,6 +16,7 @@ const ETH_ESTIMATED_COST_PER_DAY = 0.001
 const AUR_ESTIMATED_COST_PER_DAY = 0.00001
 const ETH_MIN_BALANCE = ETH_ESTIMATED_COST_PER_DAY * 60
 const AUR_MIN_BALANCE = AUR_ESTIMATED_COST_PER_DAY * 60
+const MIN_DAYS_UNTIL_SSV_RUNWAY = 30
 
 export async function reportWalletsBalances(): Promise<IMailReportHelper> {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportWalletsBalances.name}
@@ -137,7 +138,7 @@ export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
 
         const clustersToReport = estimatedRunwaysWithOperatorIds.filter((runways: any) => {
             console.log(runways.operatorIds, runways.days)
-            return runways.days < 300
+            return runways.days < MIN_DAYS_UNTIL_SSV_RUNWAY
         })
 
         if(clustersToReport.length > 0) {
