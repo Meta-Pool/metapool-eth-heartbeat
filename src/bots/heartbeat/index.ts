@@ -25,10 +25,9 @@ import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
-import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { checkDeposit, getClusterData, getClustersThatNeedDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
 import { readdirSync } from "fs";
 import { ClusterData, SsvData } from "../../entities/ssv";
@@ -1166,10 +1165,9 @@ function run() {
     if(isDebug) {
         initializeUninitializedGlobalData()
         refreshMetrics().then(() => {
-            checkDeposit().then((array) => {
-                console.log(1, array)
+            checkDeposit().then( (a) => {
+                console.log(1, a)
             })
-
         })
         return
     }

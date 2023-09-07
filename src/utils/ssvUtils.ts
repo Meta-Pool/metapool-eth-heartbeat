@@ -3,10 +3,13 @@ import { globalSsvData, ssvContract, ssvViewsContract } from "../bots/heartbeat"
 import { etow, wtoe } from "./numberUtils";
 import { getConfig } from "../ethereum/config";
 import { ClusterData, ClusterInformation, SsvData } from "../entities/ssv";
+import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../entities/emailUtils";
 
 const blocksPerDay = 7160
 const blocksPerYear = blocksPerDay * 365
-export const MIN_DAYS_UNTIL_SSV_RUNWAY = 240
+export const MIN_DAYS_UNTIL_SSV_RUNWAY = 276
+
+type Result = {success: boolean, ids: string, error?: string}
 
 
 export async function refreshSsvData() {
@@ -123,32 +126,75 @@ export async function getClustersThatNeedDeposit(): Promise<ClusterInformation[]
  * either no deposit was needed or a deposit was made successfully. If false is returned, 
  * a deposit was needed and failed.
  */
-export async function checkDeposit(): Promise<boolean> {
+export async function checkDeposit(): Promise<IMailReportHelper> {
+    let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: checkDeposit.name}
+
     const clustersNeedingDeposit = await getClustersThatNeedDeposit()
 
-    if(clustersNeedingDeposit.length === 0) return true
+    if(clustersNeedingDeposit.length === 0) {
+        return {
+            ...output,
+            ok: true,
+            subject: "",
+            body: "There is no need to make deposits to ssv",
+            severity: Severity.OK
+        }
+    }
 
     try {
-        const resultPromises: Promise<boolean>[] = clustersNeedingDeposit.map(async (cluster: ClusterInformation) => {
+        const resultPromises: Promise<Result>[] = clustersNeedingDeposit.map(async (cluster: ClusterInformation) => {
             try {
                 const clusterOwner: string = getConfig().ssvOwnerAddress
                 const operatorIds: string = cluster.operatorIds
-                const amount: bigint = etow(getNeededDepositForRunway(operatorIds, MIN_DAYS_UNTIL_SSV_RUNWAY + 30))
+                const amount: bigint = etow(getNeededDepositForRunway(operatorIds, MIN_DAYS_UNTIL_SSV_RUNWAY + 1))
                 const clusterData: ClusterData = cluster.clusterData
                 await ssvContract.deposit(clusterOwner, operatorIds, amount, clusterData)
 
-                return true
+                return { success: true, ids: cluster.operatorIds }
             } catch(err: any) {
                 console.error("ERR: Deposit for cluster with operatorIds", cluster.operatorIds, ":", err.message, err.stack)
-                return false
+                return { success: false, ids: cluster.operatorIds, error: err.message }
             }
         })
 
-        const results: boolean[] = await Promise.all(resultPromises)
-        return results.every(r => r === true)
+        const results: Result[] = await Promise.all(resultPromises)
+        const resultsWithErrors = results.filter((result: Result) => result.success === false)
+
+        if(resultsWithErrors.length > 0) {
+            const errorMessages = resultsWithErrors.map((result: Result) => {
+                return `Operators ${result.ids}: ${result.error}`
+            })
+            const body = `
+                Error while depositing into clusters:
+                ${errorMessages.join("\n                ")}
+            `
+            return {
+                ...output,
+                ok: false,
+                subject: "Ssv cluster deposit",
+                body,
+                severity: Severity.ERROR
+            }
+        } // It was tried to make deposits and something failed
+
+        // Deposits were made and everything turned out fine
+        const clusters = results.map((result: Result) => result.ids)
+        return {
+            ...output,
+            ok: true,
+            subject: "",
+            body: `Successfully deposited into clusters ${clusters.join(" - ")}`,
+            severity: Severity.OK
+        }
         
     } catch(err: any) {
         console.error("ERR: couldn't make deposit for ssv cluster", err.message, err.stack)
-        return false
+        return {
+            ...output,
+            ok: false,
+            subject: "Ssv cluster deposit",
+            body: `Unexpected error while depositing into cluster: ${err.message}`,
+            severity: Severity.ERROR
+        }
     }
 }
