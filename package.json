@@ -8,7 +8,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && cp -rf public_html/ dist/public_html/ && bash src/scripts/getClusterData.sh",
+    "build": "npx tsc && cp -rf public_html/ dist/ && bash src/scripts/getClusterData.sh",
     "start": "npm run build && pm2 start ecosystem.config.js",
     "debug": "npm run build && cd dist/ && node bots/heartbeat/index.js --debug",
     "save:metrics": "npm run build && node dist/index.js",
