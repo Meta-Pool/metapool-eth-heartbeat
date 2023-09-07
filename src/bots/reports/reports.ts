@@ -146,12 +146,12 @@ export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
             output.subject = "Ssv cluster needs deposit"
 
             const body = clustersToReport.map((cluster: any) => {
-                return `${cluster.operatorIds}: ${cluster.days} days remaining`
+                return `${cluster.operatorIds}: ${Math.floor(cluster.days)} days remaining`
             })
             output.body = `
                 The following operatorIds belong to clusters that need funding.
-                ${body}
-            `
+                ${body.join("\n                ")}
+            `.trim()
             return output
         }
 
