@@ -129,9 +129,10 @@ export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
         const operatorIdsFilenames: string[] = readdirSync(`./db/clustersDataSsv/${network}/`)
         const estimatedRunwaysWithOperatorIds: any[] = await Promise.all(operatorIdsFilenames.map(async (operatorIdsFilename: string) => {
             const operatorIds: number[] = operatorIdsFilename.split(".")[0].split(",").map(Number)
+            const estimatedRunway = await getEstimatedRunwayInDays(operatorIds)
             return { 
                 operatorIds,
-                days: await getEstimatedRunwayInDays(operatorIds)
+                days: estimatedRunway
             }
         }))
 
