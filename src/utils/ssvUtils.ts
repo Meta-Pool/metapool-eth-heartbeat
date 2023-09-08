@@ -7,16 +7,18 @@ import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../entities/emai
 
 const blocksPerDay = 7160
 const blocksPerYear = blocksPerDay * 365
-export const MIN_DAYS_UNTIL_SSV_RUNWAY = 276
+export const MIN_DAYS_UNTIL_SSV_RUNWAY = 30
+const MAX_DAYS_SSV_RUNWAY = 100
 
 type Result = {success: boolean, ids: string, error?: string}
 
 
 export async function refreshSsvData() {
-    
     const config = getConfig()
     const network = config.network
     const ownerAddress = config.ssvOwnerAddress
+
+    if(config.network === "mainnet") return
     const operatorsFileNames: string[] = readdirSync(`./db/clustersDataSsv/${network}`)
 
     const promises: Promise<void>[] = operatorsFileNames.map(async (operatorsFileName: string) => {
@@ -146,7 +148,7 @@ export async function checkDeposit(): Promise<IMailReportHelper> {
             try {
                 const clusterOwner: string = getConfig().ssvOwnerAddress
                 const operatorIds: string = cluster.operatorIds
-                const amount: bigint = etow(getNeededDepositForRunway(operatorIds, MIN_DAYS_UNTIL_SSV_RUNWAY + 1))
+                const amount: bigint = etow(getNeededDepositForRunway(operatorIds, MAX_DAYS_SSV_RUNWAY))
                 const clusterData: ClusterData = cluster.clusterData
                 await ssvContract.deposit(clusterOwner, operatorIds, amount, clusterData)
 
