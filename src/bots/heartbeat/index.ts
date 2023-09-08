@@ -25,13 +25,13 @@ import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
-import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { getClusterData, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
 import { readdirSync } from "fs";
 import { ClusterData, SsvData } from "../../entities/ssv";
+import { SsvContract } from "../../ethereum/ssv";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -56,6 +56,7 @@ export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
 export const ssvViewsContract: SsvViewsContract = new SsvViewsContract() 
+export const ssvContract: SsvContract = new SsvContract()
 
 //time in ms
 export const MS_IN_SECOND = 1000
@@ -190,10 +191,10 @@ async function showSsvPerformance(resp: http.ServerResponse) {
         resp.write("<tbody>")
         files.forEach((filename: string) => {
             const operatorIds = filename.split(".")[0]
+            const estimatedRunway = getEstimatedRunwayInDays(operatorIds)
             const { 
-                estimatedRunway,
                 clusterData
-            } = globalSsvData.clusterInformation[operatorIds]
+            } = globalSsvData.clusterInformationRecord[operatorIds]
             // const clusterData: ClusterData = getClusterData(operatorIds)
             // const estimatedRunway = await getEstimatedRunwayInDays(operatorIds)
 
@@ -808,7 +809,7 @@ async function refreshMetrics() {
     console.log("Metrics promises fullfilled")
 }
 
-async function initializeUninitializedGlobalData() {
+function initializeUninitializedGlobalData() {
     if (!globalPersistentData.lpPrices) {
         globalPersistentData.lpPrices = []
     }
@@ -849,7 +850,7 @@ async function initializeUninitializedGlobalData() {
     if (!globalBeaconChainData.incomeDetailHistory) globalBeaconChainData.incomeDetailHistory = []
 
     if(!globalSsvData) globalSsvData = {
-        clusterInformation: {}
+        clusterInformationRecord: {}
     }
 
     if (isDebug) console.log("Global state initialized successfully")
@@ -1166,6 +1167,12 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
+        // initializeUninitializedGlobalData()
+        // refreshMetrics().then(() => {
+        //     checkDeposit().then( (a) => {
+        //         console.log(1, a)
+        //     })
+        // })
         // return
     }
 
