@@ -28,16 +28,17 @@ else
     OWNER_WALLET=0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6
 fi
 
-dir="./db/clustersDataSsv/$NETWORK"
+dir="./dist/db/clustersDataSsv/$NETWORK"
 for f in "$dir"/*; do
-    operators=$(basename "$f")
-    operators=${operators%.*}
-
     # See above SSV_SCANNER
     [ ! -d "../ssv-scanner/" ] && echo "Directory ../ssv-scanner/ DOES NOT exists." && exit 1
-    cd ../ssv-scanner/
+
+    operators=$(basename "$f")
+    operators=${operators%.*}
+    echo "Getting $operators" >> dist/main.log
     
-    OUTPUT_PATH=../metapool-eth-heartbeat/db/clustersDataSsv/$NETWORK/$operators.txt
+    cd ../ssv-scanner/
+    OUTPUT_PATH=../metapool-eth-heartbeat/dist/db/clustersDataSsv/$NETWORK/$operators.txt
     output=$(yarn cli cluster -n $URL -ca $CONTRACT_ADDRESS -oa $OWNER_WALLET -oids $operators)}
     echo $output > $OUTPUT_PATH
     cd ../metapool-eth-heartbeat

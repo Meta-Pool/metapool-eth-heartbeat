@@ -14,13 +14,13 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal } from "../../services/beaconcha/entities";
+import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, getValidatorPubKey, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
@@ -28,12 +28,14 @@ import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { getEstimatedRunwayInDays } from "../../utils/ssvUtils";
+import { getClusterData, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
-import { readFileSync } from "fs";
+import { readdirSync } from "fs";
+import { ClusterData, SsvData } from "../../entities/ssv";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
+export let globalSsvData: SsvData
 export let idhBeaconChainCopyData: Record<number, IIncomeDetailHistoryData[]>
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
@@ -163,6 +165,51 @@ function showContractState(resp: http.ServerResponse) {
     resp.write("Show contract state not implemented yet")
 }
 
+async function showSsvPerformance(resp: http.ServerResponse) {
+    try {
+        const network = getConfig().network
+        var files: string[] = readdirSync(`db/clustersDataSsv/${network}`);
+
+        resp.write(`<div class="perf-table"><table>`)
+        resp.write("<thead>")
+        resp.write("<tr>")
+        resp.write("<th>Cluster operator ids</th>")
+        resp.write("<th>Validator Count</th>")
+        resp.write("<th>Network Fee Index</th>")
+        resp.write("<th>Index</th>")
+        resp.write("<th>Balance (SSV)</th>")
+        resp.write("<th>Estimated runway (Days)</th>")
+        
+        resp.write("</tr>")
+        resp.write("</thead>")
+
+        resp.write("<tbody>")
+        files.forEach((filename: string) => {
+            const operatorIds = filename.split(".")[0]
+            const { 
+                estimatedRunway,
+                clusterData
+            } = globalSsvData.clusterInformation[operatorIds]
+            // const clusterData: ClusterData = getClusterData(operatorIds)
+            // const estimatedRunway = await getEstimatedRunwayInDays(operatorIds)
+
+            resp.write("<tr>")
+            resp.write(`<td>${operatorIds}</td>`)
+            resp.write(`<td>${clusterData.validatorCount}</td>`)
+            resp.write(`<td>${clusterData.networkFeeIndex}</td>`)
+            resp.write(`<td>${clusterData.index}</td>`)
+            resp.write(`<td>${wtoe(clusterData.balance).toFixed(2)}</td>`)
+            resp.write(`<td>${Math.floor(estimatedRunway)}</td>`)
+            resp.write("</tr>")
+        })
+        resp.write("</tbody>")
+        resp.write("</table></div>")
+
+    } catch(err: any) {
+        resp.write("<pre>" + err.message + "</pre>");
+    }
+}
+
 function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
     try {
         const epochsToDisplay = 10
@@ -173,6 +220,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             return validatorData.status !== "exited"
         })
 
+        
+        
         const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
             return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
         })
@@ -207,12 +256,13 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 }
             })
 
-            const pubKey = getValidatorPubKey(validatorIndex!)
+            const { pubkey, status } = getValidatorData(validatorIndex!)
 
             return {
                 name: validatorIndex!,
                 data: epochsData,
-                pubKey,
+                pubkey,
+                status,
             }
         })
 
@@ -224,7 +274,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<div class="perf-table"><table><thead>`);
             resp.write(`
           <tr>
-          <th colspan=1>Pool</th>
+          <th colspan=2>Pool</th>
           `);
             const COLSPAN = 3
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
@@ -237,7 +287,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         `);
             resp.write(`
           <tr>
-          <th colspan=1></th>
+          <th colspan=1>Index</th>
+          <th colspan=1>Status</th>
           `);
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
                 //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
@@ -258,6 +309,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                 resp.write(`
           <tr>
           <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
+          <td>${item.status}</td>
           `);
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
@@ -293,7 +345,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     if (epoch === latestCheckedEpoch) {
                         resp.write(`
                             <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}" target="_blank">${item.name}</a></td>
-                            <td>${item.pubKey.slice(0, 6)}...${item.pubKey.slice(-5)}</td>
+                            <td>${item.pubkey.slice(0, 6)}...${item.pubkey.slice(-5)}</td>
                             </tr>
                         `);
                     }
@@ -470,9 +522,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
                 return true;
             }
         }
-        else if (pathname === '/perf_json') {
-            // showPoolPerformance(resp, true);
-        }
+        
         else {
             if (req.socket.localPort == 80) {
                 resp.end();
@@ -504,6 +554,9 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
             //GET /perf show pools performance
             else if (pathname === '/perf') {
                 showPoolPerformance(resp);
+            }
+            else if (pathname === '/perf_ssv') {
+                showSsvPerformance(resp)
             }
 
             //GET /log show process log
@@ -744,6 +797,7 @@ async function refreshMetrics() {
         refreshLiquidityData(),
         refreshWithdrawData(),
         refreshBeaconChainData(),
+        refreshSsvData(),
         refreshOtherMetrics(),
     ]) // These calls can be executed in parallel
     refreshContractData() // Contract data depends on previous refreshes
@@ -789,6 +843,10 @@ async function initializeUninitializedGlobalData() {
     if (!globalPersistentData.latestBeaconChainEpochRegistered) globalPersistentData.latestBeaconChainEpochRegistered = 192000
     
     if (!globalBeaconChainData.incomeDetailHistory) globalBeaconChainData.incomeDetailHistory = []
+
+    if(!globalSsvData) globalSsvData = {
+        clusterInformation: {}
+    }
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -1028,7 +1086,7 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
 
     // Enum[Enum.value] returns the Enum key
     subject = `[${Severity[severity]}] ${subject}`
-    if (isTestnet || isDebug) subject = "[TESTNET]" + subject
+    if (isTestnet || isDebug) subject = "TESTNET: " + subject
 
     sendEmail(subject, body)
 }
@@ -1104,7 +1162,6 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        // checkForPenalties().then((r) => console.log(r))
         // return
     }
 
