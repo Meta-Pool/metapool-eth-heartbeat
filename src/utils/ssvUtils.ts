@@ -11,6 +11,7 @@ const blocksPerYear = blocksPerDay * 365
 export async function refreshSsvData() {
     
     const network = getConfig().network
+    if(network === "mainnet") return
     const operatorsFileNames: string[] = readdirSync(`./db/clustersDataSsv/${network}`)
 
     const promises: Promise<void>[] = operatorsFileNames.map(async (operatorsFileName: string) => {

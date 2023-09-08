@@ -168,6 +168,10 @@ function showContractState(resp: http.ServerResponse) {
 async function showSsvPerformance(resp: http.ServerResponse) {
     try {
         const network = getConfig().network
+        if(network === "mainnet") {
+            resp.write("Mainnet not implemented yet")
+            return
+        }
         var files: string[] = readdirSync(`db/clustersDataSsv/${network}`);
 
         resp.write(`<div class="perf-table"><table>`)
