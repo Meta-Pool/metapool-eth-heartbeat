@@ -20,7 +20,7 @@ import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setEstimatedActivationTime, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
@@ -143,11 +143,13 @@ export interface PersistentData {
     lastPenalties: U128String
     ethBotBalance: U128String
     aurBotBalance: U128String
+    
 
     // Chain data
     latestEpochCheckedForReport: number
     latestEpochCheckedForPenalties: number
     latestBeaconChainEpochRegistered: number
+    estimatedActivationEpochs: Record<string, number> // pubkey - epoch
 
     // Testnet helper data
     lastIDHTs?: number
@@ -1167,13 +1169,7 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        // initializeUninitializedGlobalData()
-        // refreshMetrics().then(() => {
-        //     checkDeposit().then( (a) => {
-        //         console.log(1, a)
-        //     })
-        // })
-        // return
+        return
     }
 
     if (process.argv.includes("also-80")) {

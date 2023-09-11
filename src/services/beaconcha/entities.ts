@@ -170,3 +170,14 @@ export interface Donations {
     depositAmountWei: string
     transactionHash: string
 }
+
+export interface QueueResponse {
+    status: string
+    data: QueueData
+}
+
+export interface QueueData {
+    beaconchain_entering: number
+    beaconchain_exiting: number
+    validatorscount: number
+}
