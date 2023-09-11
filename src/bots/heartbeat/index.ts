@@ -23,7 +23,7 @@ import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlyi
 import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setEstimatedActivationTime, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
-import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
+import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
@@ -1049,26 +1049,36 @@ function saveGlobalPersistentData() {
 
 async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
     console.log("Sending daily report")
-    const reportHelpersPromises: Promise<IMailReportHelper>[] = [
+    // const reportHelpersPromises: Promise<IMailReportHelper>[] = [
+    //     // alertCreateValidators(),
+    //     // alertCheckProfit(),
+    //     // reportWalletsBalances(),
+    //     // reportSsvClusterBalances(),
+    // ];
+    // console.log("--Checking if validators should be created")
+
+    // // Resolving reports and catching in case of an error
+    // const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
+    //     return promise.catch((err: any) => {
+    //         return {
+    //             ok: false,
+    //             function: `Index ${index}`,
+    //             subject: `Error on index ${index}`,
+    //             body: `Error running function for daily action and report with index ${index}. ${err.message}`,
+    //             severity: Severity.ERROR
+    //         }
+    //     })
+    // }))
+
+    // Pushing reports that are not promises
+    const reports = [
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
         reportSsvClusterBalances(),
-    ];
-    console.log("--Checking if validators should be created")
+        reportCloseToActivateValidators()
+    ]
 
-    // Resolving reports and catching in case of an error
-    const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
-        return promise.catch((err: any) => {
-            return {
-                ok: false,
-                function: `Index ${index}`,
-                subject: `Error on index ${index}`,
-                body: `Error running function for daily action and report with index ${index}. ${err.message}`,
-                severity: Severity.ERROR
-            }
-        })
-    }))
     return reports
     // buildAndSendReport(reports)    
 }
@@ -1174,6 +1184,7 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
+        // console.log(reportCloseToActivateValidators())
         // return
     }
 
