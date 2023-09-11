@@ -29,35 +29,31 @@ export class StakingContract extends EthContract {
     }
     
     totalSupply(): Promise<bigint> {
-        return this.contract.totalSupply()
+        return this.view("totalSupply")
     }
     
     totalAssets(): Promise<bigint> {
-        return this.contract.totalAssets()
+        return this.view("totalAssets")
     }
 
     totalUnderlying(): Promise<bigint> {
-        return this.contract.totalUnderlying()
+        return this.view("totalUnderlying")
     }
-    
-    // updateNodesBalance(balance: String, rewardsPerSecond: bigint) {
-    //     return this.call("updateNodesBalance", balance, max(0n, rewardsPerSecond))
-    // }
 
     requestEthFromLiquidPoolToWithdrawal(amount: bigint) {
         return this.call("requestEthFromLiquidPoolToWithdrawal", amount)
     }
 
     estimatedRewardsPerSecond(): Promise<bigint> {
-        return this.contract.estimatedRewardsPerSecond()
+        return this.view("estimatedRewardsPerSecond")
     }
 
     submitReportUnlockTime(): Promise<bigint> {
-        return this.contract.submitReportUnlockTime()
+        return this.view("submitReportUnlockTime")
     }
     
     nodesAndWithdrawalTotalBalance(): Promise<bigint> {
-        return this.contract.nodesAndWithdrawalTotalBalance()
+        return this.view("nodesAndWithdrawalTotalBalance")
     }
 
     reportEpochs(report: Report, rewardsPerSecond: bigint): Promise<any> {
@@ -65,43 +61,43 @@ export class StakingContract extends EthContract {
     }
 
     lastEpochReported(): Promise<bigint> {
-        return this.contract.lastEpochReported()
+        return this.view("lastEpochReported")
     }
 
     decimals(): Promise<bigint> {
-        return this.contract.decimals()
+        return this.view("decimals")
     }
 
     name(): Promise<string> {
-        return this.contract.name()
+        return this.view("name")
     }
 
     rewardsFee(): Promise<bigint> {
-        return this.contract.rewardsFee()
+        return this.view("rewardsFee")
     }
 
     symbol(): Promise<string> {
-        return this.contract.symbol()
+        return this.view("symbol")
     }
 
     totalNodesActivated(): Promise<bigint> {
-        return this.contract.totalNodesActivated()
+        return this.view("totalNodesActivated")
     }
 
     whitelistEnabled(): Promise<boolean> {
-        return this.contract.whitelistEnabled()
+        return this.view("whitelistEnabled")
     }
 
     depositFee(): Promise<bigint> {
-        return this.contract.depositFee()
+        return this.view("depositFee")
     }
 
     submitReportTimelock(): Promise<bigint> {
-        return this.contract.SUBMIT_REPORT_TIMELOCK()
+        return this.view("SUBMIT_REPORT_TIMELOCK")
     }
 
     minDeposit(): Promise<bigint> {
-        return this.contract.MIN_DEPOSIT()
+        return this.view("MIN_DEPOSIT")
     }
 
     allowance(owner: string, spender: string): Promise<bigint> {

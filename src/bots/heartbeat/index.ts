@@ -1181,13 +1181,10 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        // initializeUninitializedGlobalData()
-        // refreshMetrics().then(() => {
-        //     checkDeposit().then( (a) => {
-        //         console.log(1, a)
-        //     })
-        // })
-        // return
+        stakingContract.totalSupply().then((r) => {
+            console.log(r)
+        })
+        return
     }
 
     if (process.argv.includes("also-80")) {
