@@ -854,6 +854,7 @@ function initializeUninitializedGlobalData() {
     if(!globalSsvData) globalSsvData = {
         clusterInformationRecord: {}
     }
+    if(!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {} 
 
     if (isDebug) console.log("Global state initialized successfully")
 }
