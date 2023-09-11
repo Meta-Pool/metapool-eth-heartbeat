@@ -1129,15 +1129,29 @@ function heartLoop() {
     const beatStartMs = Date.now();
     executing = true;
     beat().catch((ex: any) => {
-        console.error("ERR", JSON.stringify(ex))
+        buildAndSendMailForError(ex)
         console.error("ERR", ex.message)
         console.error("ERR", ex.stack)
+        // console.error("ERR", JSON.stringify(ex))
     }).finally(() => {
         executing = false;
         const elapsedMs = Date.now() - beatStartMs
         console.log("Beat finished after", elapsedMs, "ms")
         loopsExecuted++;
     })
+}
+
+function buildAndSendMailForError(err: any) {
+    let subject = `[ERROR] Unexpected error - ${err.message}`
+    if(isTestnet || isDebug) {
+        subject = `TESTNET: ${subject}`
+    }
+
+    const body = `
+        ${err.message}
+        ${err.stack}
+    `
+    sendEmail(subject, body)
 }
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }

@@ -12,7 +12,7 @@ export class SsvContract extends EthContract {
     constructor() {
         const network = getEnv().NETWORK ?? "goerli"
         // const filename = getEnv().NETWORK === "mainnet" ? "ssvBot" : "testSsvBot"
-        const pk = readFileSync(path.join(os.homedir(), `.config/${network}/ssvBot.txt`)).toString()
+        const pk = readFileSync(path.join(os.homedir(), `.config/${network}/ssvBot.txt`)).toString().trim()
         super(getConfig().ssvContractAddress, ssvAbi, pk)
     }
     
