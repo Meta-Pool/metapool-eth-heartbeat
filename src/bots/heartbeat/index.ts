@@ -264,12 +264,14 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             })
 
             const { pubkey, status } = getValidatorData(validatorIndex!)
+            const estimatedActivationEpoch = globalPersistentData.estimatedActivationEpochs[pubkey] || ""
 
             return {
                 name: validatorIndex!,
                 data: epochsData,
                 pubkey,
                 status,
+                estimatedActivationEpoch,
             }
         })
 
@@ -281,7 +283,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<div class="perf-table"><table><thead>`);
             resp.write(`
           <tr>
-          <th colspan=2>Pool</th>
+          <th colspan=3>Pool</th>
           `);
             const COLSPAN = 3
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
@@ -296,6 +298,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
           <tr>
           <th colspan=1>Index</th>
           <th colspan=1>Status</th>
+          <th colspan=1>Est. Act. Epoch</th>
           `);
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
                 //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
@@ -317,6 +320,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
           <tr>
           <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
           <td>${item.status}</td>
+          <td>${item.estimatedActivationEpoch}</td>
           `);
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
@@ -1170,7 +1174,7 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        return
+        // return
     }
 
     if (process.argv.includes("also-80")) {
