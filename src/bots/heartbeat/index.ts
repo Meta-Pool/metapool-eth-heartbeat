@@ -1143,6 +1143,7 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
+        activateValidator()
         // console.log(reportCloseToActivateValidators())
         // return
     }

@@ -270,6 +270,10 @@ export function getValidatorData(validatorIndex: number): ValidatorData {
  */
 export async function setEstimatedActivationTime(pubkey: string) {
     const validatorData: ValidatorData = (await getValidatorsDataWithIndexOrPubKey([pubkey]))[0]
+    if(!validatorData) {
+        console.log("Validator with pubkey", pubkey, "is not eligible yet")
+        return
+    }
     if(!validatorData.validatorindex || !validatorData.activationeligibilityepoch ) return
 
     const queue: QueueResponse = await getCurrentQueue()
