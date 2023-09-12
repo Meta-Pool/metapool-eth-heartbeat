@@ -82,16 +82,30 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
     
     // If there are more than 100 validators this will fail.
-    const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${nonNullValidatorIds.join(",")}`)
-    const jsons = await responses.json()
+    // const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${nonNullValidatorIds.join(",")}`)
+    // const jsons = await responses.json()
     // const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
     // const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
-    const nonNullValidatorsData = jsons.data
+    // const nonNullValidatorsData = jsons.data
+    const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
+    
     const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data)
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
 
     
     return validatorsData
+}
+
+async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
+    const chunkSize = 100
+    const output: ValidatorData[] = []
+    for(let i = 0; i < validatorIds.length; i += chunkSize) {
+        const ids = validatorIds.slice(i, i + chunkSize)
+        const response = await fetch(`${VALIDATOR_DATA_BASE_URL}${ids.join(",")}`)
+        const jsons = await response.json()
+        output.push(...jsons.data)
+    }
+    return output
 }
 
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {

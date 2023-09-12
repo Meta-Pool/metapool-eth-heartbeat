@@ -14,7 +14,7 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsData, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
@@ -1181,10 +1181,7 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {
-        stakingContract.totalSupply().then((r) => {
-            console.log(r)
-        })
-        return
+        // return
     }
 
     if (process.argv.includes("also-80")) {
