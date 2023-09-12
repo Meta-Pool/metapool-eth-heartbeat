@@ -181,3 +181,8 @@ export interface QueueData {
     beaconchain_exiting: number
     validatorscount: number
 }
+
+export interface ActivationData {
+    epoch: number
+    timestamp: number
+}

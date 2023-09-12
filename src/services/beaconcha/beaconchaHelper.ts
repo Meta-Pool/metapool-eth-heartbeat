@@ -1,4 +1,4 @@
-import { globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
+import { MS_IN_MINUTES, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
@@ -276,8 +276,14 @@ export async function setEstimatedActivationTime(pubkey: string) {
     const queueData: QueueData = queue.data
     const currentValidatorsEnteringPerEpoch = Math.max(4, Math.floor(queueData.validatorscount / 65536))
     const entering = queueData.beaconchain_entering
-    const epochToWait = entering / currentValidatorsEnteringPerEpoch
-    const estimatedActivationEpoch = validatorData.activationeligibilityepoch + epochToWait
+    const epochsToWait = entering / currentValidatorsEnteringPerEpoch
+    const estimatedActivationEpoch = validatorData.activationeligibilityepoch + epochsToWait
 
-    globalPersistentData.estimatedActivationEpochs[pubkey] = estimatedActivationEpoch
+    const timeToWaitInMillis = epochsToWait * 6.4 * MS_IN_MINUTES
+    const estimatedActivationTime = Date.now() + timeToWaitInMillis
+
+    globalPersistentData.estimatedActivationEpochs[pubkey] = {
+        epoch: estimatedActivationEpoch,
+        timestamp: estimatedActivationTime,
+    }
 }

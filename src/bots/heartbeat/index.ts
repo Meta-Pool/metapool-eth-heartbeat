@@ -18,7 +18,7 @@ import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getV
 import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
+import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
 import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setEstimatedActivationTime, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
@@ -32,6 +32,7 @@ import { getConfig } from "../../ethereum/config";
 import { readdirSync } from "fs";
 import { ClusterData, SsvData } from "../../entities/ssv";
 import { SsvContract } from "../../ethereum/ssv";
+import { sLeftToTimeLeft } from "../../utils/timeUtils";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -149,7 +150,7 @@ export interface PersistentData {
     latestEpochCheckedForReport: number
     latestEpochCheckedForPenalties: number
     latestBeaconChainEpochRegistered: number
-    estimatedActivationEpochs: Record<string, number> // pubkey - epoch
+    estimatedActivationEpochs: Record<string, ActivationData> // pubkey - data
 
     // Testnet helper data
     lastIDHTs?: number
@@ -264,14 +265,14 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             })
 
             const { pubkey, status } = getValidatorData(validatorIndex!)
-            const estimatedActivationEpoch = globalPersistentData.estimatedActivationEpochs[pubkey] || ""
+            const estimatedActivationData = globalPersistentData.estimatedActivationEpochs[pubkey]
 
             return {
                 name: validatorIndex!,
                 data: epochsData,
                 pubkey,
                 status,
-                estimatedActivationEpoch,
+                estimatedActivationData,
             }
         })
 
@@ -283,7 +284,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<div class="perf-table"><table><thead>`);
             resp.write(`
           <tr>
-          <th colspan=3>Pool</th>
+          <th colspan=4>Pool</th>
           `);
             const COLSPAN = 3
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
@@ -299,6 +300,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
           <th colspan=1>Index</th>
           <th colspan=1>Status</th>
           <th colspan=1>Est. Act. Epoch</th>
+          <th colspan=1>Time remaining for activation</th>
           `);
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
                 //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
@@ -317,11 +319,13 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
 
             for (let item of asArray) {
                 resp.write(`
-          <tr>
-          <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
-          <td>${item.status}</td>
-          <td>${item.estimatedActivationEpoch}</td>
-          `);
+                    <tr>
+                    <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
+                    <td>${item.status}</td>
+                    <td>${item.estimatedActivationData ? item.estimatedActivationData.epoch : "-"}</td>
+                    <td id="${item.pubkey}"></td>
+                `);
+                
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
                     if (!info) {
@@ -362,78 +366,33 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     }
                 }
 
-                // last column, current info from near core + info from sp in contract
-                //     const sp = globalPools.find(asp => asp.account_id == item.name)
-                //       || {
-                //         inx: -1,
-                //         account_id: item.name,
-                //         weight_basis_points: 0,
-                //         staked: "0",//u128
-                //         unstaked: "0",//u128
-                //         unstaked_requested_epoch_height: "0", //U64String, 
-                //         last_asked_rewards_epoch_height: "0", //U64String,
-                //       } as StakingPoolJSONInfo;
-
-                //     // try to get current total stake from current+next validators list
-                //     const val = perfData.ncore[item.name]
-                //     let totalStakeString = "--"
-                //     let monitoredStakeString = "--"
-                //     let blockProductionPctString = "--"
-                //     let closeToSeatString = ""
-                //     let totalStakeStyle = `font-size:small`
-                //     let blockProductionStyle = ""
-                //     if (val) {
-                //       totalStakeString = (val.stake / 1000).toFixed(2)
-                //       blockProductionPctString = val.isCurrent ? val.blockProductionPct.toFixed() + "%" : "next"
-                //       if (val.isCurrent && val.blockProductionPct <= 92) blockProductionStyle = "background-color:orange"
-                //       if (globalSeatPrices && val.stake < globalSeatPrices.seatNextPrice * 1.1) {
-                //         const diff = val.stake - globalSeatPrices.seatNextPrice
-                //         closeToSeatString = (Math.sign(diff) == -1 ? "" : "+") + (diff / 1000).toFixed(2)
-                //         if (diff <= 0) {
-                //           totalStakeStyle += `;background-color:lightyellow`
-                //         }
-                //       }
-                //     }
-                //     if (totalStakeString == "--") {
-                //       const lastEpochData = item.data[latestCheckedEpoch - 1]
-                //       if (lastEpochData && lastEpochData.totalStake != "") totalStakeString = (yton(lastEpochData.totalStake) / 1000).toFixed(2)
-                //     }
-                //     // check if we have last performance data
-                //     const lpd = globalPersistentData.lastPerformanceCalculation.find(i => i.name == item.name)
-                //     const lpdText = lpd ? ((lpd.bp / 100).toFixed(2) + "%") : ""
-                //     resp.write(
-                //       `<td><small>${lpdText}</small></td>` +
-                //       `<td><small>${(sp.weight_basis_points / 100).toFixed(2)}%</small></td>` +
-                //       `<td>${asNearK((BigInt(globalContractState.total_for_staking) * BigInt(sp.weight_basis_points) / BigInt(10000)).toString())}</td>` +
-                //       `<td>${asNearK(sp.staked)}</td>` +
-                //       `<td>${asNearK(sp.unstaked)}</td>` +
-                //       `<td>${sp.unstaked_requested_epoch_height == "0" ? "" : Number(sp.unstaked_requested_epoch_height) - latestCheckedEpoch}</td>` +
-                //       `<td>${asNearK((BigInt(sp.staked) - BigInt(lastEpochStake) + BigInt(sp.unstaked)).toString())}</td>` +
-                //       `<td style="${totalStakeStyle}">${totalStakeString}</td>` +
-                //       //`<td style="${totalStakeStyle}">${closeToSeatString}</td>` +
-                //       `<td style="${blockProductionStyle}">${blockProductionPctString}</td>` +
-                //       `<td>${item.data[latestCheckedEpoch] ? item.data[latestCheckedEpoch].fee.toFixed() : "--"}</td>`
-                //     );
-                //     // pool name again
-                //     resp.write(`<td style="text-align:left">${item.name}</td>`)
-                //     resp.write(`</tr>`)
+                
             }
 
-            //   resp.write(`</tbody></table></div>`);
-            //   resp.write(`<p>Total old balance:${yton(perfData.oldBalance)}, Total rewards:${yton(perfData.totalRewards)},` +
-            //     ` Metapool epoch APY:${perfData.apy}, AVG Apy: ${perfData.avgApy}</p>`);
-            //   const epochsInYear = 365 * 24 / (epochInfo.prev_epoch_duration_ms / HOURS) // an epoch is 15 hs approx
-            //   resp.write(`<p>Last epoch:${Number(globalContractState.env_epoch_height) - 1}, duration:${(epochInfo.prev_epoch_duration_ms / HOURS).toFixed(2)} hs, Epochs per year:${epochsInYear.toFixed(2)}` +
-            //     `, Management Fee:${globalContractParams.operator_rewards_fee_basis_points / 100}%</p>`);
-
-            //   writeExtraStats(resp)
-            // resp.write(`<script>
-            // let table = document.querySelector(".perf-table")
-            // table.querySelectorAll("th").forEach((th, position) => {
-            //    th.addEventListener("click", evt => sortTable(table, position));
-            //   });
-            // </script>
-            // `);
+            const timestampObj: Record<string, number> = {}
+            for (let item of asArray) {
+                if(item.estimatedActivationData && item.estimatedActivationData.timestamp > Date.now()) {
+                    timestampObj[item.pubkey] = item.estimatedActivationData.timestamp
+                }
+            }
+            resp.write(`<script>
+                const timestampObj = ${JSON.stringify(timestampObj)}
+                Object.keys(timestampObj).forEach((pubkey) => {
+                    const timestampTd = document.getElementById(pubkey)
+                    const activationTimestamp = timestampObj[pubkey]
+                    const intervalId = setInterval(() => {
+                        const timeRemainingInSeconds = (activationTimestamp - Date.now()) / 1000
+                        timestampTd.innerHTML = sLeftToTimeLeft(timeRemainingInSeconds)
+                        if(Math.round(timeRemainingInSeconds) <= 0) {
+                            clearInterval(intervalId)
+                        }
+                    }, 1000)
+                    
+                })
+                
+                const sLeftToTimeLeft = ${sLeftToTimeLeft}
+                </script>
+            `);
         }
 
     } catch (ex: any) {

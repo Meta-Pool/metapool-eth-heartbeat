@@ -6,7 +6,7 @@ import { BASE_BEACON_CHAIN_URL_SITE } from "../../services/beaconcha/beaconcha";
 import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
 import { MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
-import { globalBeaconChainData, globalPersistentData } from "../heartbeat";
+import { MS_IN_DAY, globalBeaconChainData, globalPersistentData } from "../heartbeat";
 import { readdirSync } from "fs";
 import { getConfig } from "../../ethereum/config";
 import { MIN_DAYS_UNTIL_SSV_RUNWAY, getClustersThatNeedDeposit, getEstimatedRunwayInDays } from "../../utils/ssvUtils";
@@ -175,16 +175,16 @@ export function reportCloseToActivateValidators() {
         const estimatedActivationEpochs = globalPersistentData.estimatedActivationEpochs
 
         const pendingValidatorsPubKeys = Object.keys(estimatedActivationEpochs).filter((pubkey: string) => {
-            const estimatedEpoch = estimatedActivationEpochs[pubkey]
-            return currentEpoch <= estimatedEpoch
+            const activationData = estimatedActivationEpochs[pubkey]
+            return currentEpoch <= activationData.epoch
         })
 
         const MAX_DAYS = 5
-        const MAX_DAYS_IN_EPOCHS = MAX_DAYS * 24 * 60 / 6.4
+        const MAX_DAYS_IN_MILLIS = MAX_DAYS * MS_IN_DAY
 
         const pubKeysToReport = pendingValidatorsPubKeys.filter((pubkey: string) => {
-            const estimatedEpoch = estimatedActivationEpochs[pubkey]
-            return currentEpoch + MAX_DAYS_IN_EPOCHS >= estimatedEpoch
+            const activationData = estimatedActivationEpochs[pubkey]
+            return Date.now() + MAX_DAYS_IN_MILLIS >= activationData.timestamp
         })
 
         if(pubKeysToReport.length > 0) {
@@ -193,10 +193,8 @@ export function reportCloseToActivateValidators() {
             output.subject = "Close to activate validators"
 
             const body = pubKeysToReport.map((pubkey: string) => {
-                const estimatedEpoch = estimatedActivationEpochs[pubkey]
-                const pendingEpochs = estimatedEpoch - currentEpoch
-                const pendingEpochsInSeconds = pendingEpochs * 6.4 * 60
-                const timeLeft = sLeftToTimeLeft(pendingEpochsInSeconds)
+                const activationData = estimatedActivationEpochs[pubkey]
+                const timeLeft = sLeftToTimeLeft(activationData.timestamp - Date.now())
                 return `Pubkey: ${pubkey}. Time left: ${timeLeft}`
             })
 
