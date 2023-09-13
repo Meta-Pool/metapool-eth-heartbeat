@@ -30,7 +30,7 @@ function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
     return qty
 }
 
-export async function alertCreateValidators(): Promise<IMailReportHelper> {
+export function alertCreateValidators(): IMailReportHelper {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
     const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData

@@ -10,6 +10,6 @@ export function sLeftToTimeLeft(s: number|bigint): string {
         ${days}d
         ${hours.toString().padStart(2, "0")}h
         ${minutes.toString().padStart(2, "0")}m
-        ${seconds.toString().padStart(2, "0")}s
+        ${Math.round(seconds).toString().padStart(2, "0")}s
     `.replaceAll(/ /g, "").replaceAll(/\n/g, " ").trim()
 }

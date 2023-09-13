@@ -108,7 +108,7 @@ export function getClusterData(operatorIds: number[]|string): ClusterData {
     }
 }
 
-export async function getClustersThatNeedDeposit(): Promise<ClusterInformation[]> {
+export function getClustersThatNeedDeposit(): ClusterInformation[] {
     
     const clustersToReport = Object.keys(globalSsvData.clusterInformationRecord).filter((operatorIds: string) => {
         const clusterInformation = globalSsvData.clusterInformationRecord[operatorIds]
