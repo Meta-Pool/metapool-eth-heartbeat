@@ -15,20 +15,20 @@ enum PossibleValidatorStatuses {
     EXITED = "exited"
 }
 
-function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
-    let qty: { [key: string]: number } = {}
+// function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
+//     let qty: { [key: string]: number } = {}
     
-    Object.values(PossibleValidatorStatuses).forEach((v: string) => {
-        qty[v] = 0
-    })
+//     Object.values(PossibleValidatorStatuses).forEach((v: string) => {
+//         qty[v] = 0
+//     })
 
-    validators.forEach((v: ValidatorDataResponse) => {
-        if(!v.data.status) return
-        qty[v.data.status] += 1
-    })
+//     validators.forEach((v: ValidatorDataResponse) => {
+//         if(!v.data.status) return
+//         qty[v.data.status] += 1
+//     })
 
-    return qty
-}
+//     return qty
+// }
 
 export function alertCreateValidators(): IMailReportHelper {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
