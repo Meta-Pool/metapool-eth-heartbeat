@@ -64,13 +64,20 @@ export abstract class GenericContract {
         err.message = "Unknown error"
         throw err
     }
+
+    async view(fnName: string, ...args: any[]): Promise<any> {
+        try {
+            const tx = await this.contract[fnName](...args)            
+            return tx
+        } catch(err: any) {
+            console.error("ERR viewing", fnName, err.message)
+            this.decodeError(err)   
+        }
+    }
     
     async call(fnName: string, ...args: any[]): Promise<any> {
         try {
-            console.log(1, args)
             const tx = await this.contract[fnName](...args)
-            console.log("Tx", tx)
-            // const gasInWei: bigint = BigInt(tx.gasUsed * tx.gasPrice)
             const gasInWei: bigint = 100000000n
             const walletBalance = await this.getWalletBalance(this.connectedWallet.address)
             if(wtoe(gasInWei) > wtoe(walletBalance)) {
@@ -81,8 +88,7 @@ export abstract class GenericContract {
             return tx
         } catch(err: any) {
             console.error("ERR calling", fnName, err.message)
-            this.decodeError(err)
-            
+            this.decodeError(err)   
         }
     }
     
