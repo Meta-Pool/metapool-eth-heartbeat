@@ -84,11 +84,13 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
     
     // If there are more than 100 validators this will fail.
-    const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${nonNullValidatorIds.join(",")}`)
-    const jsons = await responses.json()
+    // const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${nonNullValidatorIds.join(",")}`)
+    // const jsons = await responses.json()
     // const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
     // const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
-    const nonNullValidatorsData = jsons.data
+    // const nonNullValidatorsData = jsons.data
+    const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
+    
     const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data)
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
 
@@ -96,7 +98,18 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     return validatorsData
 }
 
-export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorData[]> {
+
+async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
+    const chunkSize = 100
+    const output: ValidatorData[] = []
+    for(let i = 0; i < validatorIds.length; i += chunkSize) {
+        const ids = validatorIds.slice(i, i + chunkSize)
+        const validatorsDataResponses = await getValidatorsDataWithIndexOrPubKey(ids)
+        output.push(...validatorsDataResponses.data)
+    }
+    return output
+
+export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
     if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
     const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
     return responses.json()
