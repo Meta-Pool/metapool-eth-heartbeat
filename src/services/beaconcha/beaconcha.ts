@@ -36,7 +36,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData
+    data: ValidatorData[]
 }
 
 export interface ValidatorData {
@@ -83,31 +83,26 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     const nonNullValidatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex).filter(id => id != null)
     const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
     
-    // If there are more than 100 validators this will fail.
-    // const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${nonNullValidatorIds.join(",")}`)
-    // const jsons = await responses.json()
-    // const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
-    // const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
-    // const nonNullValidatorsData = jsons.data
     const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
-    
-    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data)
+    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data).flat()
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
 
     
     return validatorsData
 }
 
-
 async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
     const chunkSize = 100
     const output: ValidatorData[] = []
     for(let i = 0; i < validatorIds.length; i += chunkSize) {
         const ids = validatorIds.slice(i, i + chunkSize)
-        const validatorsDataResponses = await getValidatorsDataWithIndexOrPubKey(ids)
-        output.push(...validatorsDataResponses.data)
+        const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
+        const validatorsData = validatorsDataResponse.data
+        output.concat(validatorsData)
     }
     return output
+}
+
 
 export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
     if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
@@ -118,12 +113,12 @@ export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (numb
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
     return {
         status: 'Pending',
-        data: {
+        data: [{
             effectivebalance: 32000000000,
             balance: 32000000000,
             pubkey: basicData.publickey,
             status: "pending"
-        }
+        }]
     }
 }
 

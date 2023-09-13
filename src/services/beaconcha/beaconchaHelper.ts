@@ -3,14 +3,13 @@ import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
-import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory as getValidatorsIncomeDetailHistory, getIncomeDetailHistory, ValidatorData, getCurrentQueue, getValidatorsDataWithIndexOrPubKey } from "./beaconcha";
+import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
 
 
 export async function refreshBeaconChainData() {
     try {
-
         globalBeaconChainData.validatorsData = await getValidatorsData()
         globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
             if (!curr.status) return acc
@@ -25,13 +24,13 @@ export async function refreshBeaconChainData() {
         const latestEpoch = latestEpochData.data.epoch
         const lastEpochRegistered = Math.max(globalPersistentData.latestBeaconChainEpochRegistered, latestEpoch - 100)
     
-        if(lastEpochRegistered === latestEpoch) return
-    
-        const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
-        globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
-    
-        const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
-        globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+        if(lastEpochRegistered !== latestEpoch) {
+            const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
+            globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
+        
+            const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
+            globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+        }
 
         await registerActivationEpochsForPendingValidators()
     } catch(err: any) {
@@ -46,7 +45,6 @@ async function registerActivationEpochsForPendingValidators() {
     const pendingValidatorsData = validatorsData.filter((validatorData: ValidatorData) => {
         return validatorData.status === "pending"
     })
-
     const notSetPendingValidatorsData = pendingValidatorsData.filter((validatorData: ValidatorData) => {
         return !Object.keys(globalPersistentData.estimatedActivationEpochs).includes(validatorData.pubkey)
     })
@@ -269,11 +267,13 @@ export function getValidatorData(validatorIndex: number): ValidatorData {
  * @param pubkey 
  */
 export async function setEstimatedActivationTime(pubkey: string) {
-    const validatorData: ValidatorData = (await getValidatorsDataWithIndexOrPubKey([pubkey]))[0]
-    if(!validatorData) {
+    const validatorDataResponse: ValidatorDataResponse = (await getValidatorsDataWithIndexOrPubKey([pubkey]))
+    
+    if(!validatorDataResponse.data) {
         console.log("Validator with pubkey", pubkey, "is not eligible yet")
         return
     }
+    const validatorData = validatorDataResponse.data[0]
     if(!validatorData.validatorindex || !validatorData.activationeligibilityepoch ) return
 
     const queue: QueueResponse = await getCurrentQueue()
@@ -287,7 +287,7 @@ export async function setEstimatedActivationTime(pubkey: string) {
     const estimatedActivationTime = Date.now() + timeToWaitInMillis
 
     globalPersistentData.estimatedActivationEpochs[pubkey] = {
-        epoch: estimatedActivationEpoch,
-        timestamp: estimatedActivationTime,
+        epoch: Math.round(estimatedActivationEpoch),
+        timestamp: Math.round(estimatedActivationTime),
     }
 }
