@@ -45,7 +45,7 @@ export async function activateValidator(): Promise<boolean> {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
         globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
         const balances: Balances = await getBalances()
-        const balanceForValidators = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances. totalPendingWithdraw
+        const balanceForValidators = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances.totalPendingWithdraw
         const validatorsToCreate = Math.floor(wtoe(balanceForValidators) / 32)
         
         if(validatorsToCreate > 0) {

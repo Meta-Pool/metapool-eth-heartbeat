@@ -2,7 +2,7 @@ import { isDebug, isTestnet } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../ethereum/config"
-import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "./entities"
+import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
@@ -16,6 +16,8 @@ const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
 const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory"
 const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}"
+
+const QUEUE_URL = BASE_URL + "validators/queue"
 
 export interface DeployerDataResponse {
     status: string
@@ -96,16 +98,21 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     return validatorsData
 }
 
+
 async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
     const chunkSize = 100
     const output: ValidatorData[] = []
     for(let i = 0; i < validatorIds.length; i += chunkSize) {
         const ids = validatorIds.slice(i, i + chunkSize)
-        const response = await fetch(`${VALIDATOR_DATA_BASE_URL}${ids.join(",")}`)
-        const jsons = await response.json()
-        output.push(...jsons.data)
+        const validatorsDataResponses = await getValidatorsDataWithIndexOrPubKey(ids)
+        output.push(...validatorsDataResponses.data)
     }
     return output
+
+export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
+    if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
+    const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
+    return responses.json()
 }
 
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
@@ -298,4 +305,8 @@ function countPenalties(data: IIncomeData): number {
     if(data.slashing_penalty) penalties++
     if(data.sync_committee_penalty) penalties++
     return penalties
+}
+
+export async function getCurrentQueue(): Promise<QueueResponse> {
+    return (await fetch(QUEUE_URL)).json()
 }

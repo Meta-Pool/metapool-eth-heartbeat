@@ -1,10 +1,10 @@
-import { globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
+import { MS_IN_MINUTES, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
-import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory as getValidatorsIncomeDetailHistory, getIncomeDetailHistory, ValidatorData } from "./beaconcha";
-import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport } from "./entities";
+import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory as getValidatorsIncomeDetailHistory, getIncomeDetailHistory, ValidatorData, getCurrentQueue, getValidatorsDataWithIndexOrPubKey } from "./beaconcha";
+import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
 
 
@@ -32,11 +32,28 @@ export async function refreshBeaconChainData() {
     
         const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
         globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+
+        await registerActivationEpochsForPendingValidators()
     } catch(err: any) {
         console.error(err.message)
         console.error(err.stack)
     }
 
+}
+
+async function registerActivationEpochsForPendingValidators() {
+    const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
+    const pendingValidatorsData = validatorsData.filter((validatorData: ValidatorData) => {
+        return validatorData.status === "pending"
+    })
+
+    const notSetPendingValidatorsData = pendingValidatorsData.filter((validatorData: ValidatorData) => {
+        return !Object.keys(globalPersistentData.estimatedActivationEpochs).includes(validatorData.pubkey)
+    })
+
+    notSetPendingValidatorsData.forEach((validatorData: ValidatorData) => {
+        setEstimatedActivationTime(validatorData.pubkey)
+    })
 }
 
 export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): Promise<IIncomeDetailHistoryResponse> {
@@ -243,4 +260,34 @@ export function getValidatorData(validatorIndex: number): ValidatorData {
     const validator: ValidatorData|undefined = globalBeaconChainData.validatorsData.find((validatorData: ValidatorData) => validatorData.validatorindex === validatorIndex)
     if(!validator) throw new Error(`No validator with index ${validatorIndex}`)
     return validator
+}
+
+/**
+ * When a deposit is made, a validator starts the activating process. After some time, the validator is shown in beacon chain services
+ * Before is shown, it has a null validatorIndex and (should be checked) null activationeligibilityepoch. The last one is the initial point
+ * in which the validator enters the queue
+ * @param pubkey 
+ */
+export async function setEstimatedActivationTime(pubkey: string) {
+    const validatorData: ValidatorData = (await getValidatorsDataWithIndexOrPubKey([pubkey]))[0]
+    if(!validatorData) {
+        console.log("Validator with pubkey", pubkey, "is not eligible yet")
+        return
+    }
+    if(!validatorData.validatorindex || !validatorData.activationeligibilityepoch ) return
+
+    const queue: QueueResponse = await getCurrentQueue()
+    const queueData: QueueData = queue.data
+    const currentValidatorsEnteringPerEpoch = Math.max(4, Math.floor(queueData.validatorscount / 65536))
+    const entering = queueData.beaconchain_entering
+    const epochsToWait = entering / currentValidatorsEnteringPerEpoch
+    const estimatedActivationEpoch = validatorData.activationeligibilityepoch + epochsToWait
+
+    const timeToWaitInMillis = epochsToWait * 6.4 * MS_IN_MINUTES
+    const estimatedActivationTime = Date.now() + timeToWaitInMillis
+
+    globalPersistentData.estimatedActivationEpochs[pubkey] = {
+        epoch: estimatedActivationEpoch,
+        timestamp: estimatedActivationTime,
+    }
 }
