@@ -1,11 +1,10 @@
 import { ethers } from 'ethers'
-import { ValidatorData, ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
+import { ValidatorData } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
-import { Balances, ETH_32, getBalances } from '../activateValidator'
+import { Balances, getBalances } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
 import { globalBeaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
-import { etow } from '../../utils/numberUtils'
 
 const THRESHOLD: number = 5
 
@@ -15,22 +14,22 @@ enum PossibleValidatorStatuses {
     EXITED = "exited"
 }
 
-function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
-    let qty: { [key: string]: number } = {}
+// function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
+//     let qty: { [key: string]: number } = {}
     
-    Object.values(PossibleValidatorStatuses).forEach((v: string) => {
-        qty[v] = 0
-    })
+//     Object.values(PossibleValidatorStatuses).forEach((v: string) => {
+//         qty[v] = 0
+//     })
 
-    validators.forEach((v: ValidatorDataResponse) => {
-        if(!v.data.status) return
-        qty[v.data.status] += 1
-    })
+//     validators.forEach((v: ValidatorDataResponse) => {
+//         if(!v.data.status) return
+//         qty[v.data.status] += 1
+//     })
 
-    return qty
-}
+//     return qty
+// }
 
-export async function alertCreateValidators(): Promise<IMailReportHelper> {
+export function alertCreateValidators(): IMailReportHelper {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
     console.log("Getting validators data")
     const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData

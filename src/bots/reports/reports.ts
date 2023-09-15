@@ -6,19 +6,21 @@ import { BASE_BEACON_CHAIN_URL_SITE } from "../../services/beaconcha/beaconcha";
 import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
 import { MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
-import { globalBeaconChainData, globalPersistentData } from "../heartbeat";
+import { MS_IN_DAY, globalBeaconChainData, globalPersistentData } from "../heartbeat";
 import { readdirSync } from "fs";
 import { getConfig } from "../../ethereum/config";
-import { getEstimatedRunwayInDays } from "../../utils/ssvUtils";
+import { MIN_DAYS_UNTIL_SSV_RUNWAY, getClustersThatNeedDeposit, getEstimatedRunwayInDays } from "../../utils/ssvUtils";
+import { ClusterData, ClusterInformation } from "../../entities/ssv";
+import { sLeftToTimeLeft } from "../../utils/timeUtils";
 
 // In ETH
 const ETH_ESTIMATED_COST_PER_DAY = 0.001
 const AUR_ESTIMATED_COST_PER_DAY = 0.00001
 const ETH_MIN_BALANCE = ETH_ESTIMATED_COST_PER_DAY * 60
 const AUR_MIN_BALANCE = AUR_ESTIMATED_COST_PER_DAY * 60
-const MIN_DAYS_UNTIL_SSV_RUNWAY = 30
 
-export async function reportWalletsBalances(): Promise<IMailReportHelper> {
+
+export function reportWalletsBalances(): IMailReportHelper {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportWalletsBalances.name}
     console.log("Getting wallets balances")
     const ethWalletBalance = wtoe(globalPersistentData.ethBotBalance)
@@ -115,7 +117,7 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
     
 }
 
-export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
+export function reportSsvClusterBalances(): IMailReportHelper  {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportSsvClusterBalances.name}
     const network = getConfig().network
     if(network === "mainnet") {
@@ -127,28 +129,16 @@ export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
         }
     }
     try {
-        const operatorIdsFilenames: string[] = readdirSync(`./db/clustersDataSsv/${network}/`)
-        const estimatedRunwaysWithOperatorIds: any[] = await Promise.all(operatorIdsFilenames.map(async (operatorIdsFilename: string) => {
-            const operatorIds: number[] = operatorIdsFilename.split(".")[0].split(",").map(Number)
-            const estimatedRunway = await getEstimatedRunwayInDays(operatorIds)
-            return { 
-                operatorIds,
-                days: estimatedRunway
-            }
-        }))
-
-        const clustersToReport = estimatedRunwaysWithOperatorIds.filter((runways: any) => {
-            console.log(runways.operatorIds, runways.days)
-            return runways.days < MIN_DAYS_UNTIL_SSV_RUNWAY
-        })
+        const clustersToReport: ClusterInformation[] = getClustersThatNeedDeposit()
 
         if(clustersToReport.length > 0) {
             output.ok = false
             output.severity = Severity.IMPORTANT
             output.subject = "Ssv cluster needs deposit"
 
-            const body = clustersToReport.map((cluster: any) => {
-                return `${cluster.operatorIds}: ${Math.floor(cluster.days)} days remaining`
+            const body = clustersToReport.map((cluster: ClusterInformation) => {
+                const estimatedRunway = getEstimatedRunwayInDays(cluster.operatorIds)
+                return `${cluster.operatorIds}: ${Math.floor(estimatedRunway)} days remaining`
             })
             output.body = `
                 The following operatorIds belong to clusters that need funding.
@@ -174,5 +164,65 @@ export async function reportSsvClusterBalances(): Promise<IMailReportHelper>  {
 
         return output
     }
+
+}
+
+export function reportCloseToActivateValidators() {
+    let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportCloseToActivateValidators.name}
+
+    try {
+        const currentEpoch = globalBeaconChainData.currentEpoch
+        const estimatedActivationEpochs = globalPersistentData.estimatedActivationEpochs
+
+        const pendingValidatorsPubKeys = Object.keys(estimatedActivationEpochs).filter((pubkey: string) => {
+            const activationData = estimatedActivationEpochs[pubkey]
+            return currentEpoch <= activationData.epoch
+        })
+
+        const MAX_DAYS = 5
+        const MAX_DAYS_IN_MILLIS = MAX_DAYS * MS_IN_DAY
+
+        const pubKeysToReport = pendingValidatorsPubKeys.filter((pubkey: string) => {
+            const activationData = estimatedActivationEpochs[pubkey]
+            return Date.now() + MAX_DAYS_IN_MILLIS >= activationData.timestamp
+        })
+
+        if(pubKeysToReport.length > 0) {
+            output.ok = false
+            output.severity = Severity.IMPORTANT
+            output.subject = "Close to activate validators"
+
+            const body = pubKeysToReport.map((pubkey: string) => {
+                const activationData = estimatedActivationEpochs[pubkey]
+                const timeLeft = sLeftToTimeLeft((activationData.timestamp - Date.now()) / 1000)
+                return `Pubkey: ${pubkey}. Time left: ${timeLeft}`
+            })
+
+            
+            output.body = `
+                The are validators that will be activated within the next ${MAX_DAYS} days
+                ${body.join("\n")}
+            `
+
+            return output
+        }
+
+        output.ok = true
+        output.severity = Severity.OK
+        output.subject = ""
+        output.body = `There are no validators activating in the following ${MAX_DAYS} days`
+
+        return output
+    } catch(err: any) {
+        const errorMessage = `Unexpected error while checking for reportCloseToActivateValidators ${err.message}`
+        console.error("ERROR:", errorMessage)
+        output.ok = false
+        output.severity = Severity.ERROR
+        output.subject = "Close to activate validators"
+        output.body = errorMessage
+
+        return output
+    }
+
 
 }

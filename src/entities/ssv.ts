@@ -9,10 +9,15 @@ export interface ClusterData {
 }
 
 export interface SsvData {
-    clusterInformation: Record<string, ClusterInformation>
+    clusterInformationRecord: Record<string, ClusterInformation>
 }
 
 export interface ClusterInformation {
-    estimatedRunway: number
+    operatorIds: string
     clusterData: ClusterData
+    liquidationThresholdPeriodInBlocks: bigint,
+    minimumLiquidationCollateralInSsv: bigint,
+    networkFee: bigint,
+    balance: bigint,
+    clusterBurnRate: bigint,
 }

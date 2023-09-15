@@ -1,13 +1,9 @@
-import { IMailReportHelper, Severity } from "../../entities/emailUtils"
 import { Report } from "../../entities/staking"
-import { StakingContract } from "../../ethereum/stakingContract"
-import { WithdrawContract } from "../../ethereum/withdraw"
-import { IBalanceHistoryData, ValidatorData, ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
+import { IBalanceHistoryData, ValidatorData, getBeaconChainEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
 import { IEpochResponse } from "../../services/beaconcha/entities"
 import { sendEmail } from "../../utils/mailUtils"
-import { etow, max, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_SECOND, globalBeaconChainData, globalPersistentData } from "../heartbeat"
-import { computeRollingApy } from "../heartbeat/snapshot"
+import { max } from "../../utils/numberUtils"
+import { globalBeaconChainData } from "../heartbeat"
 
 export const ZEROS_9 = "0".repeat(9)
 

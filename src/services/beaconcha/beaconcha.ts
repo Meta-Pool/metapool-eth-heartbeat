@@ -2,7 +2,7 @@ import { isDebug, isTestnet } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../ethereum/config"
-import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "./entities"
+import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
@@ -16,6 +16,8 @@ const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
 const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory"
 const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}"
+
+const QUEUE_URL = BASE_URL + "validators/queue"
 
 export interface DeployerDataResponse {
     status: string
@@ -34,7 +36,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData
+    data: ValidatorData[]|ValidatorData
 }
 
 export interface ValidatorData {
@@ -81,17 +83,35 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     const nonNullValidatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex).filter(id => id != null)
     const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
     
-    // If there are more than 100 validators this will fail.
-    const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${nonNullValidatorIds.join(",")}`)
-    const jsons = await responses.json()
-    // const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
-    // const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
-    const nonNullValidatorsData = jsons.data
-    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data)
+    const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
+    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data as ValidatorData)
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
 
-    
     return validatorsData
+}
+
+async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
+    const chunkSize = 100
+    let output: ValidatorData[] = []
+    for(let i = 0; i < validatorIds.length; i += chunkSize) {
+        const ids = validatorIds.slice(i, i + chunkSize)
+        const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
+        const validatorsData = validatorsDataResponse.data
+        if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
+            output = output.concat(validatorsData)
+        } else {
+            output.push(validatorsData)
+        }
+    }
+    
+    return output
+}
+
+
+export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
+    if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
+    const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
+    return responses.json()
 }
 
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
@@ -145,27 +165,7 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
         .replace("{latest_epoch}", lastEpoch.toString())
     return (await fetch(validatorsUrl)).json()
-    // let queryEpoch = lastEpoch
-    // const output: IIncomeDetailHistoryResponse = {
-    //     status: "OK",
-    //     data: []
-    // }
-    // while(queryEpoch > firstEpoch) {
-    //     const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
-    //     const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
-    //     if(idhResponse.status !== "OK") {
-    //         output.status = idhResponse.status
-    //     }
-    //     output.data.push(...idhResponse.data)
-    //     queryEpoch -= 100
-    // }
-    // output.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
-    //     if(data1.validatorindex === data2.validatorindex) {
-    //         return data1.epoch - data2.epoch
-    //     }
-    //     return data1.validatorindex - data2.validatorindex
-    // })
-    // return output
+
 }
 
 export async function  getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
@@ -284,4 +284,8 @@ function countPenalties(data: IIncomeData): number {
     if(data.slashing_penalty) penalties++
     if(data.sync_committee_penalty) penalties++
     return penalties
+}
+
+export async function getCurrentQueue(): Promise<QueueResponse> {
+    return (await fetch(QUEUE_URL)).json()
 }

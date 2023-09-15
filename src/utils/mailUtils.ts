@@ -17,13 +17,13 @@ function getResponsibles() {
     return isDebug ? DEBUG_RESPONSIBLES : MAINNET_RESPONSIBLES
 }
 
-export function sendEmail(subject: string, body: string) {
+export function sendEmail(subject: string, body: string, to?: string[]) {
     const env: ENV = getEnv()
-
-    console.log("Sending mails to", getResponsibles())
+    const responsibles = to ? to : getResponsibles()
+    console.log("Sending mails to", responsibles)
     const options: MailOptions = {
         from: env.MAIL_USER,
-        cc: getResponsibles(),
+        cc: responsibles,
         subject,
     }
     if(body.includes("<")) {

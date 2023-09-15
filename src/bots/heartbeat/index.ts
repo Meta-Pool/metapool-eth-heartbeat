@@ -14,24 +14,24 @@ import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateVa
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
-import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsData, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
+import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setEstimatedActivationTime, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
-import { checkForPenalties, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
+import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
-import path from "path";
 import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { getClusterData, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
-import { readdirSync } from "fs";
+import { readdirSync, writeFileSync } from "fs";
 import { ClusterData, SsvData } from "../../entities/ssv";
+import { SsvContract } from "../../ethereum/ssv";
+import { sLeftToTimeLeft } from "../../utils/timeUtils";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -56,6 +56,7 @@ export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
 export const ssvViewsContract: SsvViewsContract = new SsvViewsContract() 
+export const ssvContract: SsvContract = new SsvContract()
 
 //time in ms
 export const MS_IN_SECOND = 1000
@@ -142,11 +143,13 @@ export interface PersistentData {
     lastPenalties: U128String
     ethBotBalance: U128String
     aurBotBalance: U128String
+    
 
     // Chain data
     latestEpochCheckedForReport: number
     latestEpochCheckedForPenalties: number
     latestBeaconChainEpochRegistered: number
+    estimatedActivationEpochs: Record<string, ActivationData> // pubkey - data
 
     // Testnet helper data
     lastIDHTs?: number
@@ -190,10 +193,10 @@ async function showSsvPerformance(resp: http.ServerResponse) {
         resp.write("<tbody>")
         files.forEach((filename: string) => {
             const operatorIds = filename.split(".")[0]
+            const estimatedRunway = getEstimatedRunwayInDays(operatorIds)
             const { 
-                estimatedRunway,
                 clusterData
-            } = globalSsvData.clusterInformation[operatorIds]
+            } = globalSsvData.clusterInformationRecord[operatorIds]
             // const clusterData: ClusterData = getClusterData(operatorIds)
             // const estimatedRunway = await getEstimatedRunwayInDays(operatorIds)
 
@@ -238,7 +241,6 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         let apySum = 0
         let apyCount = 0
         
-
         const asArray = validatorsWithIndex.map((validatorData: ValidatorData) => {
             const validatorIndex = validatorData.validatorindex
 
@@ -261,12 +263,14 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             })
 
             const { pubkey, status } = getValidatorData(validatorIndex!)
+            const estimatedActivationData = globalPersistentData.estimatedActivationEpochs[pubkey]
 
             return {
                 name: validatorIndex!,
                 data: epochsData,
                 pubkey,
                 status,
+                estimatedActivationData,
             }
         })
 
@@ -278,7 +282,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             resp.write(`<div class="perf-table"><table><thead>`);
             resp.write(`
           <tr>
-          <th colspan=2>Pool</th>
+          <th colspan=4>Pool</th>
           `);
             const COLSPAN = 3
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
@@ -293,6 +297,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
           <tr>
           <th colspan=1>Index</th>
           <th colspan=1>Status</th>
+          <th colspan=1>Est. Act. Epoch</th>
+          <th colspan=1>Time remaining for activation</th>
           `);
             for (let epoch = olderReadEpoch; epoch < latestCheckedEpoch; epoch++) {
                 //resp.write(`<th>stake</th><th>rewards</th><th>apy</th>`);
@@ -311,10 +317,13 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
 
             for (let item of asArray) {
                 resp.write(`
-          <tr>
-          <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
-          <td>${item.status}</td>
-          `);
+                    <tr>
+                    <td><a href="${BASE_BEACON_CHAIN_URL_SITE}${item.name.toString()}"} target="_blank">${item.name}</a></td>
+                    <td>${item.status}</td>
+                    <td>${item.estimatedActivationData ? item.estimatedActivationData.epoch : "-"}</td>
+                    <td id="${item.pubkey}"></td>
+                `);
+                
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
                     if (!info) {
@@ -355,78 +364,33 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     }
                 }
 
-                // last column, current info from near core + info from sp in contract
-                //     const sp = globalPools.find(asp => asp.account_id == item.name)
-                //       || {
-                //         inx: -1,
-                //         account_id: item.name,
-                //         weight_basis_points: 0,
-                //         staked: "0",//u128
-                //         unstaked: "0",//u128
-                //         unstaked_requested_epoch_height: "0", //U64String, 
-                //         last_asked_rewards_epoch_height: "0", //U64String,
-                //       } as StakingPoolJSONInfo;
-
-                //     // try to get current total stake from current+next validators list
-                //     const val = perfData.ncore[item.name]
-                //     let totalStakeString = "--"
-                //     let monitoredStakeString = "--"
-                //     let blockProductionPctString = "--"
-                //     let closeToSeatString = ""
-                //     let totalStakeStyle = `font-size:small`
-                //     let blockProductionStyle = ""
-                //     if (val) {
-                //       totalStakeString = (val.stake / 1000).toFixed(2)
-                //       blockProductionPctString = val.isCurrent ? val.blockProductionPct.toFixed() + "%" : "next"
-                //       if (val.isCurrent && val.blockProductionPct <= 92) blockProductionStyle = "background-color:orange"
-                //       if (globalSeatPrices && val.stake < globalSeatPrices.seatNextPrice * 1.1) {
-                //         const diff = val.stake - globalSeatPrices.seatNextPrice
-                //         closeToSeatString = (Math.sign(diff) == -1 ? "" : "+") + (diff / 1000).toFixed(2)
-                //         if (diff <= 0) {
-                //           totalStakeStyle += `;background-color:lightyellow`
-                //         }
-                //       }
-                //     }
-                //     if (totalStakeString == "--") {
-                //       const lastEpochData = item.data[latestCheckedEpoch - 1]
-                //       if (lastEpochData && lastEpochData.totalStake != "") totalStakeString = (yton(lastEpochData.totalStake) / 1000).toFixed(2)
-                //     }
-                //     // check if we have last performance data
-                //     const lpd = globalPersistentData.lastPerformanceCalculation.find(i => i.name == item.name)
-                //     const lpdText = lpd ? ((lpd.bp / 100).toFixed(2) + "%") : ""
-                //     resp.write(
-                //       `<td><small>${lpdText}</small></td>` +
-                //       `<td><small>${(sp.weight_basis_points / 100).toFixed(2)}%</small></td>` +
-                //       `<td>${asNearK((BigInt(globalContractState.total_for_staking) * BigInt(sp.weight_basis_points) / BigInt(10000)).toString())}</td>` +
-                //       `<td>${asNearK(sp.staked)}</td>` +
-                //       `<td>${asNearK(sp.unstaked)}</td>` +
-                //       `<td>${sp.unstaked_requested_epoch_height == "0" ? "" : Number(sp.unstaked_requested_epoch_height) - latestCheckedEpoch}</td>` +
-                //       `<td>${asNearK((BigInt(sp.staked) - BigInt(lastEpochStake) + BigInt(sp.unstaked)).toString())}</td>` +
-                //       `<td style="${totalStakeStyle}">${totalStakeString}</td>` +
-                //       //`<td style="${totalStakeStyle}">${closeToSeatString}</td>` +
-                //       `<td style="${blockProductionStyle}">${blockProductionPctString}</td>` +
-                //       `<td>${item.data[latestCheckedEpoch] ? item.data[latestCheckedEpoch].fee.toFixed() : "--"}</td>`
-                //     );
-                //     // pool name again
-                //     resp.write(`<td style="text-align:left">${item.name}</td>`)
-                //     resp.write(`</tr>`)
+                
             }
 
-            //   resp.write(`</tbody></table></div>`);
-            //   resp.write(`<p>Total old balance:${yton(perfData.oldBalance)}, Total rewards:${yton(perfData.totalRewards)},` +
-            //     ` Metapool epoch APY:${perfData.apy}, AVG Apy: ${perfData.avgApy}</p>`);
-            //   const epochsInYear = 365 * 24 / (epochInfo.prev_epoch_duration_ms / HOURS) // an epoch is 15 hs approx
-            //   resp.write(`<p>Last epoch:${Number(globalContractState.env_epoch_height) - 1}, duration:${(epochInfo.prev_epoch_duration_ms / HOURS).toFixed(2)} hs, Epochs per year:${epochsInYear.toFixed(2)}` +
-            //     `, Management Fee:${globalContractParams.operator_rewards_fee_basis_points / 100}%</p>`);
-
-            //   writeExtraStats(resp)
-            // resp.write(`<script>
-            // let table = document.querySelector(".perf-table")
-            // table.querySelectorAll("th").forEach((th, position) => {
-            //    th.addEventListener("click", evt => sortTable(table, position));
-            //   });
-            // </script>
-            // `);
+            const timestampObj: Record<string, number> = {}
+            for (let item of asArray) {
+                if(item.estimatedActivationData && item.estimatedActivationData.timestamp > Date.now()) {
+                    timestampObj[item.pubkey] = item.estimatedActivationData.timestamp
+                }
+            }
+            resp.write(`<script>
+                const timestampObj = ${JSON.stringify(timestampObj)}
+                Object.keys(timestampObj).forEach((pubkey) => {
+                    const timestampTd = document.getElementById(pubkey)
+                    const activationTimestamp = timestampObj[pubkey]
+                    const intervalId = setInterval(() => {
+                        const timeRemainingInSeconds = (activationTimestamp - Date.now()) / 1000
+                        timestampTd.innerHTML = sLeftToTimeLeft(timeRemainingInSeconds)
+                        if(Math.round(timeRemainingInSeconds) <= 0) {
+                            clearInterval(intervalId)
+                        }
+                    }, 1000)
+                    
+                })
+                
+                const sLeftToTimeLeft = ${sLeftToTimeLeft}
+                </script>
+            `);
         }
 
     } catch (ex: any) {
@@ -808,7 +772,7 @@ async function refreshMetrics() {
     console.log("Metrics promises fullfilled")
 }
 
-async function initializeUninitializedGlobalData() {
+function initializeUninitializedGlobalData() {
     if (!globalPersistentData.lpPrices) {
         globalPersistentData.lpPrices = []
     }
@@ -849,8 +813,9 @@ async function initializeUninitializedGlobalData() {
     if (!globalBeaconChainData.incomeDetailHistory) globalBeaconChainData.incomeDetailHistory = []
 
     if(!globalSsvData) globalSsvData = {
-        clusterInformation: {}
+        clusterInformationRecord: {}
     }
+    if(!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {} 
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -1041,26 +1006,36 @@ function saveGlobalPersistentData() {
 
 async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
     console.log("Sending daily report")
-    const reportHelpersPromises: Promise<IMailReportHelper>[] = [
+    // const reportHelpersPromises: Promise<IMailReportHelper>[] = [
+    //     // alertCreateValidators(),
+    //     // alertCheckProfit(),
+    //     // reportWalletsBalances(),
+    //     // reportSsvClusterBalances(),
+    // ];
+    // console.log("--Checking if validators should be created")
+
+    // // Resolving reports and catching in case of an error
+    // const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
+    //     return promise.catch((err: any) => {
+    //         return {
+    //             ok: false,
+    //             function: `Index ${index}`,
+    //             subject: `Error on index ${index}`,
+    //             body: `Error running function for daily action and report with index ${index}. ${err.message}`,
+    //             severity: Severity.ERROR
+    //         }
+    //     })
+    // }))
+
+    // Pushing reports that are not promises
+    const reports = [
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
         reportSsvClusterBalances(),
-    ];
-    console.log("--Checking if validators should be created")
+        reportCloseToActivateValidators()
+    ]
 
-    // Resolving reports and catching in case of an error
-    const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
-        return promise.catch((err: any) => {
-            return {
-                ok: false,
-                function: `Index ${index}`,
-                subject: `Error on index ${index}`,
-                body: `Error running function for daily action and report with index ${index}. ${err.message}`,
-                severity: Severity.ERROR
-            }
-        })
-    }))
     return reports
     // buildAndSendReport(reports)    
 }
@@ -1128,15 +1103,29 @@ function heartLoop() {
     const beatStartMs = Date.now();
     executing = true;
     beat().catch((ex: any) => {
-        console.error("ERR", JSON.stringify(ex))
+        buildAndSendMailForError(ex)
         console.error("ERR", ex.message)
         console.error("ERR", ex.stack)
+        // console.error("ERR", JSON.stringify(ex))
     }).finally(() => {
         executing = false;
         const elapsedMs = Date.now() - beatStartMs
         console.log("Beat finished after", elapsedMs, "ms")
         loopsExecuted++;
     })
+}
+
+function buildAndSendMailForError(err: any) {
+    let subject = `[ERROR] Unexpected error - ${err.message}`
+    if(isTestnet || isDebug) {
+        subject = `TESTNET: ${subject}`
+    }
+
+    const body = `
+        ${err.message}
+        ${err.stack}
+    `
+    sendEmail(subject, body, ["danieljseidler@gmail.com"])
 }
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }
@@ -1159,13 +1148,24 @@ function processArgs() {
     }
 }
 
+async function test() {
+    const limit = 1000
+    for(let i = 0; i < limit; i++) {
+        await sleep(1000)
+        ssvViewsContract.getMinimumLiquidationCollateral().then((a) => console.log(i, a)).catch((err) => {
+            console.error(i, err.message, err.stack)
+        })
+    }
+}
+
 function run() {
     processArgs()
 
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    if(isDebug) {
+    if(isDebug) {        
+        
         // return
     }
 

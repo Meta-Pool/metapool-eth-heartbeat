@@ -1,16 +1,15 @@
-import { globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
+import { MS_IN_MINUTES, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
-import { ValidatorDataResponse, getBeaconChainEpoch, getValidatorsData, getValidatorsIncomeDetailHistory as getValidatorsIncomeDetailHistory, getIncomeDetailHistory, ValidatorData } from "./beaconcha";
-import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport } from "./entities";
+import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
+import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
 
 
 export async function refreshBeaconChainData() {
     try {
-
         globalBeaconChainData.validatorsData = await getValidatorsData()
         globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
             if (!curr.status) return acc
@@ -25,13 +24,18 @@ export async function refreshBeaconChainData() {
         const latestEpoch = latestEpochData.data.epoch
         const lastEpochRegistered = Math.max(globalPersistentData.latestBeaconChainEpochRegistered, latestEpoch - 100)
     
-        if(lastEpochRegistered === latestEpoch) return
-    
-        const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
-        globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
-    
-        const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
-        globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+        if(lastEpochRegistered !== latestEpoch) {
+            const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
+            console.log(2, newIDH)
+            if(newIDH.data.length > 0) {
+                globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
+            
+                const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory || []}
+                globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
+            } // When there is concurrency between finalized epoch and call, IDH is not loaded into the API yet, and it takes around 20 seconds, so we load it in the next beat
+        }
+
+        await registerActivationEpochsForPendingValidators()
     } catch(err: any) {
         console.error(err.message)
         console.error(err.stack)
@@ -39,9 +43,23 @@ export async function refreshBeaconChainData() {
 
 }
 
+async function registerActivationEpochsForPendingValidators() {
+    const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
+    const pendingValidatorsData = validatorsData.filter((validatorData: ValidatorData) => {
+        return validatorData.status === "pending"
+    })
+    const notSetPendingValidatorsData = pendingValidatorsData.filter((validatorData: ValidatorData) => {
+        return !Object.keys(globalPersistentData.estimatedActivationEpochs).includes(validatorData.pubkey)
+    })
+
+    notSetPendingValidatorsData.forEach((validatorData: ValidatorData) => {
+        setEstimatedActivationTime(validatorData.pubkey)
+    })
+}
+
 export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): Promise<IIncomeDetailHistoryResponse> {
+    console.log("Getting validators IDH from", fromEpoch, "to", toEpoch)
     if(fromEpoch === toEpoch) return {status: "OK", data: []}
-    console.log("Getting validators IDH")
     if (!globalBeaconChainData.validatorsData) throw new Error("Validators data not set")
     const validatorIndexes: number[] = globalBeaconChainData.validatorsData
         .map((v: ValidatorData) => v.validatorindex)
@@ -57,13 +75,14 @@ export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): P
             limits.push(auxFrom)
         }
         
-        const idhResponses: (IIncomeDetailHistoryResponse|undefined)[] = await Promise.all(limits.map((limitFrom: number, index: number) => {
+        const idhResponses: IIncomeDetailHistoryResponse[] = (await Promise.all(limits.map((limitFrom: number, index: number) => {
             if(index + 1 === limits.length) return undefined
             const limitTo = limits[index + 1]
+            console.log(1, "From", limitFrom, "to", limitTo)
             return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
-        }))
-        
-        return joinMultipleIDH(idhResponses.slice(0, -1) as IIncomeDetailHistoryResponse[])
+        }))).filter((idh: IIncomeDetailHistoryResponse|undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
+        console.log(1, JSON.stringify(idhResponses))
+        return joinMultipleIDH(idhResponses as IIncomeDetailHistoryResponse[])
     }))
 
 
@@ -119,28 +138,7 @@ export async function getValidatorsIDH(fromEpoch: number, toEpoch: number): Prom
     return validatorsIDH
 }
 
-// export async function getValidatorsIDHPenaltyCount(fromEpoch: number, toEpoch: number): Promise<Record<number, number>> {
-//     // Obtaining validatorsIndexes filtering out undefined ones
-//     console.log("Getting validators IDH")
-//     if (!beaconChainData.validatorsData) throw new Error("Validators data not set")
-//     const validatorIndexes: number[] = beaconChainData.validatorsData
-//         .map((v: ValidatorDataResponse) => v.data.validatorindex)
-//         .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
 
-//     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
-//     const validatorsGroups = getValidatorsGroups(validatorIndexes)
-//     const validatorsIDHArray: Record<number, number>[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
-//         console.log("Getting IDH for validators", validatorsGroup)
-//         return getValidatorsIncomeDetailHistoryCount(validatorsGroup, fromEpoch, toEpoch)
-//     }))
-
-//     // Joining IDH
-//     let validatorsIDH: Record<number, number> = {}
-//     for(let v of validatorsIDHArray) {
-//         Object.assign(validatorsIDH, v)
-//     }
-//     return validatorsIDH
-// }
 
 export async function setIncomeDetailHistory() {
     try {
@@ -243,4 +241,36 @@ export function getValidatorData(validatorIndex: number): ValidatorData {
     const validator: ValidatorData|undefined = globalBeaconChainData.validatorsData.find((validatorData: ValidatorData) => validatorData.validatorindex === validatorIndex)
     if(!validator) throw new Error(`No validator with index ${validatorIndex}`)
     return validator
+}
+
+/**
+ * When a deposit is made, a validator starts the activating process. After some time, the validator is shown in beacon chain services
+ * Before is shown, it has a null validatorIndex and (should be checked) null activationeligibilityepoch. The last one is the initial point
+ * in which the validator enters the queue
+ * @param pubkey 
+ */
+export async function setEstimatedActivationTime(pubkey: string) {
+    const validatorDataResponse: ValidatorDataResponse = (await getValidatorsDataWithIndexOrPubKey([pubkey]))
+    
+    if(!validatorDataResponse.data) {
+        console.log("Validator with pubkey", pubkey, "is not eligible yet")
+        return
+    }
+    const validatorData = validatorDataResponse.data as ValidatorData
+    if(!validatorData.validatorindex || !validatorData.activationeligibilityepoch ) return
+
+    const queue: QueueResponse = await getCurrentQueue()
+    const queueData: QueueData = queue.data
+    const currentValidatorsEnteringPerEpoch = Math.max(4, Math.floor(queueData.validatorscount / 65536))
+    const entering = queueData.beaconchain_entering
+    const epochsToWait = entering / currentValidatorsEnteringPerEpoch
+    const estimatedActivationEpoch = validatorData.activationeligibilityepoch + epochsToWait
+
+    const timeToWaitInMillis = epochsToWait * 6.4 * MS_IN_MINUTES
+    const estimatedActivationTime = Date.now() + timeToWaitInMillis
+
+    globalPersistentData.estimatedActivationEpochs[pubkey] = {
+        epoch: Math.round(estimatedActivationEpoch),
+        timestamp: Math.round(estimatedActivationTime),
+    }
 }
