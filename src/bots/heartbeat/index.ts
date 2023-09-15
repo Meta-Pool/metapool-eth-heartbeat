@@ -1148,6 +1148,16 @@ function processArgs() {
     }
 }
 
+async function test() {
+    const limit = 1000
+    for(let i = 0; i < limit; i++) {
+        await sleep(1000)
+        ssvViewsContract.getMinimumLiquidationCollateral().then((a) => console.log(i, a)).catch((err) => {
+            console.error(i, err.message, err.stack)
+        })
+    }
+}
+
 function run() {
     processArgs()
 
