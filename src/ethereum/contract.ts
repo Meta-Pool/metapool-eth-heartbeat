@@ -70,7 +70,6 @@ export abstract class GenericContract {
 
     async view(fnName: string, ...args: any[]): Promise<any> {
         try {
-            console.log("Viewing", fnName, "with args", ...args)
             const tx = await this.contract[fnName](...args)            
             return tx
         } catch(err: any) {
