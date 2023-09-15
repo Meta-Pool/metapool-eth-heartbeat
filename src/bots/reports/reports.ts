@@ -194,7 +194,7 @@ export function reportCloseToActivateValidators() {
 
             const body = pubKeysToReport.map((pubkey: string) => {
                 const activationData = estimatedActivationEpochs[pubkey]
-                const timeLeft = sLeftToTimeLeft(activationData.timestamp - Date.now())
+                const timeLeft = sLeftToTimeLeft((activationData.timestamp - Date.now()) / 1000)
                 return `Pubkey: ${pubkey}. Time left: ${timeLeft}`
             })
 

@@ -1,5 +1,4 @@
-import { IBalanceHistory } from "../../entities/beaconcha/validator"
-import { IBalanceHistoryData, ValidatorData, ValidatorDataResponse } from "./beaconcha"
+import { IBalanceHistoryData, ValidatorData } from "./beaconcha"
 
 export interface IValidatorProposal {
     data: IValidatorProposalStatus[]

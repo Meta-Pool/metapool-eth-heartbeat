@@ -4,7 +4,7 @@ import { Node, StakingContract } from "../../ethereum/stakingContract"
 import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
 import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
 import { EthConfig, getConfig } from "../../ethereum/config"
-import { ValidatorData, ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
+import { ValidatorData } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"

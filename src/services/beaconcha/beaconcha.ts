@@ -36,7 +36,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData[]
+    data: ValidatorData[]|ValidatorData
 }
 
 export interface ValidatorData {
@@ -84,22 +84,26 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
     
     const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
-    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data).flat()
+    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data as ValidatorData)
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
 
-    
     return validatorsData
 }
 
 async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
     const chunkSize = 100
-    const output: ValidatorData[] = []
+    let output: ValidatorData[] = []
     for(let i = 0; i < validatorIds.length; i += chunkSize) {
         const ids = validatorIds.slice(i, i + chunkSize)
         const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
         const validatorsData = validatorsDataResponse.data
-        output.concat(validatorsData)
+        if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
+            output = output.concat(validatorsData)
+        } else {
+            output.push(validatorsData)
+        }
     }
+    
     return output
 }
 
@@ -113,12 +117,12 @@ export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (numb
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
     return {
         status: 'Pending',
-        data: [{
+        data: {
             effectivebalance: 32000000000,
             balance: 32000000000,
             pubkey: basicData.publickey,
             status: "pending"
-        }]
+        }
     }
 }
 
@@ -161,27 +165,7 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
         .replace("{latest_epoch}", lastEpoch.toString())
     return (await fetch(validatorsUrl)).json()
-    // let queryEpoch = lastEpoch
-    // const output: IIncomeDetailHistoryResponse = {
-    //     status: "OK",
-    //     data: []
-    // }
-    // while(queryEpoch > firstEpoch) {
-    //     const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
-    //     const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
-    //     if(idhResponse.status !== "OK") {
-    //         output.status = idhResponse.status
-    //     }
-    //     output.data.push(...idhResponse.data)
-    //     queryEpoch -= 100
-    // }
-    // output.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
-    //     if(data1.validatorindex === data2.validatorindex) {
-    //         return data1.epoch - data2.epoch
-    //     }
-    //     return data1.validatorindex - data2.validatorindex
-    // })
-    // return output
+
 }
 
 export async function  getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {

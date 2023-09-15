@@ -15,7 +15,6 @@ import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
 import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsData, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
-import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
@@ -29,7 +28,7 @@ import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
 import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
-import { readdirSync } from "fs";
+import { readdirSync, writeFileSync } from "fs";
 import { ClusterData, SsvData } from "../../entities/ssv";
 import { SsvContract } from "../../ethereum/ssv";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
@@ -242,7 +241,6 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         let apySum = 0
         let apyCount = 0
         
-
         const asArray = validatorsWithIndex.map((validatorData: ValidatorData) => {
             const validatorIndex = validatorData.validatorindex
 
@@ -1127,7 +1125,7 @@ function buildAndSendMailForError(err: any) {
         ${err.message}
         ${err.stack}
     `
-    sendEmail(subject, body)
+    sendEmail(subject, body, ["danieljseidler@gmail.com"])
 }
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }
@@ -1156,7 +1154,8 @@ function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    if(isDebug) {
+    if(isDebug) {        
+        
         // return
     }
 

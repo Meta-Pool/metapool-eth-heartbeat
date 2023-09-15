@@ -1,11 +1,10 @@
 import { ethers } from 'ethers'
-import { ValidatorData, ValidatorDataResponse } from '../../services/beaconcha/beaconcha'
+import { ValidatorData } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
-import { Balances, ETH_32, getBalances } from '../activateValidator'
+import { Balances, getBalances } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
 import { globalBeaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
-import { etow } from '../../utils/numberUtils'
 
 const THRESHOLD: number = 5
 

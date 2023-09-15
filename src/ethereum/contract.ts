@@ -3,20 +3,21 @@ import { ENV, getEnv } from "../entities/env";
 import stakingAbi from "./abi/Staking.json"
 import liquidityAbi from "./abi/LiquidUnstakePool.json"
 import withdrawAbi from "./abi/withdrawAbi.json"
-import ssvAbi from "./abi/ssvAbi.json"
+import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
+import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
 import { parse } from "path";
 import { wtoe } from "../utils/numberUtils";
 
-const NETWORK = 'goerli'
-const RPC_URL = "https://goerli.infura.io/v3/"
 // TODO regenerate private data and get from .env
 const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
+const INFURA_API_KEY = "2dd8a76e1c2842c19115ed0212375464"
 
 const abis = [
+    ssvNetworkViewsAbi,
+    ssvBaseNetworkViewsAbi,
     stakingAbi.abi,
     liquidityAbi.abi,
     withdrawAbi.abi,
-    ssvAbi
 ]
 
 export abstract class GenericContract {
@@ -39,11 +40,13 @@ export abstract class GenericContract {
     abstract getProvider(network: string, apiKey: string): Provider;
     
     getWalletBalance(address: string) {
-        return this.getProvider(this.network, API_KEY).getBalance(address)
+        return this.getProvider(this.network, INFURA_API_KEY).getBalance(address)
+        // return this.getProvider(this.network, API_KEY).getBalance(address)
     }
     
     getWallet(privateKey: string) {
-        const provider = this.getProvider(this.network, API_KEY)
+        const provider = this.getProvider(this.network, INFURA_API_KEY)
+        // const provider = this.getProvider(this.network, API_KEY)
         return new ethers.Wallet(privateKey, provider)
     }
 
@@ -67,6 +70,7 @@ export abstract class GenericContract {
 
     async view(fnName: string, ...args: any[]): Promise<any> {
         try {
+            console.log("Viewing", fnName, "with args", ...args)
             const tx = await this.contract[fnName](...args)            
             return tx
         } catch(err: any) {

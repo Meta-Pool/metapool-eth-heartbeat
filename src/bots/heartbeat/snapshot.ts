@@ -1,11 +1,9 @@
 import { ethers } from "ethers";
 import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
-import { etow, wtoe } from "../../utils/numberUtils";
-import { ValidatorData, ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { wtoe } from "../../utils/numberUtils";
+import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
-import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
-import { calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
 
 export type U128String = string
 

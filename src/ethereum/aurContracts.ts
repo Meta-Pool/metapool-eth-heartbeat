@@ -22,10 +22,14 @@ export class AurContract extends GenericContract {
             case 'mainnet':
                 return new ethers.JsonRpcProvider("https://mainnet.aurora.dev")
             case 'goerli':
-                return new ethers.AlchemyProvider(
+                return new ethers.InfuraProvider(
                     network,
                     apiKey
                 );
+                // return new ethers.AlchemyProvider(
+                //     network,
+                //     apiKey
+                // );
             default:
                 throw new Error(`Network ${network} not defined for aurora`)
         }

@@ -14,10 +14,14 @@ export class EthContract extends GenericContract {
     }
 
     getProvider(network: string, apiKey: string) {
-        return new ethers.AlchemyProvider(
+        return new ethers.InfuraProvider(
             network,
-            apiKey
+            apiKey,
           );
+        // return new ethers.AlchemyProvider(
+        //     network,
+        //     apiKey
+        //   );
     }
     
 }
