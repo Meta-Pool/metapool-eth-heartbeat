@@ -1165,8 +1165,8 @@ function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {        
-        
-        // return
+        checkForPenalties().then((a) => console.log(a))
+        return
     }
 
     if (process.argv.includes("also-80")) {
