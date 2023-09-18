@@ -276,11 +276,12 @@ export function sumPenalties(data: IIncomeData): bigint {
         + BigInt((data.sync_committee_penalty || 0) + ZEROS_9)
 }
 
-function countPenalties(data: IIncomeData): number {
+export function countPenalties(data: IIncomeData): number {
     let penalties = 0
     if(data.attestation_source_penalty) penalties++
     if(data.attestation_target_penalty) penalties++
     if(data.finality_delay_penalty) penalties++
+    if(data.proposals_missed) penalties++
     if(data.slashing_penalty) penalties++
     if(data.sync_committee_penalty) penalties++
     return penalties

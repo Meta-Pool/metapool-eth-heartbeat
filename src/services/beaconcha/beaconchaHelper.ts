@@ -26,7 +26,6 @@ export async function refreshBeaconChainData() {
     
         if(lastEpochRegistered !== latestEpoch) {
             const newIDH = await getAllValidatorsIDH(lastEpochRegistered, latestEpoch)
-            console.log(2, newIDH)
             if(newIDH.data.length > 0) {
                 globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
             
@@ -78,10 +77,8 @@ export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): P
         const idhResponses: IIncomeDetailHistoryResponse[] = (await Promise.all(limits.map((limitFrom: number, index: number) => {
             if(index + 1 === limits.length) return undefined
             const limitTo = limits[index + 1]
-            console.log(1, "From", limitFrom, "to", limitTo)
             return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
         }))).filter((idh: IIncomeDetailHistoryResponse|undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
-        console.log(1, JSON.stringify(idhResponses))
         return joinMultipleIDH(idhResponses as IIncomeDetailHistoryResponse[])
     }))
 
