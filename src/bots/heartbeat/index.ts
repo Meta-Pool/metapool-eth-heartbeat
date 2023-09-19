@@ -957,11 +957,13 @@ async function beat() {
     } // Calls made once a day
 
     if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) { // Calls made every 6 hours
+        console.log("Sending report - 6 hours")
         await registerValidatorsProposals()
         const reportsMadeEvery6Hours: IMailReportHelper[] = (await Promise.all([
             checkForPenalties(),
         ])).filter((report: IMailReportHelper) => {
-            report.severity !== Severity.OK
+            console.log("Penalties report", report)
+            return report.severity !== Severity.OK
         })
         mailReportsToSend.push(...reportsMadeEvery6Hours)        
 
