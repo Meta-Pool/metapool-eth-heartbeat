@@ -19,6 +19,8 @@ const AUR_ESTIMATED_COST_PER_DAY = 0.00001
 const ETH_MIN_BALANCE = ETH_ESTIMATED_COST_PER_DAY * 60
 const AUR_MIN_BALANCE = AUR_ESTIMATED_COST_PER_DAY * 60
 
+const ALLOWED_MIN_PENALTIES = 4
+
 
 export function reportWalletsBalances(): IMailReportHelper {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportWalletsBalances.name}
@@ -94,7 +96,7 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
         const validatorsWithPenaltiesMessages = Object.keys(validatorsWithPenalties).reduce((acc: string[], validatorIndexStr: string) => {
             const validatorIndex = Number(validatorIndexStr)
             const penalties = validatorsWithPenalties[validatorIndex]
-            if(penalties > 0) {
+            if(penalties > ALLOWED_MIN_PENALTIES) {
                 const message = `${validatorIndex} has ${penalties} penalties: ${BASE_BEACON_CHAIN_URL_SITE}${validatorIndex}`
                 acc.push(message)
             }
