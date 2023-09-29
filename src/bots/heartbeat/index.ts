@@ -1167,7 +1167,7 @@ export function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {        
-        checkForPenalties().then((a) => console.log(a))
+        // checkForPenalties().then((a) => console.log(a))
         return
     }
 
