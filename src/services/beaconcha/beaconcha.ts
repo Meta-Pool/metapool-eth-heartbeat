@@ -1,4 +1,3 @@
-import { isDebug, isTestnet } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../ethereum/config"
@@ -142,7 +141,6 @@ export function getBeaconChainEpoch(epoch: string = "finalized"): Promise<IEpoch
 
 export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
     const url = BASE_URL + `validator/${validatorIndex}/proposals`
-    if(isDebug) console.log("Validator proposal url", url)
     return fetch(url).then(r => r.json())
 }
 
@@ -154,7 +152,6 @@ export function getValidatorProposal(validatorIndex: number): Promise<IValidator
  */
 export function getValidatorWithrawalInEpoch(indexOrPubKey: string|number, epoch?: number) {
     const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + epoch ? `?epoch=${epoch}` : ""
-    if(isDebug) console.log("Withrawal url:", url)
     return fetch(url).then(r => r.json())
 }
 
