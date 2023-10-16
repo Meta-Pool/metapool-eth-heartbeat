@@ -956,7 +956,7 @@ async function beat() {
         mailReportsToSend.push(...dailyReports)
     } // Calls made once a day
 
-    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR) { // Calls made every 6 hours
+    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR || isFirstCallOfTheDay) { // Calls made every 6 hours
         console.log("Sending report - 6 hours")
         await registerValidatorsProposals()
         const reportsMadeEvery6Hours: IMailReportHelper[] = (await Promise.all([
@@ -1008,26 +1008,6 @@ function saveGlobalPersistentData() {
 
 async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
     console.log("Sending daily report")
-    // const reportHelpersPromises: Promise<IMailReportHelper>[] = [
-    //     // alertCreateValidators(),
-    //     // alertCheckProfit(),
-    //     // reportWalletsBalances(),
-    //     // reportSsvClusterBalances(),
-    // ];
-    // console.log("--Checking if validators should be created")
-
-    // // Resolving reports and catching in case of an error
-    // const reports: IMailReportHelper[] = await Promise.all((reportHelpersPromises).map((promise: Promise<IMailReportHelper>, index: number) => {
-    //     return promise.catch((err: any) => {
-    //         return {
-    //             ok: false,
-    //             function: `Index ${index}`,
-    //             subject: `Error on index ${index}`,
-    //             body: `Error running function for daily action and report with index ${index}. ${err.message}`,
-    //             severity: Severity.ERROR
-    //         }
-    //     })
-    // }))
 
     // Pushing reports that are not promises
     const reports = [
@@ -1039,7 +1019,6 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
     ]
 
     return reports
-    // buildAndSendReport(reports)    
 }
 
 function getMetricsUrl() {
@@ -1127,7 +1106,7 @@ function buildAndSendMailForError(err: any) {
         ${err.message}
         ${err.stack}
     `
-    sendEmail(subject, body, ["danieljseidler@gmail.com"])
+    sendEmail(subject, body, ["daniel@metapool.app"])
 }
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }
@@ -1166,8 +1145,10 @@ export function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    if(isDebug) {        
-        checkForPenalties().then((a) => console.log(a))
+    if(isDebug) {  
+        initializeUninitializedGlobalData()
+        refreshMetrics().then(() => console.log(snapshot.fromGlobalStateForHuman()))      
+        
         return
     }
 
