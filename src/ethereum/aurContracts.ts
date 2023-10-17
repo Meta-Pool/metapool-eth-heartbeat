@@ -13,7 +13,7 @@ import os from "os";
 export class AurContract extends GenericContract {
 
     constructor(address: string, abi: ethers.InterfaceAbi, network: string = "goerli") {
-        const pk = readFileSync(path.join(os.homedir(), `.config/${network}/aurBot.txt`)).toString()
+        const pk = readFileSync(path.join(os.homedir(), `.config/${network}/aurBot.txt`)).toString().trim()
         super(address, abi, pk, network)
     }
 

@@ -4,11 +4,11 @@ import { ENV, getEnv } from "../entities/env"
 import { isDebug } from "../bots/heartbeat"
 
 const DEBUG_RESPONSIBLES = [
-    "danieljseidler@gmail.com",
+    "daniel@metapool.app",
 ]
 
 const MAINNET_RESPONSIBLES = [
-    "danieljseidler@gmail.com",
+    "daniel@metapool.app",
     "arkuhk@gmail.com",
     "agustin@metapool.app",
 ]

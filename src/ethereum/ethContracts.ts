@@ -9,7 +9,7 @@ export class EthContract extends GenericContract {
 
     constructor(address: string, abi: ethers.InterfaceAbi, walletPk?: string) {
         const network = getEnv().NETWORK ?? "goerli"
-        const pk = walletPk ? walletPk : readFileSync(path.join(os.homedir(), `.config/${network}/ethBot.txt`)).toString()
+        const pk = walletPk ? walletPk : readFileSync(path.join(os.homedir(), `.config/${network}/ethBot.txt`)).toString().trim()
         super(address, abi, pk, network)
     }
 

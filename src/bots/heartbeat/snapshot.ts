@@ -4,6 +4,7 @@ import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { wtoe } from "../../utils/numberUtils";
 import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
+import { ETH_32 } from "../activateValidator";
 
 export type U128String = string
 
@@ -104,6 +105,7 @@ export type SnapshotHR = {
     withdrawBalance: number
     totalPendingWithdraws: number
     totalNodesBalance: number
+    ethNeededToActivateValidator: number
     
     stakingTotalUnderlying: number
     stakingTotalAssets: number
@@ -194,6 +196,10 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
 
+    const ethAvailableFromLiqToValidators = wtoe(globalLiquidityData.totalAssets / 2n) - wtoe(globalPersistentData.liqBalance)
+    const withdrawAvailableFromLiqToValidators = wtoe(globalPersistentData.withdrawBalance) - wtoe(globalPersistentData.totalPendingWithdraws)
+    const ethNeededToActivateValidator = 32 - wtoe(globalPersistentData.stakingBalance) - ethAvailableFromLiqToValidators - withdrawAvailableFromLiqToValidators
+
     let snap: SnapshotHR = {
         mpethPrice: wtoe(globalPersistentData.mpethPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
@@ -218,6 +224,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         withdrawBalance: wtoe(globalPersistentData.withdrawBalance),
         totalPendingWithdraws: wtoe(globalPersistentData.totalPendingWithdraws),
         totalNodesBalance: wtoe(nodesBalanceSum.toString()),
+        ethNeededToActivateValidator,
         
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,

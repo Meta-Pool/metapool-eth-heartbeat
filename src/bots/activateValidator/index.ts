@@ -30,12 +30,8 @@ export interface Balances {
     totalPendingWithdraw: bigint
 }
 
-function getDepositData() {
-    if(isTestnet) {
-        return testnetDepositData
-    } else {
-        return mainnetDepositData
-    }
+export function getDepositData() {
+    return isTestnet ? testnetDepositData : mainnetDepositData
 }
 
 export async function activateValidator(): Promise<boolean> {    
