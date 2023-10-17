@@ -960,6 +960,7 @@ async function beat() {
         console.log("Sending report - 6 hours")
         await registerValidatorsProposals()
         const reportsMadeEvery6Hours: IMailReportHelper[] = (await Promise.all([
+            reportCloseToActivateValidators(),
             checkForPenalties(),
         ])).filter((report: IMailReportHelper) => {
             console.log("Penalties report", report)
@@ -1015,7 +1016,6 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
         alertCheckProfit(),
         reportWalletsBalances(),
         reportSsvClusterBalances(),
-        reportCloseToActivateValidators()
     ]
 
     return reports
