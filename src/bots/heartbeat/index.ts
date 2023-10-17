@@ -1147,7 +1147,7 @@ export function run() {
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {  
         initializeUninitializedGlobalData()
-        refreshMetrics().then(() => console.log(snapshot.fromGlobalState()))      
+        refreshMetrics().then(() => console.log(snapshot.fromGlobalStateForHuman()))      
         
         return
     }

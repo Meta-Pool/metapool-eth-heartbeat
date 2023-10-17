@@ -11,7 +11,7 @@ export function getEstimatedMpEthPrice(): bigint {
 }
 
 export function getEstimatedEthForCreatingValidator(): number {
-    const ethAvailableFromLiqToValidators = wtoe(globalLiquidityData.totalAssets / 2n) - wtoe(globalPersistentData.liqBalance)
+    const ethAvailableFromLiqToValidators = wtoe(globalPersistentData.liqBalance) - wtoe(globalLiquidityData.totalAssets / 2n)
     const withdrawAvailableFromLiqToValidators = wtoe(globalPersistentData.withdrawBalance) - wtoe(globalPersistentData.totalPendingWithdraws)
     const ethNeededToActivateValidator = 32 - wtoe(globalPersistentData.stakingBalance) - ethAvailableFromLiqToValidators - withdrawAvailableFromLiqToValidators
 
