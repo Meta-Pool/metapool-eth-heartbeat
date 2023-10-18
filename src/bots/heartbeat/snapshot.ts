@@ -1,10 +1,11 @@
 import { ethers } from "ethers";
 import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
-import { wtoe } from "../../utils/numberUtils";
+import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { ETH_32 } from "../activateValidator";
+import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
 
 export type U128String = string
 
@@ -64,6 +65,7 @@ export type Snapshot = {
     withdrawBalance: U128String
     totalPendingWithdraws: U128String
     totalNodesBalances: U128String
+    ethNeededToActivateValidator: U128String
 
     stakingTotalUnderlying: U128String
     stakingTotalAssets: U128String
@@ -152,6 +154,7 @@ export function fromGlobalState(): Record<string,any> {
         withdrawBalance: globalPersistentData.withdrawBalance,
         totalPendingWithdraws: globalPersistentData.totalPendingWithdraws,
         totalNodesBalances: nodesBalanceSum.toString(),
+        ethNeededToActivateValidator: etow(getEstimatedEthForCreatingValidator()).toString(),
         
         stakingTotalUnderlying: globalStakingData.totalUnderlying.toString(),
         stakingTotalAssets: globalStakingData.totalAssets.toString(),
@@ -196,10 +199,6 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
 
-    const ethAvailableFromLiqToValidators = wtoe(globalLiquidityData.totalAssets / 2n) - wtoe(globalPersistentData.liqBalance)
-    const withdrawAvailableFromLiqToValidators = wtoe(globalPersistentData.withdrawBalance) - wtoe(globalPersistentData.totalPendingWithdraws)
-    const ethNeededToActivateValidator = 32 - wtoe(globalPersistentData.stakingBalance) - ethAvailableFromLiqToValidators - withdrawAvailableFromLiqToValidators
-
     let snap: SnapshotHR = {
         mpethPrice: wtoe(globalPersistentData.mpethPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
@@ -224,7 +223,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         withdrawBalance: wtoe(globalPersistentData.withdrawBalance),
         totalPendingWithdraws: wtoe(globalPersistentData.totalPendingWithdraws),
         totalNodesBalance: wtoe(nodesBalanceSum.toString()),
-        ethNeededToActivateValidator,
+        ethNeededToActivateValidator: getEstimatedEthForCreatingValidator(),
         
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
