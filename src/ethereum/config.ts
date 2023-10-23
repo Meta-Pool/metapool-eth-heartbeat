@@ -30,8 +30,8 @@ const MAINNET_CONFIG: EthConfig = {
     
     // SSV
     ssvNetworkViews: "0xafE830B6Ee262ba11cce5F32fDCd760FFE6a66e4",
-    ssvContractAddress: "0x0000000000000000000000000000000000000000",
-    ssvOwnerAddress: "0x0000000000000000000000000000000000000000",
+    ssvContractAddress: "0xDD9BC35aE942eF0cFa76930954a156B3fF30a4E1",
+    ssvOwnerAddress: "0xDd1CD16F95e44Ef7E55CC33Ee6C1aF9AB7CEC7fC",
 }
 
 const GOERLI_CONFIG: EthConfig = {

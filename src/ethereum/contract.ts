@@ -3,8 +3,13 @@ import { ENV, getEnv } from "../entities/env";
 import stakingAbi from "./abi/Staking.json"
 import liquidityAbi from "./abi/LiquidUnstakePool.json"
 import withdrawAbi from "./abi/withdrawAbi.json"
+<<<<<<< Updated upstream
 import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
 import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
+=======
+import ssvAbi from "./abi/ssvAbi.json"
+import ssvViewsAbi from "./abi/ssvNetworkViews.json"
+>>>>>>> Stashed changes
 import { parse } from "path";
 import { wtoe } from "../utils/numberUtils";
 
@@ -13,8 +18,13 @@ const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
 const INFURA_API_KEY = "2dd8a76e1c2842c19115ed0212375464"
 
 const abis = [
+<<<<<<< Updated upstream
     ssvNetworkViewsAbi,
     ssvBaseNetworkViewsAbi,
+=======
+    ssvViewsAbi,
+    ssvAbi,
+>>>>>>> Stashed changes
     stakingAbi.abi,
     liquidityAbi.abi,
     withdrawAbi.abi,
