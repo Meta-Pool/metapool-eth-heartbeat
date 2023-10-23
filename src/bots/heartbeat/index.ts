@@ -1145,15 +1145,10 @@ export function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-<<<<<<< HEAD
-    if(isDebug) {        
-        // checkForPenalties().then((a) => console.log(a))
-=======
     if(isDebug) {  
         initializeUninitializedGlobalData()
         refreshMetrics().then(() => console.log(snapshot.fromGlobalStateForHuman()))      
         
->>>>>>> 1d5594054626b08e1009dee99f53f8092b7401cb
         return
     }
 
