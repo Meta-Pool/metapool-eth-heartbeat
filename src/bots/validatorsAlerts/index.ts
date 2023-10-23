@@ -1,10 +1,13 @@
 import { ethers } from 'ethers'
-import { ValidatorData } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, getValidatorsData } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
-import { Balances, getBalances } from '../activateValidator'
+import { Balances, getBalances, getDepositData } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
 import { globalBeaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
+import { getValidatorData } from '../../services/beaconcha/beaconchaHelper'
+import { ZEROS_9 } from '../nodesBalance'
+import { wtoe } from '../../utils/numberUtils'
 
 const THRESHOLD: number = 5
 
@@ -38,7 +41,7 @@ export function alertCreateValidators(): IMailReportHelper {
     const activatedValidatorsAmount = validatorsData.length
     // const activatedValidatorsAmount = validatorsQtyByType[PossibleValidatorStatuses.ACTIVE_ONLINE]
 
-    const createdValidatorsAmount = depositData.length
+    const createdValidatorsAmount = getDepositData().length
     const validatorsToActivateLeft = createdValidatorsAmount - activatedValidatorsAmount
     globalPersistentData.createdValidatorsLeft = validatorsToActivateLeft
     // saveJSON(globalPersistentData)
@@ -112,26 +115,36 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             Previous epoch: ${previousEpoch}
             Current epoch: ${currentEpoch}
         `
-        
-        const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw
+        const validatorsdata = await getValidatorsData()
+        const exitedValidators = validatorsdata.filter((validator: ValidatorData) => {
+            return validator.status === "exited"
+        })
+        // Status exited means it is not validating
+        // In the meantime, a validator may still have balance, which will be used for delayed unstakes
+        const exitedValidatorsBalance = exitedValidators.reduce((exitedValidatorsBalance: bigint, currValidator: ValidatorData) => {
+            return exitedValidatorsBalance + BigInt(currValidator.balance + ZEROS_9)
+        }, 0n)
+        console.log("Exiting validators balance", wtoe(exitedValidatorsBalance))
+
+        const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw + exitedValidatorsBalance
         if(withdrawAvailableEthForValidators > 0) {
             return {
                 ...output,
                 ok: true, 
-                body: `Withdraw contract has enough to cover for delayed unstake.
+                body: `Withdraw contract and exiting validators have enough to cover for delayed unstake.
             ${balancesBody}
             ${epochInfoBody}`,
                 severity: Severity.OK
             }
         } // Check if withdraw balance is enough to cover
 
-        const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance)
+        const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance + exitedValidatorsBalance)
         const neededEth = Number(ethers.formatEther(neededWei.toString()))
         if(neededEth <= 0) {
             return {
                 ...output,
                 ok: true, 
-                body: `Staking and withdraw contracts have enough ETH to cover for delayed unstake.
+                body: `Staking, withdraw contracts and exiting validators have enough ETH to cover for delayed unstake.
                 ${balancesBody}
                 ${epochInfoBody}`,
                 severity: Severity.OK
@@ -145,7 +158,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 return {
                     ...output,
                     ok: true, 
-                    body: `Staking with withdraw and liquidity contracts have enough ETH to cover for delayed unstake.
+                    body: `Staking with withdraw, liquidity contracts and exiting validators have enough ETH to cover for delayed unstake.
                     ${balancesBody}
                     ${epochInfoBody}`,
                     severity: Severity.OK
@@ -165,7 +178,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             
         } // Staking with withdraw and liquidity are enough to cover
 
-        // It is necessary to dissasemble at least one validator
+        // It is necessary to disassemble at least one validator
         console.log("Calculating validators to disassemble")
         console.log("Needed eth", neededEth)
         console.log("Available eth from liq", liqAvailableEthForValidators)

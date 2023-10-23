@@ -8,9 +8,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && cp -rf public_html/ dist/ && bash src/scripts/getClusterData.sh",
+    "build": "npx tsc && cp -rf public_html/ dist/",
     "start": "npm run build && pm2 start ecosystem.config.js",
-    "start:utils": "npx tsc && cd dist/ && node occasionalUtils.js",
+    "utils": "npx tsc && cd dist/ && node occasionalUtils.js",
     "debug": "npm run build && cd dist/ && node bots/heartbeat/index.js --debug",
     "save:metrics": "npm run build && node dist/index.js",
     "restart": "npm run build && pm2 restart ecosystem.config.js",

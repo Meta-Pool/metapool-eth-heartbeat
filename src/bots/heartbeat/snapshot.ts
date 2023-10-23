@@ -1,9 +1,11 @@
 import { ethers } from "ethers";
 import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
-import { wtoe } from "../../utils/numberUtils";
+import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
+import { ETH_32 } from "../activateValidator";
+import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
 
 export type U128String = string
 
@@ -63,6 +65,7 @@ export type Snapshot = {
     withdrawBalance: U128String
     totalPendingWithdraws: U128String
     totalNodesBalances: U128String
+    ethNeededToActivateValidator: U128String
 
     stakingTotalUnderlying: U128String
     stakingTotalAssets: U128String
@@ -104,6 +107,7 @@ export type SnapshotHR = {
     withdrawBalance: number
     totalPendingWithdraws: number
     totalNodesBalance: number
+    ethNeededToActivateValidator: number
     
     stakingTotalUnderlying: number
     stakingTotalAssets: number
@@ -150,6 +154,7 @@ export function fromGlobalState(): Record<string,any> {
         withdrawBalance: globalPersistentData.withdrawBalance,
         totalPendingWithdraws: globalPersistentData.totalPendingWithdraws,
         totalNodesBalances: nodesBalanceSum.toString(),
+        ethNeededToActivateValidator: etow(getEstimatedEthForCreatingValidator()).toString(),
         
         stakingTotalUnderlying: globalStakingData.totalUnderlying.toString(),
         stakingTotalAssets: globalStakingData.totalAssets.toString(),
@@ -218,6 +223,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         withdrawBalance: wtoe(globalPersistentData.withdrawBalance),
         totalPendingWithdraws: wtoe(globalPersistentData.totalPendingWithdraws),
         totalNodesBalance: wtoe(nodesBalanceSum.toString()),
+        ethNeededToActivateValidator: getEstimatedEthForCreatingValidator(),
         
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
