@@ -1167,4 +1167,4 @@ export function run() {
     heartLoop();
 }
 
-run()//.catch((reason: any) => console.error("Main err", reason.message, reason.stack));
+// run()//.catch((reason: any) => console.error("Main err", reason.message, reason.stack));
