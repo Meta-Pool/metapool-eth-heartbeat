@@ -1126,11 +1126,11 @@ async function beat() {
 
     } // Calls made every 6 hours
 
-    if(differenceInDays(globalPersistentData.weeklyDelimiterDateISO, currentDateISO) >= 7) {
-        await claimQRewards()
+    // if(differenceInDays(globalPersistentData.weeklyDelimiterDateISO, currentDateISO) >= 7) {
+    //     await claimQRewards()
 
-        globalPersistentData.weeklyDelimiterDateISO = currentDateISO
-    } // calls made every 1 week
+    //     globalPersistentData.weeklyDelimiterDateISO = currentDateISO
+    // } // calls made every 1 week
 
     const reports: IMailReportHelper[] = await Promise.all([
         getDeactivateValidatorsReport(),
