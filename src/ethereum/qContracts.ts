@@ -4,6 +4,7 @@ import { GenericContract } from "./contract";
 import { readFileSync } from "fs";
 import path from "path";
 import os from "os";
+import { getConfig } from "./config";
 
 export class QContract extends GenericContract {
 
@@ -14,8 +15,8 @@ export class QContract extends GenericContract {
     }
 
     getProvider(network: string, apiKey: string) {
-        if(network === "goerli") throw new Error("Goerli not implemented for Q yet")
-        return new ethers.JsonRpcProvider("https://rpc.q.org")
+        // if(network === "goerli") throw new Error("Goerli/testnet not implemented for Q yet")
+        return new ethers.JsonRpcProvider(getConfig().qRpc)
     }
     
 }

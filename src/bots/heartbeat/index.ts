@@ -31,9 +31,10 @@ import { getConfig } from "../../ethereum/config";
 import { readdirSync } from "fs";
 import { SsvData } from "../../entities/ssv";
 import { SsvContract } from "../../ethereum/ssv";
-import { sLeftToTimeLeft } from "../../utils/timeUtils";
+import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
 import { QValutContract } from "../../ethereum/qVaultContract";
 import { QHeartBeatData } from "../../entities/q/q";
+import { StakedQVaultContract } from "../../ethereum/stakedQVault";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -106,6 +107,7 @@ export interface PersistentData {
     timestamp: number
     delayedUnstakeEpoch: number
     lastValidatorCheckProposalTimestamp: number
+    weeklyDelimiterDateISO: string
 
     // Price data
     mpEthPrices: PriceData[]
@@ -173,12 +175,6 @@ function showContractState(resp: http.ServerResponse) {
 }
 
 async function showQPerformance(resp: http.ServerResponse) {
-    const network = getConfig().network
-
-    if(network === "goerli") {
-        resp.write("Testnet not implemented yet")
-        return
-    }
 
     const maxDaysToDisplay = 10
     let datesToDisplay: string[] = []
@@ -221,7 +217,21 @@ async function showQPerformance(resp: http.ServerResponse) {
                 dateISO: balanceData.dateISO,
                 apy
             }
+
+            
         }).slice(-maxDaysToDisplay)
+
+        Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
+            if(finalDataToDisplay[validatorAddress].length < datesToDisplay.length) {
+                const pendingLength = datesToDisplay.length - finalDataToDisplay[validatorAddress].length
+                const filling = Array.from({length: pendingLength}).fill({
+                    balance: "-",
+                    dateISO: "",
+                    apy: 0
+                })
+                finalDataToDisplay[validatorAddress] = filling.concat(finalDataToDisplay[validatorAddress])
+            }
+        })
     })
 
     const avgApy = apySum / apyCount
@@ -245,7 +255,6 @@ async function showQPerformance(resp: http.ServerResponse) {
     resp.write("</thead>")
     
     resp.write("<tbody>")
-    console.log(1, finalDataToDisplay)
     Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
         const balances = finalDataToDisplay[validatorAddress]
 
@@ -253,7 +262,8 @@ async function showQPerformance(resp: http.ServerResponse) {
         resp.write(`<td>${validatorAddress}</td>`)
 
         balances.forEach((balanceData: any) => {
-            resp.write(`<td>${balanceData.balance.toFixed(4)}</td>`)
+            const balance = isNaN(balanceData.balance) ? "-" : balanceData.balance.toFixed(4)
+            resp.write(`<td>${balance}</td>`)
 
             const apy: number = balanceData.apy as number
             const bgTone = getBgTone(apy, avgApy)
@@ -670,11 +680,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 }
 
 async function refreshQMetrics() {
-    if(isTestnet) {
-        console.log("Q metrics not in testnet")
-        return
-    }
-    const account = "0x9DF9F65bfcF4Bc6E0C891Eed41a9766f0bf5C319"
+    const account = getConfig().qStakeDelegatedAccount
 
     const qValutContract = new QValutContract()
     const [
@@ -683,11 +689,10 @@ async function refreshQMetrics() {
         qValutContract.getDelegationsList(account)
     ])
 
-    console.log(1, delegationsList)
-
     delegationsList.forEach((validatorData: any[]) => {
         const address = validatorData[0]
-        const balance = validatorData[1]
+        // index 1: actual stake - index 6: claimableRewards
+        const balance = validatorData[1] + validatorData[6]
         globalQData.validatorsBalancesByAddress[address] = balance
     })
 }
@@ -884,6 +889,16 @@ function refreshContractData() {
     if (isDebug) console.log("Contract data refreshed")
 }
 
+async function claimQRewards() {
+    try {
+        const stakedQVaultContract = new StakedQVaultContract()
+        return stakedQVaultContract.claimStakeDelegatorReward()
+    } catch(err: any) {
+        console.error("Error claiming Q rewards", err.message)
+        sendEmail("[ERR] Q Rewards", `Error while claiming Q rewards: \n ${err.message}`)
+    }
+}
+
 //utility
 async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -955,6 +970,7 @@ function initializeUninitializedGlobalData() {
     if(!globalQData.validatorsBalancesByAddress) globalQData.validatorsBalancesByAddress = {}
     if(!globalPersistentData.qBalances) globalPersistentData.qBalances = {}
 
+    if(!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -1109,6 +1125,12 @@ async function beat() {
         mailReportsToSend.push(...reportsMadeEvery6Hours)        
 
     } // Calls made every 6 hours
+
+    if(differenceInDays(globalPersistentData.weeklyDelimiterDateISO, currentDateISO) >= 7) {
+        await claimQRewards()
+
+        globalPersistentData.weeklyDelimiterDateISO = currentDateISO
+    } // calls made every 1 week
 
     const reports: IMailReportHelper[] = await Promise.all([
         getDeactivateValidatorsReport(),
@@ -1286,17 +1308,6 @@ export async function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {  
-        // initializeUninitializedGlobalData()
-        // // refreshMetrics().then(() => console.log(snapshot.fromGlobalStateForHuman()))      
-        // refreshMetrics().then(() => {
-        //     console.log(globalQData.validatorsBalancesByAddress)
-
-        //     const currentDate = new Date(new Date().toLocaleString('en', { timeZone: 'America/New_York' })) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
-        //     const currentDateISO = currentDate.toISOString().slice(0, 10)
-        //     updateDailyGlobalData(currentDateISO)
-        //     console.log(globalPersistentData.qBalances)
-        //     saveGlobalPersistentData()
-        // })      
         
         // return
         // showQPerformance()
@@ -1312,9 +1323,6 @@ export async function run() {
     }
     server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
-    while(true) {
-        await sleep(1000)
-    }
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
     heartLoop();
