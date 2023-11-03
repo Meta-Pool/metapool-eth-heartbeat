@@ -10,7 +10,7 @@ import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
 import { ZEROS_9 } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateValidatorsReport } from "../validatorsAlerts";
+import { alertCreateValidators, callDissasembleApi, getDeactivateValidatorsReport as getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassemled } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
@@ -900,7 +900,7 @@ async function claimQRewards() {
 }
 
 //utility
-async function sleep(ms: number) {
+export async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -1308,8 +1308,15 @@ export async function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {  
-        
-        // return
+        initializeUninitializedGlobalData()
+        await refreshMetrics()
+        // const vIndexes = ["0x1", "0x3"]
+        // const responseJson = await callDissasembleApi(vIndexes)
+        // console.log(1, responseJson)
+        // const a = await getValidatorsRecommendedToBeDisassemled(10)
+        const a = await getDeactivateValidatorsReport()
+        console.log(1, a)
+        return
         // showQPerformance()
     }
 

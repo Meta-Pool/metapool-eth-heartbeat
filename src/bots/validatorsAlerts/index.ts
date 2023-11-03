@@ -1,13 +1,16 @@
 import { ethers } from 'ethers'
-import { ValidatorData, getValidatorsData } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, getProposalLuck, getValidatorsData } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, getBalances, getDepositData } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
 import { WithdrawContract } from '../../ethereum/withdraw'
-import { globalBeaconChainData, globalPersistentData, stakingContract } from '../heartbeat'
+import { globalBeaconChainData, globalPersistentData, sleep, stakingContract } from '../heartbeat'
 import { getValidatorData } from '../../services/beaconcha/beaconchaHelper'
 import { ZEROS_9 } from '../nodesBalance'
 import { wtoe } from '../../utils/numberUtils'
+import { getConfig } from '../../ethereum/config'
+import { encrypt } from '../../utils/encryptUtils'
+import { ILuckResponse } from '../../entities/beaconcha/validator'
 
 const THRESHOLD: number = 5
 
@@ -193,11 +196,13 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
         }
 
-        const vIndexes: string[] = getValidatorsRecommendedToBeDisassemled(validatorsToDissasemble)
+        const vIndexes: string[] = await getValidatorsRecommendedToBeDisassemled(validatorsToDissasemble)
+
+        const dissasembleApiResponse = await callDissasembleApi(vIndexes)
 
         ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
-        const subject = "[IMPORTANT] Disassemble validators"
-        const body = `
+        const subject = "Disassemble validators"
+        let body = `
             VALIDATORS TO DISASSEMBLE: ${validatorsToDissasemble}
             ${balancesBody}
             ${epochInfoBody}
@@ -205,12 +210,21 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             ETH provided from liq: ${ethToTransferFromLiq}
             Recommended validators to disassemble: ${vIndexes.join(", ")}
         `
+
+        let severity: Severity
+        if(dissasembleApiResponse.isSuccess) {
+            severity = Severity.IMPORTANT
+        } else {
+            severity = Severity.ERROR
+            body = 
+                `${dissasembleApiResponse.message}${body}`
+        }
         return {
             ...output,
             ok: false, 
             subject,
             body,
-            severity: Severity.IMPORTANT
+            severity,
         }
     } catch(err: any) {
         console.error("ERROR", err.message, err.stack)
@@ -224,11 +238,66 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
     }
 }
 
-function getValidatorsRecommendedToBeDisassemled(amount: number): string[] {
+export async function callDissasembleApi(vIndexes: string[]) {
+    try {
+    const data = await encrypt(vIndexes.join(","))
+    
+    const baseUrl = getConfig().dissasembleBotBaseUrl
+    const response = await fetch(baseUrl, {
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
+        mode: "cors", // no-cors, *cors, same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+        // credentials: "same-origin", // include, *same-origin, omit
+        headers: {
+          "Content-Type": "application/json",
+        //   'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        // redirect: "follow", // manual, *follow, error
+        // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+        body: JSON.stringify({ pubkeys: data }), // body data type must match "Content-Type" header
+      });
+      return response.json(); // parses JSON response into native JavaScript objects
+    } catch(err: any) {
+        const errMessage = `Unexpected error while calling dissasemble api ${err.message}`
+        console.error(errMessage)
+        return {
+            isSuccess: false,
+            message: errMessage
+        }
+    }
+}
+
+export async function getValidatorsRecommendedToBeDisassemled(amount: number): Promise<string[]> {
     const validatorsProposalsArray: [string, number][] = Object.keys(globalPersistentData.validatorsLatestProposal).map((validatorIndex: string) => {
         return [validatorIndex, globalPersistentData.validatorsLatestProposal[Number(validatorIndex)]]
     })
 
     validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-    return validatorsProposalsArray.map((v: [string, number]) => v[0]).slice(0, amount)
+    const validatorsToDissasembleFromProposals = validatorsProposalsArray.map((v: [string, number]) => v[0]).slice(0, amount)
+
+    const validatorsToDissasemble = [...validatorsToDissasembleFromProposals]
+    let possibleValidators
+    // Fill with validators by luck
+    if(validatorsToDissasemble.length < amount) {
+        possibleValidators = globalBeaconChainData.validatorsData.filter((v: ValidatorData) => {
+            return !validatorsToDissasemble.includes(v.pubkey)
+        })
+        
+        const validatorsLuck: [string, ILuckResponse][] = []
+        for(let i = 0; i < possibleValidators.length; i++) {
+            const pubkey = possibleValidators[i].pubkey
+            validatorsLuck.push([pubkey, await getProposalLuck(pubkey)])
+            await sleep(200) //To avoid `API rate limit exceeded` error
+        }
+        validatorsLuck.sort((luck1: [string, ILuckResponse], luck2: [string, ILuckResponse]) => {
+            return luck2[1].data.next_proposal_estimate_ts - luck1[1].data.next_proposal_estimate_ts
+        })
+        
+        const validatorQtyToAppend = amount - validatorsToDissasemble.length
+        const validatorsToAppend = validatorsLuck.map((luck: [string, ILuckResponse]) => {
+            return luck[0]
+        }).slice(0, validatorQtyToAppend)
+        validatorsToDissasemble.push(...validatorsToAppend)
+    }
+    return validatorsToDissasemble
 }
