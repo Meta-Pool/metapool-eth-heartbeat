@@ -1099,9 +1099,8 @@ async function beat() {
         // ------------------------------
         // Check if a validator can be activated an do it
         // ------------------------------
-        console.log("--Checking if a validator can be activated")
-        const wasValidatorCreated = await activateValidator()
-        console.log("Was validator created?", wasValidatorCreated)
+        // console.log("--Checking if a validator can be activated")
+        // const wasValidatorCreated = await activateValidator()
 
         // if(!isDebug) {
         globalPersistentData.lastIDHTs = Date.now()
@@ -1174,6 +1173,7 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
 
     // Pushing reports that are not promises
     const reports = [
+        await activateValidator(),
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
@@ -1309,8 +1309,6 @@ export async function run() {
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {  
         
-        // return
-        // showQPerformance()
     }
 
     if (process.argv.includes("also-80")) {
