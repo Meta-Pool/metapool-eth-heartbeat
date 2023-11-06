@@ -35,6 +35,7 @@ import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
 import { QValutContract } from "../../ethereum/qVaultContract";
 import { QHeartBeatData } from "../../entities/q/q";
 import { StakedQVaultContract } from "../../ethereum/stakedQVault";
+import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -163,7 +164,7 @@ export interface PersistentData {
 
 function showWho(resp: http.ServerResponse) {
     // resp.write("Show who not implemented yet")
-    resp.write(`<div class="top-info">Network:<b>${NETWORK}</b></div>`)
+    resp.write(`<div class="top-info">Network:<b>${NETWORK}</b> - Eth for next validator: <b>${getEstimatedEthForCreatingValidator()}</b></div>`)
 }
 
 function showStats(resp: http.ServerResponse) {
@@ -1291,16 +1292,6 @@ function processArgs() {
     }
 }
 
-async function test() {
-    const limit = 1000
-    for(let i = 0; i < limit; i++) {
-        await sleep(1000)
-        ssvViewsContract.getMinimumLiquidationCollateral().then((a) => console.log(i, a)).catch((err) => {
-            console.error(i, err.message, err.stack)
-        })
-    }
-}
-
 export async function run() {
     processArgs()
 
@@ -1308,7 +1299,8 @@ export async function run() {
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {  
-        
+        // initializeUninitializedGlobalData()
+        // await refreshMetrics()
     }
 
     if (process.argv.includes("also-80")) {
@@ -1321,6 +1313,7 @@ export async function run() {
     }
     server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
+
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
     heartLoop();
