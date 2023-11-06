@@ -15,6 +15,12 @@ export interface EthConfig {
     // SSV
     ssvNetworkViews: string
     ssvOwnerAddress: string
+
+    // Q
+    qVaultAddress: string
+    stakedQVaultAddress: string
+    qRpc: string
+    qStakeDelegatedAccount: string
 }
 
 const MAINNET_CONFIG: EthConfig = {
@@ -32,6 +38,12 @@ const MAINNET_CONFIG: EthConfig = {
     ssvNetworkViews: "0xafE830B6Ee262ba11cce5F32fDCd760FFE6a66e4",
     ssvContractAddress: "0xDD9BC35aE942eF0cFa76930954a156B3fF30a4E1",
     ssvOwnerAddress: "0xDd1CD16F95e44Ef7E55CC33Ee6C1aF9AB7CEC7fC",
+
+    // Q
+    qVaultAddress: "0x13364EaDf6e73b4478734242fC32f1DdD7BC0828",
+    stakedQVaultAddress: "0x60fcdCe76A709B6e82Ff28Ac8AFFa19463d1a1Dc",
+    qRpc: "https://rpc.q.org",
+    qStakeDelegatedAccount: "0x9DF9F65bfcF4Bc6E0C891Eed41a9766f0bf5C319",
 }
 
 const GOERLI_CONFIG: EthConfig = {
@@ -48,6 +60,13 @@ const GOERLI_CONFIG: EthConfig = {
     ssvNetworkViews: "0xAE2C84c48272F5a1746150ef333D5E5B51F68763",
     ssvContractAddress: "0xc3cd9a0ae89fff83b71b58b6512d43f8a41f363d",
     ssvOwnerAddress: "0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6",
+
+    // Q
+    qVaultAddress: "0x13364EaDf6e73b4478734242fC32f1DdD7BC0828",
+    stakedQVaultAddress: "0x3C326f2E8cB507f1162847c626CC2b84E8FEEbC4",
+    qRpc: "https://rpc.qtestnet.org",
+    qStakeDelegatedAccount: "0x0B438De1DCa9FBa6D14F17c1F0969ECc73C8186F",
+
 }
 
 export function getConfig(network?: string): EthConfig {

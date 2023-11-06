@@ -8,34 +8,38 @@ import { tail } from "./util/tail";
 import { LiquidityData, StakingData, WithdrawData } from "./contractData";
 import { StakingContract } from "../../ethereum/stakingContract";
 import { LiquidityContract } from "../../ethereum/liquidity";
-import { ZEROS_9, getNodesBalance } from "../nodesBalance";
+import { ZEROS_9 } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateValidatorsReport } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../ethereum/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getIncomeDetailHistory, getValidatorProposal, getValidatorsData, getValidatorsIncomeDetailHistory, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "../../services/beaconcha/entities";
+import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IValidatorProposal } from "../../services/beaconcha/entities";
 import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getAllValidatorsIDH, getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setEstimatedActivationTime, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
-import { ethToGwei, etow, weiToGWei, wtoe } from "../../utils/numberUtils";
+import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
-import { readdirSync, writeFileSync } from "fs";
-import { ClusterData, SsvData } from "../../entities/ssv";
+import { readdirSync } from "fs";
+import { SsvData } from "../../entities/ssv";
 import { SsvContract } from "../../ethereum/ssv";
-import { sLeftToTimeLeft } from "../../utils/timeUtils";
+import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
+import { QValutContract } from "../../ethereum/qVaultContract";
+import { QHeartBeatData } from "../../entities/q/q";
+import { StakedQVaultContract } from "../../ethereum/stakedQVault";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
 export let globalSsvData: SsvData
+export let globalQData: QHeartBeatData = {} as QHeartBeatData
 export let idhBeaconChainCopyData: Record<number, IIncomeDetailHistoryData[]>
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
@@ -103,6 +107,7 @@ export interface PersistentData {
     timestamp: number
     delayedUnstakeEpoch: number
     lastValidatorCheckProposalTimestamp: number
+    weeklyDelimiterDateISO: string
 
     // Price data
     mpEthPrices: PriceData[]
@@ -122,6 +127,7 @@ export interface PersistentData {
     requestedDelayedUnstakeBalances: BalanceData[]
     historicalActiveValidators: SimpleNumberRecord[]
     incomeDetailHistory: IIncomeDetailHistoryData[]
+    qBalances: Record<string, BalanceData[]> // address - balanceData
 
     // Current data
     stakingBalance: string
@@ -168,13 +174,125 @@ function showContractState(resp: http.ServerResponse) {
     resp.write("Show contract state not implemented yet")
 }
 
+async function showQPerformance(resp: http.ServerResponse) {
+
+    const maxDaysToDisplay = 10
+    let datesToDisplay: string[] = []
+
+    const data = globalPersistentData.qBalances
+
+    // Keep data to be displayed
+    const dataToDisplay: Record<string, BalanceData[]> = {}
+    Object.keys(data).forEach((validatorAddress: string, index: number) => {
+        const historicBalances = data[validatorAddress]
+        dataToDisplay[validatorAddress] = historicBalances.slice(-maxDaysToDisplay - 1) // One more to have the apy of the first
+
+        if(index === 0) {
+            datesToDisplay = dataToDisplay[validatorAddress].map((balanceData: BalanceData) => balanceData.dateISO)
+        }
+    })
+
+    // Calculate APY
+    let apySum = 0
+    let apyCount = 0
+    const finalDataToDisplay: Record<string, any[]> = {}
+    Object.keys(dataToDisplay).forEach((validatorAddress: string) => {
+        const historicBalances = dataToDisplay[validatorAddress]
+        finalDataToDisplay[validatorAddress] = historicBalances.map((balanceData: BalanceData, index: number) => {
+            if(index === 0) return {
+                balance: wtoe(balanceData.balance),
+                dateISO: balanceData.dateISO,
+                apy: 0
+            }
+            apyCount++
+            
+            const prevBalance = wtoe(historicBalances[index - 1].balance)
+            const currBalance = wtoe(balanceData.balance)
+            const dailyRewards = currBalance - prevBalance
+            const apy = ((dailyRewards * 365 / prevBalance) * 100)
+            
+            apySum += apy
+            return {
+                balance: currBalance,
+                dateISO: balanceData.dateISO,
+                apy
+            }
+
+            
+        }).slice(-maxDaysToDisplay)
+
+        Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
+            if(finalDataToDisplay[validatorAddress].length < datesToDisplay.length) {
+                const pendingLength = datesToDisplay.length - finalDataToDisplay[validatorAddress].length
+                const filling = Array.from({length: pendingLength}).fill({
+                    balance: "-",
+                    dateISO: "",
+                    apy: 0
+                })
+                finalDataToDisplay[validatorAddress] = filling.concat(finalDataToDisplay[validatorAddress])
+            }
+        })
+    })
+
+    const avgApy = apySum / apyCount
+
+    resp.write(`<div class="perf-table"><table>`)
+    resp.write("<thead>")
+    resp.write("<tr>")
+    resp.write("<th>Validator address</th>")
+    datesToDisplay.forEach((date: string) => {
+        resp.write(`<th colspan='2'>${date}</th>`)
+    })    
+    resp.write("</tr>")
+
+    resp.write("<tr>")
+    resp.write("<th></th>")
+    datesToDisplay.forEach((_) => {
+        resp.write(`<th>Balance</th>`)
+        resp.write(`<th>APY</th>`)
+    })    
+    resp.write("</tr>")
+    resp.write("</thead>")
+    
+    resp.write("<tbody>")
+    Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
+        const balances = finalDataToDisplay[validatorAddress]
+
+        resp.write("</tr>")
+        resp.write(`<td>${validatorAddress}</td>`)
+
+        balances.forEach((balanceData: any) => {
+            const balance = isNaN(balanceData.balance) ? "-" : balanceData.balance.toFixed(4)
+            resp.write(`<td>${balance}</td>`)
+
+            const apy: number = balanceData.apy as number
+            const bgTone = getBgTone(apy, avgApy)
+            if (bgTone >= 0) {
+                resp.write(`<td style="background-color:rgb(${255 - bgTone},255,${255 - bgTone})">${apy.toFixed(2)}%</td>`);
+            }
+            else {
+                resp.write(`<td style="background-color:rgb(255,${255 + bgTone / 2},${255 + bgTone})">${apy.toFixed(2)}%</td>`);
+            }
+        })
+        resp.write("</tr>")
+
+    })
+    resp.write("</tbody>")
+    resp.write("</table>")
+    resp.write("</div>")
+}
+
+function getBgTone(num: number, avgNum: number) {
+    let bgTone = 64 + (num - avgNum) * 128
+    if (bgTone > 255) bgTone = 255;
+    if (bgTone < -255) bgTone = -255;
+    bgTone = Math.trunc(bgTone)
+    return bgTone
+}
+
 async function showSsvPerformance(resp: http.ServerResponse) {
     try {
         const network = getConfig().network
-        if(network === "mainnet") {
-            resp.write("Mainnet not implemented yet")
-            return
-        }
         var files: string[] = readdirSync(`db/clustersDataSsv/${network}`);
 
         resp.write(`<div class="perf-table"><table>`)
@@ -252,7 +370,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             idhForValidator.forEach((currentIDH: IIncomeDetailHistoryData) => {
                 const rewards = weiToGWei(sumRewards(currentIDH.income))
                 const penalties = weiToGWei(sumPenalties(currentIDH.income))
-                const apy = (((rewards - penalties) * epochsInYear + ethToGwei(32)) / ethToGwei(32) - 1) * 100
+                const apy = ((rewards - penalties) * epochsInYear / ethToGwei(32)) * 100
                 apySum += apy
                 apyCount++
                 epochsData[currentIDH.epoch] = {
@@ -526,6 +644,9 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
             else if (pathname === '/perf_ssv') {
                 showSsvPerformance(resp)
             }
+            else if(pathname === '/perf_q') {
+                showQPerformance(resp)
+            }
 
             //GET /log show process log
             else if (pathname === '/log') {
@@ -556,6 +677,24 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
     }
 
     return true;
+}
+
+async function refreshQMetrics() {
+    const account = getConfig().qStakeDelegatedAccount
+
+    const qValutContract = new QValutContract()
+    const [
+        delegationsList
+    ] = await Promise.all([
+        qValutContract.getDelegationsList(account)
+    ])
+
+    delegationsList.forEach((validatorData: any[]) => {
+        const address = validatorData[0]
+        // index 1: actual stake - index 6: claimableRewards
+        const balance = validatorData[1] + validatorData[6]
+        globalQData.validatorsBalancesByAddress[address] = balance
+    })
 }
 
 async function refreshOtherMetrics() {
@@ -750,6 +889,16 @@ function refreshContractData() {
     if (isDebug) console.log("Contract data refreshed")
 }
 
+async function claimQRewards() {
+    try {
+        const stakedQVaultContract = new StakedQVaultContract()
+        return stakedQVaultContract.claimStakeDelegatorReward()
+    } catch(err: any) {
+        console.error("Error claiming Q rewards", err.message)
+        sendEmail("[ERR] Q Rewards", `Error while claiming Q rewards: \n ${err.message}`)
+    }
+}
+
 //utility
 async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -766,6 +915,7 @@ async function refreshMetrics() {
         refreshWithdrawData(),
         refreshBeaconChainData(),
         refreshSsvData(),
+        refreshQMetrics(),
         refreshOtherMetrics(),
     ]) // These calls can be executed in parallel
     refreshContractData() // Contract data depends on previous refreshes
@@ -816,6 +966,11 @@ function initializeUninitializedGlobalData() {
         clusterInformationRecord: {}
     }
     if(!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {} 
+
+    if(!globalQData.validatorsBalancesByAddress) globalQData.validatorsBalancesByAddress = {}
+    if(!globalPersistentData.qBalances) globalPersistentData.qBalances = {}
+
+    if(!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -878,6 +1033,17 @@ function updateDailyGlobalData(currentDateISO: string) {
         })
     });
 
+    Object.keys(globalQData.validatorsBalancesByAddress).forEach((address: string) => {
+        const balance = globalQData.validatorsBalancesByAddress[address]
+        if(!globalPersistentData.qBalances[address]) {
+            globalPersistentData.qBalances[address] = []
+        }
+        globalPersistentData.qBalances[address].push({
+            dateISO: currentDateISO,
+            balance: balance.toString()    
+        })
+    })
+
     if (isDebug) console.log("Global data refreshed successfully")
 }
 
@@ -922,17 +1088,7 @@ async function beat() {
     const currentDate = new Date(new Date().toLocaleString('en', { timeZone: 'America/New_York' })) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
-    // if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
-    //     console.log("Ms since las IDH report", Date.now() - globalPersistentData.lastIDHTs!)
-    //     const msLeft = 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES - (Date.now() - globalPersistentData.lastIDHTs!)
-    //     console.log("Time remaining for next IDH call", sLeftToTimeLeft(msLeft / 1000))
-    //     if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES) {
-    //         console.log("Calling IDH in the middle of the day")
-    //         globalPersistentData.lastIDHTs = Date.now()
-    //         saveGlobalPersistentData()
-    //         if(!isDebug) await setIncomeDetailHistory()
-    //     }
-    // }
+    
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
         truncateLongGlobalArrays()
@@ -943,9 +1099,8 @@ async function beat() {
         // ------------------------------
         // Check if a validator can be activated an do it
         // ------------------------------
-        console.log("--Checking if a validator can be activated")
-        const wasValidatorCreated = await activateValidator()
-        console.log("Was validator created?", wasValidatorCreated)
+        // console.log("--Checking if a validator can be activated")
+        // const wasValidatorCreated = await activateValidator()
 
         // if(!isDebug) {
         globalPersistentData.lastIDHTs = Date.now()
@@ -969,6 +1124,12 @@ async function beat() {
         mailReportsToSend.push(...reportsMadeEvery6Hours)        
 
     } // Calls made every 6 hours
+
+    // if(differenceInDays(globalPersistentData.weeklyDelimiterDateISO, currentDateISO) >= 7) {
+    //     await claimQRewards()
+
+    //     globalPersistentData.weeklyDelimiterDateISO = currentDateISO
+    // } // calls made every 1 week
 
     const reports: IMailReportHelper[] = await Promise.all([
         getDeactivateValidatorsReport(),
@@ -1012,6 +1173,7 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
 
     // Pushing reports that are not promises
     const reports = [
+        await activateValidator(),
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
@@ -1139,17 +1301,14 @@ async function test() {
     }
 }
 
-export function run() {
+export async function run() {
     processArgs()
 
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
     if(isDebug) {  
-        initializeUninitializedGlobalData()
-        refreshMetrics().then(() => console.log(snapshot.fromGlobalStateForHuman()))      
         
-        return
     }
 
     if (process.argv.includes("also-80")) {

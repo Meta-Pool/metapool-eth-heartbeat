@@ -13,3 +13,11 @@ export function sLeftToTimeLeft(s: number|bigint): string {
         ${Math.round(seconds).toString().padStart(2, "0")}s
     `.replaceAll(/ /g, "").replaceAll(/\n/g, " ").trim()
 }
+
+export function differenceInDays(dateString1: string, dateString2: string) {
+    const date1 = new Date(dateString1);
+    const date2 = new Date(dateString2);
+    const diffTime = Math.abs(date2.getTime() - date1.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    return diffDays
+}

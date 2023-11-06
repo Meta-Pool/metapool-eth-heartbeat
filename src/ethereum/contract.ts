@@ -1,11 +1,9 @@
 import { Contract, Provider, Wallet, ethers } from "ethers";
-import { ENV, getEnv } from "../entities/env";
 import stakingAbi from "./abi/Staking.json"
 import liquidityAbi from "./abi/LiquidUnstakePool.json"
 import withdrawAbi from "./abi/withdrawAbi.json"
 import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
 import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
-import { parse } from "path";
 import { wtoe } from "../utils/numberUtils";
 
 // TODO regenerate private data and get from .env

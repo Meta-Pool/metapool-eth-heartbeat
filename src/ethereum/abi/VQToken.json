@@ -1,0 +1,649 @@
+[
+  { "type": "constructor", "stateMutability": "nonpayable", "inputs": [] },
+  {
+    "type": "event",
+    "name": "Approval",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "owner",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "spender",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "value",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DelegatorRewardClaimed",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_delegator",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "_totalReward",
+        "internalType": "uint256",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "_newBalance",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "NewTimeLock",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_account",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "tuple",
+        "name": "_timelock",
+        "internalType": "struct TimeLockEntry",
+        "indexed": false,
+        "components": [
+          { "type": "uint256", "name": "amount", "internalType": "uint256" },
+          {
+            "type": "uint256",
+            "name": "releaseStart",
+            "internalType": "uint256"
+          },
+          { "type": "uint256", "name": "releaseEnd", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Purged",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_account",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "tuple",
+        "name": "_timelock",
+        "internalType": "struct TimeLockEntry",
+        "indexed": false,
+        "components": [
+          { "type": "uint256", "name": "amount", "internalType": "uint256" },
+          {
+            "type": "uint256",
+            "name": "releaseStart",
+            "internalType": "uint256"
+          },
+          { "type": "uint256", "name": "releaseEnd", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Transfer",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "from",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "to",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "value",
+        "internalType": "uint256",
+        "indexed": false
+      },
+      {
+        "type": "bytes",
+        "name": "data",
+        "internalType": "bytes",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Transfer",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "from",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "name": "to",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "value",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UserDeposited",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_user",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "_newDepositAmount",
+        "internalType": "uint256",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "_newBalance",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UserWithdrawn",
+    "inputs": [
+      {
+        "type": "address",
+        "name": "_user",
+        "internalType": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256",
+        "name": "_withdrawnAmount",
+        "internalType": "uint256",
+        "indexed": false
+      },
+      {
+        "type": "uint256",
+        "name": "_newBalance",
+        "internalType": "uint256",
+        "indexed": false
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "aggregatedNormalizedBalance",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "allowance",
+    "inputs": [
+      { "type": "address", "name": "tokenOwner", "internalType": "address" },
+      { "type": "address", "name": "spender", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "announceUnlock",
+    "inputs": [
+      { "type": "uint256", "name": "_amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "approve",
+    "inputs": [
+      { "type": "address", "name": "spender", "internalType": "address" },
+      { "type": "uint256", "name": "amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "balanceOf",
+    "inputs": [
+      { "type": "address", "name": "_userAddress", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "claimStakeDelegatorReward",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "address",
+        "name": "",
+        "internalType": "contract CompoundRateKeeper"
+      }
+    ],
+    "name": "compoundRateKeeper",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "pure",
+    "outputs": [{ "type": "uint8", "name": "", "internalType": "uint8" }],
+    "name": "decimals",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "decreaseAllowance",
+    "inputs": [
+      { "type": "address", "name": "spender", "internalType": "address" },
+      {
+        "type": "uint256",
+        "name": "subtractedValue",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "delegateStake",
+    "inputs": [
+      {
+        "type": "address[]",
+        "name": "_delegatedTo",
+        "internalType": "address[]"
+      },
+      { "type": "uint256[]", "name": "_stakes", "internalType": "uint256[]" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "payable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "deposit",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "payable",
+    "outputs": [],
+    "name": "depositFromPool",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "payable",
+    "outputs": [],
+    "name": "depositOnBehalfOf",
+    "inputs": [
+      { "type": "address", "name": "_account", "internalType": "address" },
+      { "type": "uint256", "name": "_releaseStart", "internalType": "uint256" },
+      { "type": "uint256", "name": "_releaseEnd", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "payable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "depositTo",
+    "inputs": [
+      { "type": "address", "name": "_recipient", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "",
+        "internalType": "struct QVault.BalanceDetails",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "currentBalance",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "normalizedBalance",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "compoundRate",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "lastUpdateOfCompoundRate",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "interestRate",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "getBalanceDetails",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple[]",
+        "name": "",
+        "internalType": "struct QVault.ValidatorInfo[]",
+        "components": [
+          { "type": "address", "name": "validator", "internalType": "address" },
+          {
+            "type": "uint256",
+            "name": "actualStake",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "normalizedStake",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "compoundRate",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "latestUpdateOfCompoundRate",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "idealStake",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "claimableReward",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "getDelegationsList",
+    "inputs": [
+      { "type": "address", "name": "_delegator", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple",
+        "name": "",
+        "internalType": "struct VotingLockInfo",
+        "components": [
+          {
+            "type": "uint256",
+            "name": "lockedAmount",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "lockedUntil",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "pendingUnlockAmount",
+            "internalType": "uint256"
+          },
+          {
+            "type": "uint256",
+            "name": "pendingUnlockTime",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "getLockInfo",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "getMinimumBalance",
+    "inputs": [
+      { "type": "address", "name": "_account", "internalType": "address" },
+      { "type": "uint256", "name": "_timestamp", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "getNormalizedBalance",
+    "inputs": [
+      { "type": "address", "name": "_userAddress", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [
+      {
+        "type": "tuple[]",
+        "name": "",
+        "internalType": "struct TimeLockEntry[]",
+        "components": [
+          { "type": "uint256", "name": "amount", "internalType": "uint256" },
+          {
+            "type": "uint256",
+            "name": "releaseStart",
+            "internalType": "uint256"
+          },
+          { "type": "uint256", "name": "releaseEnd", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "name": "getTimeLocks",
+    "inputs": [
+      { "type": "address", "name": "_account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "getUserBalance",
+    "inputs": [
+      { "type": "address", "name": "_userAddress", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "increaseAllowance",
+    "inputs": [
+      { "type": "address", "name": "spender", "internalType": "address" },
+      { "type": "uint256", "name": "addedValue", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "initialize",
+    "inputs": [
+      { "type": "address", "name": "_registry", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "lock",
+    "inputs": [
+      { "type": "uint256", "name": "_amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "pure",
+    "outputs": [{ "type": "string", "name": "", "internalType": "string" }],
+    "name": "name",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "purgeTimeLocks",
+    "inputs": [
+      { "type": "address", "name": "_account", "internalType": "address" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "pure",
+    "outputs": [{ "type": "string", "name": "", "internalType": "string" }],
+    "name": "symbol",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "view",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "totalSupply",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "transfer",
+    "inputs": [
+      { "type": "address", "name": "receiver", "internalType": "address" },
+      { "type": "uint256", "name": "amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "transferAndCall",
+    "inputs": [
+      { "type": "address", "name": "_to", "internalType": "address" },
+      { "type": "uint256", "name": "_value", "internalType": "uint256" },
+      { "type": "bytes", "name": "_data", "internalType": "bytes" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "transferFrom",
+    "inputs": [
+      { "type": "address", "name": "owner", "internalType": "address" },
+      { "type": "address", "name": "receiver", "internalType": "address" },
+      { "type": "uint256", "name": "amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [],
+    "name": "unlock",
+    "inputs": [
+      { "type": "uint256", "name": "_amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "uint256", "name": "", "internalType": "uint256" }],
+    "name": "updateCompoundRate",
+    "inputs": []
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "withdraw",
+    "inputs": [
+      { "type": "uint256", "name": "_amount", "internalType": "uint256" }
+    ]
+  },
+  {
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "outputs": [{ "type": "bool", "name": "", "internalType": "bool" }],
+    "name": "withdrawTo",
+    "inputs": [
+      { "type": "address", "name": "_recipient", "internalType": "address" },
+      { "type": "uint256", "name": "_amount", "internalType": "uint256" }
+    ]
+  }
+]
