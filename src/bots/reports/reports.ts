@@ -135,15 +135,7 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
 
 export function reportSsvClusterBalances(): IMailReportHelper  {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportSsvClusterBalances.name}
-    const network = getConfig().network
-    if(network === "mainnet") {
-        return {
-            ...output,
-            ok: true,
-            severity: Severity.OK,
-            body: "Ssv is not yet set for mainnet"
-        }
-    }
+    
     try {
         const clustersToReport: ClusterInformation[] = getClustersThatNeedDeposit()
 
