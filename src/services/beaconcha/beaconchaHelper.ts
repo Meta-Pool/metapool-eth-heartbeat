@@ -104,10 +104,10 @@ function joinMultipleIDH(idhArray: IIncomeDetailHistoryResponse[]) {
 
 function sortIDH(idh: IIncomeDetailHistoryResponse) {
     idh.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
-        if(data1.validatorindex === data2.validatorindex) {
-            return data1.epoch - data2.epoch
+        if(data1.epoch === data2.epoch) {
+            return data1.validatorindex - data2.validatorindex
         }
-        return data1.validatorindex - data2.validatorindex
+        return data1.epoch - data2.epoch
     })
     return idh
 }
