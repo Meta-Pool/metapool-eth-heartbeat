@@ -67,7 +67,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             }
             const nodes: Node[] = await getNextNodesToActivate(validatorsToCreate)
             console.log("Nodes", nodes)
-            // await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
+            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
             wasValidatorCreated = true
         } else {
             console.log(`Not enough balance. Current balance for creating validators: ${wtoe(balanceForValidators)}`)
@@ -78,7 +78,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             function: functionName,
             subject: "Activate validator",
             body: `Validators created: ${validatorsToCreate}`,
-            severity: Severity.OK
+            severity: Severity.IMPORTANT
         }
     } catch(err: any) {
         console.error("There was a problem activating a validator", err.message)
