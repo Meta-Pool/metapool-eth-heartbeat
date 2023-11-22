@@ -9,7 +9,7 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isTestnet } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { LiquidityContract } from "../../ethereum/liquidity"
 import { IMailReportHelper, Severity } from "../../entities/emailUtils"
@@ -67,19 +67,36 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             }
             const nodes: Node[] = await getNextNodesToActivate(validatorsToCreate)
             console.log("Nodes", nodes)
-            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
+            if(!isDebug) {
+                await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
+            }
             wasValidatorCreated = true
+
+            const body = `
+                Validators created: ${validatorsToCreate}
+                Keys: ${nodes.map((node: Node) => node.pubkey).join("                \n")}
+            `
+
+            return {
+                ok: true, 
+                function: functionName,
+                subject: "Activate validator",
+                body,
+                severity: Severity.IMPORTANT
+            }
         } else {
             console.log(`Not enough balance. Current balance for creating validators: ${wtoe(balanceForValidators)}`)
+
+            return {
+                ok: true, 
+                function: functionName,
+                subject: "Activate validator",
+                body: `Validators created: ${validatorsToCreate}`,
+                severity: Severity.OK
+            }
         }
 
-        return {
-            ok: true, 
-            function: functionName,
-            subject: "Activate validator",
-            body: `Validators created: ${validatorsToCreate}`,
-            severity: Severity.IMPORTANT
-        }
+        
     } catch(err: any) {
         console.error("There was a problem activating a validator", err.message)
         const body = "Error: " + err.message 

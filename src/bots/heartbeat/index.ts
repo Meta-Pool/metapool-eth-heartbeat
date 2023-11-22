@@ -1294,13 +1294,12 @@ function processArgs() {
     }
 }
 
-async function debugActions(exit: boolean) {
+async function debugActions(runWhile: boolean) {
     initializeUninitializedGlobalData()
     await refreshMetrics()
-    if(exit) {
-        process.exit(0)
-    }
-    while(isDebug) {
+    const r = await activateValidator()
+    console.log(r)
+    while(runWhile) {
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
     }
@@ -1312,10 +1311,6 @@ export async function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    if(isDebug) { 
-        const exit = false
-        await debugActions(exit)
-    }
 
     if (process.argv.includes("also-80")) {
         try {
@@ -1328,7 +1323,11 @@ export async function run() {
     server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
 
-    
+    if(isDebug) { 
+        const runWhile = false
+        await debugActions(runWhile)
+        return
+    }
 
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
