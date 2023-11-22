@@ -67,9 +67,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             }
             const nodes: Node[] = await getNextNodesToActivate(validatorsToCreate)
             console.log("Nodes", nodes)
-            if(!isDebug) {
-                await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
-            }
+            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
             wasValidatorCreated = true
 
             const body = `
