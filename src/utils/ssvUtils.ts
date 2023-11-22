@@ -18,7 +18,6 @@ export async function refreshSsvData() {
     const network = config.network
     const ownerAddress = config.ssvOwnerAddress
 
-    if(config.network === "mainnet") return
     const operatorsFileNames: string[] = readdirSync(`./db/clustersDataSsv/${network}`)
 
     const promises: Promise<void>[] = operatorsFileNames.map(async (operatorsFileName: string) => {
