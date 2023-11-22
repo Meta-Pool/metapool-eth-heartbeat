@@ -341,7 +341,9 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         const epochsToDisplay = 10
         let latestCheckedEpoch = Number(globalPersistentData.latestBeaconChainEpochRegistered)
 
-        const idh = globalBeaconChainData.incomeDetailHistory
+        const idh = globalBeaconChainData.incomeDetailHistory.filter((idh: IIncomeDetailHistoryData) => {
+            return idh.epoch > globalBeaconChainData.currentEpoch - 100
+        })
         const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorData) => {
             return validatorData.status !== "exited"
         })
@@ -1292,15 +1294,27 @@ function processArgs() {
     }
 }
 
+async function debugActions(exit: boolean) {
+    initializeUninitializedGlobalData()
+    await refreshMetrics()
+    if(exit) {
+        process.exit(0)
+    }
+    while(isDebug) {
+        await sleep(6.4 * MS_IN_MINUTES)
+        await refreshMetrics()
+    }
+}
+
 export async function run() {
     processArgs()
 
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    if(isDebug) {  
-        // initializeUninitializedGlobalData()
-        // await refreshMetrics()
+    if(isDebug) { 
+        const exit = false
+        await debugActions(exit)
     }
 
     if (process.argv.includes("also-80")) {
@@ -1313,6 +1327,8 @@ export async function run() {
     }
     server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
+
+    
 
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
