@@ -137,7 +137,7 @@ export async function checkDeposit(): Promise<IMailReportHelper> {
             ...output,
             ok: true,
             subject: "",
-            body: "There is no need to make deposits to ssv",
+            body: `Ssv clusters have enough funding for more than ${MIN_DAYS_UNTIL_SSV_RUNWAY} days`,
             severity: Severity.OK
         }
     }

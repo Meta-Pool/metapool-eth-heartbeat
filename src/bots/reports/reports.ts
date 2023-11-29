@@ -158,7 +158,7 @@ export function reportSsvClusterBalances(): IMailReportHelper  {
         output.ok = true
         output.severity = Severity.OK
         output.subject = ""
-        output.body = "Ssv clusters have enough funding for more than 60 days"
+        output.body = `Ssv clusters have enough funding for more than ${MIN_DAYS_UNTIL_SSV_RUNWAY} days`
 
         return output
 
