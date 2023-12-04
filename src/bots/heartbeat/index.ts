@@ -26,7 +26,7 @@ import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBal
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
 import { readdirSync } from "fs";
 import { SsvData } from "../../entities/ssv";
@@ -1180,7 +1180,8 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
-        reportSsvClusterBalances(),
+        // reportSsvClusterBalances(),
+        await checkDeposit(),
     ]
 
     return reports
