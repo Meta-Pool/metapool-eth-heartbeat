@@ -43,7 +43,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
         globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
         const balances: Balances = await getBalances()
         const balanceForValidators = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances.totalPendingWithdraw
-        const validatorsToCreate = Math.floor(wtoe(balanceForValidators) / 32)
+        const validatorsToCreate = Math.max(0, Math.floor(wtoe(balanceForValidators) / 32))
         
         if(validatorsToCreate > 0) {
             console.log("Creating", validatorsToCreate, "validators")
