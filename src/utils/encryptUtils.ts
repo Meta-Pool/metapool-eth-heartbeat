@@ -2,9 +2,11 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import os from 'os'
 import EthCrypto from 'eth-crypto'
+import { getConfig } from '../ethereum/config'
 
 function getPubKey() {
-    const pubkeyPath = path.join(os.homedir(), ".config/goerli/dissasemblePubkey.txt")
+    const config = getConfig()
+    const pubkeyPath = path.join(os.homedir(), `.config/${config.network}/dissasemblePubkey.txt`)
     const pubKey = readFileSync(pubkeyPath).toString()
     return pubKey
 }
