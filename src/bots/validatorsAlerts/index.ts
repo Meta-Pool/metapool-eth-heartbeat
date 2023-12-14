@@ -22,7 +22,7 @@ enum PossibleValidatorStatuses {
 
 // function getValidatorsQtyByType(validators: ValidatorDataResponse[]) {
 //     let qty: { [key: string]: number } = {}
-    
+
 //     Object.values(PossibleValidatorStatuses).forEach((v: string) => {
 //         qty[v] = 0
 //     })
@@ -36,7 +36,7 @@ enum PossibleValidatorStatuses {
 // }
 
 export function alertCreateValidators(): IMailReportHelper {
-    let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: "alertCreateValidators"}
+    let output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: "alertCreateValidators" }
     console.log("Getting validators data")
     const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
 
@@ -53,11 +53,11 @@ export function alertCreateValidators(): IMailReportHelper {
             Activated validators: ${activatedValidatorsAmount}. 
             Validators left to activate: ${validatorsToActivateLeft}.
             ${Object.keys(validatorsQtyByType).map((type: string) => `${type.toUpperCase()}: ${validatorsQtyByType[type]}.`)
-                .join("\n            ")}
+            .join("\n            ")}
         `
 
     console.log("Should send alert?", validatorsToActivateLeft <= THRESHOLD)
-    if(validatorsToActivateLeft <= THRESHOLD) {
+    if (validatorsToActivateLeft <= THRESHOLD) {
         // Send alert to create new validators if we have less than threshold
         console.log("Sending email alerting to create new validators")
         output.ok = false
@@ -65,13 +65,13 @@ export function alertCreateValidators(): IMailReportHelper {
         output.body = `CREATE NEW VALIDATORS ${output.body}`
         output.severity = Severity.IMPORTANT
         return output
-    } 
-    
+    }
+
     output.ok = true
     output.subject = "No need to create new validators"
     output.severity = Severity.OK
     return output
-    
+
 }
 
 export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper> {
@@ -79,8 +79,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
     try {
         const withdrawContract = new WithdrawContract()
         const currentEpoch = await withdrawContract.getEpoch()
-        
-        const output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: functionName}
+
+        const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName }
         const balances: Balances = await getBalances()
 
         const balancesBody = `
@@ -90,25 +90,25 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
         `
         // Epoch hasn't change, so there is nothing to do
-        if(currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
+        if (currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
             return {
                 ...output,
-                ok: true, 
+                ok: true,
                 body: `Epoch hasn't changed so there is nothing to do
             ${balancesBody}`,
                 severity: Severity.OK
-            }   
+            }
         }
 
         // Epoch went backwards. This error should never happen
-        if(currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
+        if (currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
             return {
                 ...output,
-                ok: false, 
-                subject: "Withdrawal epoch backwards", 
+                ok: false,
+                subject: "Withdrawal epoch backwards",
                 body: `Withdraw contract went backwards from epoch ${globalPersistentData.delayedUnstakeEpoch} to ${currentEpoch}`,
                 severity: Severity.ERROR
-            }   
+            }
         }
         // Update epoch
         const previousEpoch = globalPersistentData.delayedUnstakeEpoch
@@ -130,10 +130,10 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         console.log("Exiting validators balance", wtoe(exitedValidatorsBalance))
 
         const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw + exitedValidatorsBalance
-        if(withdrawAvailableEthForValidators > 0) {
+        if (withdrawAvailableEthForValidators > 0) {
             return {
                 ...output,
-                ok: true, 
+                ok: true,
                 body: `Withdraw contract and exiting validators have enough to cover for delayed unstake.
             ${balancesBody}
             ${epochInfoBody}`,
@@ -143,10 +143,10 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance + exitedValidatorsBalance)
         const neededEth = Number(ethers.formatEther(neededWei.toString()))
-        if(neededEth <= 0) {
+        if (neededEth <= 0) {
             return {
                 ...output,
-                ok: true, 
+                ok: true,
                 body: `Staking, withdraw contracts and exiting validators have enough ETH to cover for delayed unstake.
                 ${balancesBody}
                 ${epochInfoBody}`,
@@ -155,30 +155,30 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         } // Check if staking with withdraw are enough to cover
 
         const liqAvailableEthForValidators = Number(ethers.formatEther(balances.liqAvailableEthForValidators.toString()))
-        if(liqAvailableEthForValidators >= neededEth) {
+        if (liqAvailableEthForValidators >= neededEth) {
             try {
                 await stakingContract.requestEthFromLiquidPoolToWithdrawal(neededWei)
                 return {
                     ...output,
-                    ok: true, 
+                    ok: true,
                     body: `Staking with withdraw, liquidity contracts and exiting validators have enough ETH to cover for delayed unstake.
                     ${balancesBody}
                     ${epochInfoBody}`,
                     severity: Severity.OK
                 }
-            } catch(err: any) {
+            } catch (err: any) {
                 const message = `There was a problem moving eth from liq to withdraw ${err.message}`
                 console.error(message)
                 return {
                     ...output,
-                    ok: false, 
+                    ok: false,
                     body: `${message}.
                     ${balancesBody}
                     ${epochInfoBody}`,
                     severity: Severity.ERROR
                 }
             }
-            
+
         } // Staking with withdraw and liquidity are enough to cover
 
         // It is necessary to disassemble at least one validator
@@ -187,16 +187,16 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         console.log("Available eth from liq", liqAvailableEthForValidators)
         let validatorsToDissasemble = 0
         let ethToTransferFromLiq = neededEth
-        while(ethToTransferFromLiq > liqAvailableEthForValidators) {
+        while (ethToTransferFromLiq > liqAvailableEthForValidators) {
             validatorsToDissasemble++
             ethToTransferFromLiq -= 32
         }
 
-        if(ethToTransferFromLiq > 0) {
+        if (ethToTransferFromLiq > 0) {
             await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
         }
 
-        const vIndexes: string[] = await getValidatorsRecommendedToBeDisassemled(validatorsToDissasemble)
+        const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDissasemble)
 
         const dissasembleApiResponse = await callDissasembleApi(vIndexes)
 
@@ -212,24 +212,24 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         `
 
         let severity: Severity
-        if(dissasembleApiResponse.isSuccess) {
+        if (dissasembleApiResponse.isSuccess) {
             severity = Severity.IMPORTANT
         } else {
             severity = Severity.ERROR
-            body = 
+            body =
                 `${dissasembleApiResponse.message}${body}`
         }
         return {
             ...output,
-            ok: false, 
+            ok: false,
             subject,
             body,
             severity,
         }
-    } catch(err: any) {
+    } catch (err: any) {
         console.error("ERROR", err.message, err.stack)
         return {
-            ok: false, 
+            ok: false,
             function: functionName,
             subject: "Disassemble validator error",
             body: `There was an error checking if a validator should be disassembled: ${err.message}`,
@@ -240,24 +240,31 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
 export async function callDissasembleApi(vIndexes: string[]) {
     try {
-    const data = await encrypt(vIndexes.join(","))
-    
-    const baseUrl = getConfig().dissasembleBotBaseUrl
-    const response = await fetch(baseUrl, {
-        method: "POST", // *GET, POST, PUT, DELETE, etc.
-        mode: "cors", // no-cors, *cors, same-origin
-        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-        // credentials: "same-origin", // include, *same-origin, omit
-        headers: {
-          "Content-Type": "application/json",
-        //   'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        // redirect: "follow", // manual, *follow, error
-        // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-        body: JSON.stringify({ pubkeys: data }), // body data type must match "Content-Type" header
-      });
-      return response.json(); // parses JSON response into native JavaScript objects
-    } catch(err: any) {
+        const config = getConfig()
+        if(config.network === "testnet") {
+            return {
+                isSuccess: true,
+                message: "Api is not in testnet yet"
+            }
+        }
+        const data = await encrypt(vIndexes.join(","))
+
+        const baseUrl = config.dissasembleBotBaseUrl
+        const response = await fetch(baseUrl, {
+            method: "POST", // *GET, POST, PUT, DELETE, etc.
+            mode: "cors", // no-cors, *cors, same-origin
+            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+            // credentials: "same-origin", // include, *same-origin, omit
+            headers: {
+                "Content-Type": "application/json",
+                //   'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            // redirect: "follow", // manual, *follow, error
+            // referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            body: JSON.stringify({ pubkeys: data }), // body data type must match "Content-Type" header
+        });
+        return response.json(); // parses JSON response into native JavaScript objects
+    } catch (err: any) {
         const errMessage = `Unexpected error while calling dissasemble api ${err.message}`
         console.error(errMessage)
         return {
@@ -267,7 +274,7 @@ export async function callDissasembleApi(vIndexes: string[]) {
     }
 }
 
-export async function getValidatorsRecommendedToBeDisassemled(amount: number): Promise<string[]> {
+export async function getValidatorsRecommendedToBeDisassembled(amount: number): Promise<string[]> {
     const validatorsProposalsArray: [string, number][] = Object.keys(globalPersistentData.validatorsLatestProposal).map((validatorIndex: string) => {
         return [validatorIndex, globalPersistentData.validatorsLatestProposal[Number(validatorIndex)]]
     })
@@ -278,13 +285,13 @@ export async function getValidatorsRecommendedToBeDisassemled(amount: number): P
     const validatorsToDissasemble = [...validatorsToDissasembleFromProposals]
     let possibleValidators
     // Fill with validators by luck
-    if(validatorsToDissasemble.length < amount) {
+    if (validatorsToDissasemble.length < amount) {
         possibleValidators = globalBeaconChainData.validatorsData.filter((v: ValidatorData) => {
             return !validatorsToDissasemble.includes(v.pubkey)
         })
-        
+
         const validatorsLuck: [string, ILuckResponse][] = []
-        for(let i = 0; i < possibleValidators.length; i++) {
+        for (let i = 0; i < possibleValidators.length; i++) {
             const pubkey = possibleValidators[i].pubkey
             validatorsLuck.push([pubkey, await getProposalLuck(pubkey)])
             await sleep(200) //To avoid `API rate limit exceeded` error
@@ -292,7 +299,7 @@ export async function getValidatorsRecommendedToBeDisassemled(amount: number): P
         validatorsLuck.sort((luck1: [string, ILuckResponse], luck2: [string, ILuckResponse]) => {
             return luck2[1].data.next_proposal_estimate_ts - luck1[1].data.next_proposal_estimate_ts
         })
-        
+
         const validatorQtyToAppend = amount - validatorsToDissasemble.length
         const validatorsToAppend = validatorsLuck.map((luck: [string, ILuckResponse]) => {
             return luck[0]
