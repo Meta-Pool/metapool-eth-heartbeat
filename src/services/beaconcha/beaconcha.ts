@@ -1,4 +1,5 @@
 import { ZEROS_9 } from "../../bots/nodesBalance"
+import { ILuckResponse } from "../../entities/beaconcha/validator"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../ethereum/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
@@ -286,4 +287,14 @@ export function countPenalties(data: IIncomeData): number {
 
 export async function getCurrentQueue(): Promise<QueueResponse> {
     return (await fetch(QUEUE_URL)).json()
+}
+
+/**
+ * 
+ * @param validators 
+ * @returns The luck data of all the validators provided, not individually, but as a whole
+ */
+export async function getProposalLuck(validators: string): Promise<ILuckResponse> {
+    const url = BASE_URL + "validators/proposalLuck?validators=" + validators
+    return (await fetch(url)).json()
 }

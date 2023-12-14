@@ -23,6 +23,7 @@
   "dependencies": {
     "alchemy-sdk": "^2.4.3",
     "dotenv": "^16.0.3",
+    "eth-crypto": "^2.6.0",
     "ethers": "^6.6.0",
     "fs": "^0.0.1-security",
     "nodemailer": "^6.9.1",
