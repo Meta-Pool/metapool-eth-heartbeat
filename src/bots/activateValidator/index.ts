@@ -9,9 +9,10 @@ import { WithdrawContract } from "../../ethereum/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isTestnet } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { LiquidityContract } from "../../ethereum/liquidity"
+import { IMailReportHelper, Severity } from "../../entities/emailUtils"
 
 export const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"
@@ -34,15 +35,15 @@ export function getDepositData() {
     return isTestnet ? testnetDepositData : mainnetDepositData
 }
 
-export async function activateValidator(): Promise<boolean> {    
+export async function activateValidator(): Promise<IMailReportHelper> {    
     let wasValidatorCreated = false
-    
+    const functionName = activateValidator.name
     try {
         const secondsUntilNextEpoch = await withdrawContract.getEpochTimeLeft()
         globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(secondsUntilNextEpoch.toString())
         const balances: Balances = await getBalances()
         const balanceForValidators = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances.totalPendingWithdraw
-        const validatorsToCreate = Math.floor(wtoe(balanceForValidators) / 32)
+        const validatorsToCreate = Math.max(0, Math.floor(wtoe(balanceForValidators) / 32))
         
         if(validatorsToCreate > 0) {
             console.log("Creating", validatorsToCreate, "validators")
@@ -68,16 +69,45 @@ export async function activateValidator(): Promise<boolean> {
             console.log("Nodes", nodes)
             await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
             wasValidatorCreated = true
+
+            const body = `
+                Validators created: ${validatorsToCreate}
+                Keys: ${nodes.map((node: Node) => node.pubkey).join("                \n")}
+            `
+
+            return {
+                ok: true, 
+                function: functionName,
+                subject: "Activate validator",
+                body,
+                severity: Severity.IMPORTANT
+            }
         } else {
             console.log(`Not enough balance. Current balance for creating validators: ${wtoe(balanceForValidators)}`)
+
+            return {
+                ok: true, 
+                function: functionName,
+                subject: "Activate validator",
+                body: `Validators created: ${validatorsToCreate}`,
+                severity: Severity.OK
+            }
         }
+
+        
     } catch(err: any) {
         console.error("There was a problem activating a validator", err.message)
-        const subject = "[ERROR] Activating validator"
         const body = "Error: " + err.message 
-        sendEmail(subject, body)
+        // sendEmail(subject, body)
+        return {
+            ok: false, 
+            function: functionName,
+            subject: "Activating validator error",
+            body,
+            severity: Severity.ERROR
+        }
     } 
-    return wasValidatorCreated
+    
 }
 
 async function getValidatorsToActivate(): Promise<any[]> {

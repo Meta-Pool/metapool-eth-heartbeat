@@ -5,6 +5,7 @@ import { EthContract } from "./ethContracts"
 import { max, min } from "../utils/numberUtils"
 import { ethers } from "ethers"
 import { Report } from "../entities/staking"
+import { isDebug } from "../bots/heartbeat"
 
 export interface Node {
     pubkey: string

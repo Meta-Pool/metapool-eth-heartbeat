@@ -29,7 +29,9 @@ export async function refreshBeaconChainData() {
             if(newIDH.data.length > 0) {
                 globalPersistentData.latestBeaconChainEpochRegistered = latestEpoch
             
-                const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory.slice(-3000) || []}
+                const registeredIDH = {status: "OK", data: globalBeaconChainData.incomeDetailHistory.filter((idh: IIncomeDetailHistoryData) => {
+                    return idh.epoch > lastEpochRegistered - 100
+                }) || []}
                 globalBeaconChainData.incomeDetailHistory = sortIDH(joinMultipleIDH([newIDH, registeredIDH])).data
             } // When there is concurrency between finalized epoch and call, IDH is not loaded into the API yet, and it takes around 20 seconds, so we load it in the next beat
         }
@@ -104,10 +106,10 @@ function joinMultipleIDH(idhArray: IIncomeDetailHistoryResponse[]) {
 
 function sortIDH(idh: IIncomeDetailHistoryResponse) {
     idh.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
-        if(data1.validatorindex === data2.validatorindex) {
-            return data1.epoch - data2.epoch
+        if(data1.epoch === data2.epoch) {
+            return data1.validatorindex - data2.validatorindex
         }
-        return data1.validatorindex - data2.validatorindex
+        return data1.epoch - data2.epoch
     })
     return idh
 }

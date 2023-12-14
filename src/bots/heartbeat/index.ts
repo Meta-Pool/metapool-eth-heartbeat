@@ -26,7 +26,7 @@ import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBal
 import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
 import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { SsvViewsContract } from "../../ethereum/ssvViews";
-import { getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
 import { getConfig } from "../../ethereum/config";
 import { readdirSync } from "fs";
 import { SsvData } from "../../entities/ssv";
@@ -35,6 +35,7 @@ import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
 import { QValutContract } from "../../ethereum/qVaultContract";
 import { QHeartBeatData } from "../../entities/q/q";
 import { StakedQVaultContract } from "../../ethereum/stakedQVault";
+import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -163,7 +164,7 @@ export interface PersistentData {
 
 function showWho(resp: http.ServerResponse) {
     // resp.write("Show who not implemented yet")
-    resp.write(`<div class="top-info">Network:<b>${NETWORK}</b></div>`)
+    resp.write(`<div class="top-info">Network:<b>${NETWORK}</b> - Eth for next validator: <b>${getEstimatedEthForCreatingValidator()}</b></div>`)
 }
 
 function showStats(resp: http.ServerResponse) {
@@ -340,7 +341,9 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         const epochsToDisplay = 10
         let latestCheckedEpoch = Number(globalPersistentData.latestBeaconChainEpochRegistered)
 
-        const idh = globalBeaconChainData.incomeDetailHistory
+        const idh = globalBeaconChainData.incomeDetailHistory.filter((idh: IIncomeDetailHistoryData) => {
+            return idh.epoch > globalBeaconChainData.currentEpoch - 100
+        })
         const validatorsData = globalBeaconChainData.validatorsData.filter((validatorData: ValidatorData) => {
             return validatorData.status !== "exited"
         })
@@ -1099,9 +1102,8 @@ async function beat() {
         // ------------------------------
         // Check if a validator can be activated an do it
         // ------------------------------
-        console.log("--Checking if a validator can be activated")
-        const wasValidatorCreated = await activateValidator()
-        console.log("Was validator created?", wasValidatorCreated)
+        // console.log("--Checking if a validator can be activated")
+        // const wasValidatorCreated = await activateValidator()
 
         // if(!isDebug) {
         globalPersistentData.lastIDHTs = Date.now()
@@ -1174,10 +1176,12 @@ async function runDailyActionsAndReport(): Promise<IMailReportHelper[]> {
 
     // Pushing reports that are not promises
     const reports = [
+        await activateValidator(),
         alertCreateValidators(),
         alertCheckProfit(),
         reportWalletsBalances(),
-        reportSsvClusterBalances(),
+        // reportSsvClusterBalances(),
+        await checkDeposit(),
     ]
 
     return reports
@@ -1291,13 +1295,14 @@ function processArgs() {
     }
 }
 
-async function test() {
-    const limit = 1000
-    for(let i = 0; i < limit; i++) {
-        await sleep(1000)
-        ssvViewsContract.getMinimumLiquidationCollateral().then((a) => console.log(i, a)).catch((err) => {
-            console.error(i, err.message, err.stack)
-        })
+async function debugActions(runWhile: boolean) {
+    initializeUninitializedGlobalData()
+    await refreshMetrics()
+    const r = await activateValidator()
+    console.log(r)
+    while(runWhile) {
+        await sleep(6.4 * MS_IN_MINUTES)
+        await refreshMetrics()
     }
 }
 
@@ -1307,18 +1312,6 @@ export async function run() {
     globalPersistentData = loadJSON("persistent.json")
     globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
-    if(isDebug) {  
-        initializeUninitializedGlobalData()
-        await refreshMetrics()
-        // const vIndexes = ["0x1", "0x3"]
-        // const responseJson = await callDissasembleApi(vIndexes)
-        // console.log(1, responseJson)
-        // const a = await getValidatorsRecommendedToBeDisassemled(10)
-        const a = await getDeactivateValidatorsReport()
-        console.log(1, a)
-        return
-        // showQPerformance()
-    }
 
     if (process.argv.includes("also-80")) {
         try {
@@ -1330,6 +1323,13 @@ export async function run() {
     }
     server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
+
+    if(isDebug) { 
+        const runWhile = false
+        await debugActions(runWhile)
+        return
+    }
+
     //start loop calling heartbeat 
     serverStartedTimestamp = Date.now();
     heartLoop();
