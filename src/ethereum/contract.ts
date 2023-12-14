@@ -5,6 +5,7 @@ import withdrawAbi from "./abi/withdrawAbi.json"
 import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
 import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
 import { wtoe } from "../utils/numberUtils";
+import { isDebug } from "../bots/heartbeat";
 
 // TODO regenerate private data and get from .env
 const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
@@ -76,7 +77,17 @@ export abstract class GenericContract {
         }
     }
     
+    /**
+     * When on debug mode, we don't want to make any actual call to the contract. If you happen to do, comment the first line and be very careful
+     * @param fnName 
+     * @param args 
+     * @returns 
+     */
     async call(fnName: string, ...args: any[]): Promise<any> {
+        if(isDebug) {
+            console.log("Trying to call contract function in debug mode. Not making the call.")
+            return new Promise(() => {})
+        }
         try {
             const tx = await this.contract[fnName](...args)
             const gasInWei: bigint = 100000000n

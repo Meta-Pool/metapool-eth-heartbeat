@@ -135,15 +135,7 @@ export async function checkForPenalties(fromEpochAux?: number): Promise<IMailRep
 
 export function reportSsvClusterBalances(): IMailReportHelper  {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: reportSsvClusterBalances.name}
-    const network = getConfig().network
-    if(network === "mainnet") {
-        return {
-            ...output,
-            ok: true,
-            severity: Severity.OK,
-            body: "Ssv is not yet set for mainnet"
-        }
-    }
+    
     try {
         const clustersToReport: ClusterInformation[] = getClustersThatNeedDeposit()
 
@@ -166,7 +158,7 @@ export function reportSsvClusterBalances(): IMailReportHelper  {
         output.ok = true
         output.severity = Severity.OK
         output.subject = ""
-        output.body = "Ssv clusters have enough funding for more than 60 days"
+        output.body = `Ssv clusters have enough funding for more than ${MIN_DAYS_UNTIL_SSV_RUNWAY} days`
 
         return output
 
