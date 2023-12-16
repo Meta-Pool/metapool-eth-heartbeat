@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "fs";
-import { globalSsvData, ssvContract, ssvViewsContract } from "../bots/heartbeat";
+import { globalSsvData, isDebug, ssvContract, ssvViewsContract } from "../bots/heartbeat";
 import { etow, wtoe } from "./numberUtils";
 import { getConfig } from "../ethereum/config";
 import { ClusterData, ClusterInformation, SsvData } from "../entities/ssv";
@@ -14,6 +14,7 @@ type Result = {success: boolean, ids: string, error?: string}
 
 
 export async function refreshSsvData() {
+    if(isDebug) return
     const config = getConfig()
     const network = config.network
     const ownerAddress = config.ssvOwnerAddress

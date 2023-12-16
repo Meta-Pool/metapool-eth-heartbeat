@@ -6,6 +6,7 @@ import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { ETH_32 } from "../activateValidator";
 import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
+import { groupQBalancesSortedByDate } from "../../utils/qUtils";
 
 export type U128String = string
 
@@ -80,6 +81,12 @@ export type Snapshot = {
     lastPenalties: U128String
     ethBotBalance: U128String
     aurBotBalance: U128String
+
+    // Q data
+    q_3_day_apy: number
+    q_7_day_apy: number
+    q_15_day_apy: number
+    q_30_day_apy: number
     
     // nodesBalances: Record<string, number>
     // validatorsTypesQty: Record<string, number>
@@ -134,6 +141,7 @@ export function fromGlobalState(): Record<string,any> {
         return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
+    const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
     
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
@@ -171,6 +179,11 @@ export function fromGlobalState(): Record<string,any> {
         aurBotBalance: globalPersistentData.aurBotBalance,
 
         mpethPriceUnderlying: wtoe(globalPersistentData.estimatedMpEthPrice.toString()),
+
+        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
+        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
+        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
+        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
     }
 
     const output: Record<string, string|number> = snap
