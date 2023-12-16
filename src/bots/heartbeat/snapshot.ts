@@ -129,6 +129,12 @@ export type SnapshotHR = {
     lastPenalties: number
     ethBotBalance: number
     aurBotBalance: number
+
+    // Q data
+    q_3_day_apy: number
+    q_7_day_apy: number
+    q_15_day_apy: number
+    q_30_day_apy: number
     
     nodesBalances: Record<string, number>
     validatorsTypesQty: Record<string, number>
@@ -212,6 +218,9 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
 
+    const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
+
+
     let snap: SnapshotHR = {
         mpethPrice: wtoe(globalPersistentData.mpethPrice),
         rewardsPerSecondInETH: wtoe(globalPersistentData.rewardsPerSecondsInWei),
@@ -247,6 +256,11 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         ethBotBalance: wtoe(globalPersistentData.ethBotBalance),
         aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
         mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
+
+        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
+        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
+        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
+        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
         
         nodesBalances,
         validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,

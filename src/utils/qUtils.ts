@@ -34,7 +34,5 @@ export function groupQBalancesSortedByDate(): PriceData[] {
         return ascDateSorter(a.dateISO, b.dateISO)
     })
 
-    console.log(balancesAsPriceData)
-
     return balancesAsPriceData
 }
