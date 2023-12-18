@@ -21,3 +21,12 @@ export function differenceInDays(dateString1: string, dateString2: string) {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
     return diffDays
 }
+
+
+export function ascDateSorter(d1: string, d2: string) {
+    let date1 = new Date(d1).getTime();
+    let date2 = new Date(d2).getTime();
+  
+    return date1 - date2
+  
+  };
