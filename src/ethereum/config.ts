@@ -43,7 +43,7 @@ const MAINNET_CONFIG: EthConfig = {
 
     // Q
     qVaultAddress: "0x13364EaDf6e73b4478734242fC32f1DdD7BC0828",
-    stakedQVaultAddress: "0x60fcdCe76A709B6e82Ff28Ac8AFFa19463d1a1Dc",
+    stakedQVaultAddress: "0x1CC2f3A24F5c826af7F98A91b98BeC2C05115d01",
     qRpc: "https://rpc.q.org",
     qStakeDelegatedAccount: "0x9DF9F65bfcF4Bc6E0C891Eed41a9766f0bf5C319",
 }
