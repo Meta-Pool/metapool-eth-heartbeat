@@ -184,9 +184,13 @@ async function showQPerformance(resp: http.ServerResponse) {
 
     // Keep data to be displayed
     const dataToDisplay: Record<string, BalanceData[]> = {}
+    const todayISO = new Date().toISOString()
     Object.keys(data).forEach((validatorAddress: string, index: number) => {
         const historicBalances = data[validatorAddress]
-        dataToDisplay[validatorAddress] = historicBalances.slice(-maxDaysToDisplay - 1) // One more to have the apy of the first
+        dataToDisplay[validatorAddress] = historicBalances.filter((b: BalanceData) => {
+            const difference = differenceInDays(todayISO, b.dateISO)
+            return difference < maxDaysToDisplay + 1
+        }) // One more to have the apy of the first
 
         if(index === 0) {
             datesToDisplay = dataToDisplay[validatorAddress].map((balanceData: BalanceData) => balanceData.dateISO)
