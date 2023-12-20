@@ -1298,8 +1298,7 @@ function processArgs() {
 async function debugActions(runWhile: boolean) {
     initializeUninitializedGlobalData()
     await refreshMetrics()
-    const r = await activateValidator()
-    console.log(r)
+    checkAuroraDelayedUnstakeOrders(true)
     while(runWhile) {
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
