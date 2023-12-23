@@ -130,7 +130,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         console.log("Exiting validators balance", wtoe(exitedValidatorsBalance))
 
         const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw + exitedValidatorsBalance
-        if (withdrawAvailableEthForValidators > 0) {
+        if (withdrawAvailableEthForValidators > 0) {            
             return {
                 ...output,
                 ok: true,
@@ -197,7 +197,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         }
 
         const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDissasemble)
-
+        
         const dissasembleApiResponse = await callDissasembleApi(vIndexes)
 
         ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
@@ -280,9 +280,17 @@ export async function getValidatorsRecommendedToBeDisassembled(amount: number): 
     })
 
     validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-    const validatorsToDissasembleFromProposals = validatorsProposalsArray.map((v: [string, number]) => v[0]).slice(0, amount)
+    const validatorsToDissasemble = validatorsProposalsArray.map((v: [string, number]) => {
+        const index = v[0]
+        const validatorData = globalBeaconChainData.validatorsData.find((v: ValidatorData) => {
+            return v.validatorindex === Number(index)
+        })
+        if(!validatorData) {
+            throw new Error(`Validator with index ${index} not found`)
+        }
+        return validatorData?.pubkey
+    }).slice(0, amount)
 
-    const validatorsToDissasemble = [...validatorsToDissasembleFromProposals]
     let possibleValidators
     // Fill with validators by luck
     if (validatorsToDissasemble.length < amount) {
