@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import os from 'os'
 import EthCrypto from 'eth-crypto'
-import { getConfig } from '../ethereum/config'
+import { getConfig } from '../crypto/config'
 
 function getPubKey() {
     const config = getConfig()

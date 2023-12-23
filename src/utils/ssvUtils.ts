@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "fs";
 import { globalSsvData, isDebug, ssvContract, ssvViewsContract } from "../bots/heartbeat";
 import { etow, wtoe } from "./numberUtils";
-import { getConfig } from "../ethereum/config";
+import { getConfig } from "../crypto/config";
 import { ClusterData, ClusterInformation, SsvData } from "../entities/ssv";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../entities/emailUtils";
 

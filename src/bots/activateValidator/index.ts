@@ -1,17 +1,17 @@
 import { ethers } from "ethers"
 import { existsSync, readFileSync, writeFileSync } from "fs"
-import { Node, StakingContract } from "../../ethereum/stakingContract"
+import { Node, StakingContract } from "../../crypto/stakingContract"
 import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
 import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
-import { EthConfig, getConfig } from "../../ethereum/config"
+import { EthConfig, getConfig } from "../../crypto/config"
 import { ValidatorData } from '../../services/beaconcha/beaconcha'
-import { WithdrawContract } from "../../ethereum/withdraw"
+import { WithdrawContract } from "../../crypto/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, depositContract, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
-import { LiquidityContract } from "../../ethereum/liquidity"
+import { LiquidityContract } from "../../crypto/liquidity"
 import { IMailReportHelper, Severity } from "../../entities/emailUtils"
 
 export const ETH_32 = ethers.parseEther("32")
@@ -66,8 +66,9 @@ export async function activateValidator(): Promise<IMailReportHelper> {
                 `)
             }
             const nodes: Node[] = await getNextNodesToActivate(validatorsToCreate)
+            const depositRoot: string = await depositContract.getDepositRoot()
             console.log("Nodes", nodes)
-            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
+            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw, depositRoot)
             wasValidatorCreated = true
 
             const body = `

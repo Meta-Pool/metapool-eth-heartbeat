@@ -1,14 +1,14 @@
 import { SERVFAIL } from "dns";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
-import { StakingContract } from "../../ethereum/stakingContract";
+import { StakingManagerContract } from "../../crypto/auroraStakingManager";
+import { StakingContract } from "../../crypto/stakingContract";
 import { BASE_BEACON_CHAIN_URL_SITE, countPenalties } from "../../services/beaconcha/beaconcha";
 import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
 import { IIncomeDetailHistoryData, MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
 import { MS_IN_DAY, globalBeaconChainData, globalPersistentData } from "../heartbeat";
 import { readdirSync } from "fs";
-import { getConfig } from "../../ethereum/config";
+import { getConfig } from "../../crypto/config";
 import { MIN_DAYS_UNTIL_SSV_RUNWAY, getClustersThatNeedDeposit, getEstimatedRunwayInDays } from "../../utils/ssvUtils";
 import { ClusterData, ClusterInformation } from "../../entities/ssv";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
