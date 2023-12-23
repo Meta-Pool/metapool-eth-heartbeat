@@ -1,5 +1,5 @@
 import { globalPersistentData } from "../bots/heartbeat";
-import { StakingContract } from "../ethereum/stakingContract";
+import { StakingContract } from "../crypto/stakingContract";
 import { multiply } from "./mathUtils";
 
 export async function convertMpEthToEth(value: bigint): Promise<bigint> {

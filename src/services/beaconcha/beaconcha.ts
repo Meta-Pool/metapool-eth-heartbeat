@@ -1,7 +1,7 @@
 import { ZEROS_9 } from "../../bots/nodesBalance"
 import { ILuckResponse } from "../../entities/beaconcha/validator"
 import { getEnv } from "../../entities/env"
-import { getConfig } from "../../ethereum/config"
+import { getConfig } from "../../crypto/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"

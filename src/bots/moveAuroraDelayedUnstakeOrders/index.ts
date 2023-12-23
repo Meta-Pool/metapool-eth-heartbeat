@@ -1,4 +1,4 @@
-import { StakingManagerContract } from "../../ethereum/auroraStakingManager"
+import { StakingManagerContract } from "../../crypto/auroraStakingManager"
 import { sendEmail } from "../../utils/mailUtils"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { isTestnet } from "../heartbeat"

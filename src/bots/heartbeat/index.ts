@@ -6,14 +6,14 @@ import * as os from 'os';
 import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
 import { LiquidityData, StakingData, WithdrawData } from "./contractData";
-import { StakingContract } from "../../ethereum/stakingContract";
-import { LiquidityContract } from "../../ethereum/liquidity";
+import { StakingContract } from "../../crypto/stakingContract";
+import { LiquidityContract } from "../../crypto/liquidity";
 import { ZEROS_9 } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
 import { alertCreateValidators, callDissasembleApi, getDeactivateValidatorsReport as getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
-import { WithdrawContract } from "../../ethereum/withdraw";
+import { WithdrawContract } from "../../crypto/withdraw";
 import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { sendEmail } from "../../utils/mailUtils";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
@@ -23,19 +23,20 @@ import { getValidatorData, refreshBeaconChainData as refreshBeaconChainData, set
 import { alertCheckProfit } from "../profitChecker";
 import { U128String } from "./snapshot.js";
 import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
-import { StakingManagerContract } from "../../ethereum/auroraStakingManager";
+import { StakingManagerContract } from "../../crypto/auroraStakingManager";
 import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
-import { SsvViewsContract } from "../../ethereum/ssvViews";
+import { SsvViewsContract } from "../../crypto/ssvViews";
 import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
-import { getConfig } from "../../ethereum/config";
+import { getConfig } from "../../crypto/config";
 import { readdirSync } from "fs";
 import { SsvData } from "../../entities/ssv";
-import { SsvContract } from "../../ethereum/ssv";
+import { SsvContract } from "../../crypto/ssv";
 import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
-import { QValutContract } from "../../ethereum/qVaultContract";
+import { QValutContract } from "../../crypto/qVaultContract";
 import { QHeartBeatData } from "../../entities/q/q";
-import { StakedQVaultContract } from "../../ethereum/stakedQVault";
+import { StakedQVaultContract } from "../../crypto/stakedQVault";
 import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
+import { DepositContract } from "../../crypto/ethereum/depositContract";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -61,6 +62,7 @@ export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
 export const ssvViewsContract: SsvViewsContract = new SsvViewsContract() 
+export const depositContract: DepositContract = new DepositContract() 
 export const ssvContract: SsvContract = new SsvContract()
 
 //time in ms
