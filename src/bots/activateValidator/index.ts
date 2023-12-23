@@ -9,7 +9,7 @@ import { WithdrawContract } from "../../crypto/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, depositContract, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 import { LiquidityContract } from "../../crypto/liquidity"
 import { IMailReportHelper, Severity } from "../../entities/emailUtils"
@@ -66,8 +66,9 @@ export async function activateValidator(): Promise<IMailReportHelper> {
                 `)
             }
             const nodes: Node[] = await getNextNodesToActivate(validatorsToCreate)
+            const depositRoot: string = await depositContract.getDepositRoot()
             console.log("Nodes", nodes)
-            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw)
+            await stakingContract.pushToBeacon(nodes, weiFromLiq, weiFromWithdraw, depositRoot)
             wasValidatorCreated = true
 
             const body = `

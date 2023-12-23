@@ -8,4 +8,8 @@ export class DepositContract extends EthContract {
         super(getConfig().depositContractAddress, depositContractAbi)
     }
 
+    getDepositRoot(): Promise<string> {
+        return this.view("get_deposit_root")
+    }
+
 }

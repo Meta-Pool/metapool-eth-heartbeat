@@ -1304,7 +1304,8 @@ function processArgs() {
 async function debugActions(runWhile: boolean) {
     initializeUninitializedGlobalData()
     await refreshMetrics()
-    checkAuroraDelayedUnstakeOrders(true)
+    const depositRoot: string = await depositContract.getDepositRoot()
+    console.log(1, depositRoot)
     while(runWhile) {
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
