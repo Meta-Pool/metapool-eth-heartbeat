@@ -1,11 +1,11 @@
 import { ethers } from "ethers";
-import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawData, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { ETH_32 } from "../activateValidator";
-import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
+import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { groupQBalancesSortedByDate } from "../../utils/qUtils";
 
 export type U128String = string
@@ -286,7 +286,7 @@ export function forFront(): Record<string,any> {
     })
 
     let withdrawData: Record<string, number|string|bigint> = {}
-    Object.entries(globalWithdrawdata).forEach(([k, v]) => {
+    Object.entries(globalWithdrawData).forEach(([k, v]) => {
         const value = typeof v === "bigint" ? v.toString() : v
         withdrawData[k] = value
     })

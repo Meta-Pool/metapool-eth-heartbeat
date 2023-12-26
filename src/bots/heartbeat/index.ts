@@ -10,7 +10,7 @@ import { StakingContract } from "../../crypto/stakingContract";
 import { LiquidityContract } from "../../crypto/liquidity";
 import { ZEROS_9 } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, callDissasembleApi, getDeactivateValidatorsReport as getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
+import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../crypto/withdraw";
@@ -32,10 +32,10 @@ import { readdirSync } from "fs";
 import { SsvData } from "../../entities/ssv";
 import { SsvContract } from "../../crypto/ssv";
 import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
-import { QValutContract } from "../../crypto/qVaultContract";
+import { QVaultContract as QVaultContract } from "../../crypto/qVaultContract";
 import { QHeartBeatData } from "../../entities/q/q";
 import { StakedQVaultContract } from "../../crypto/stakedQVault";
-import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
+import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { DepositContract } from "../../crypto/ethereum/depositContract";
 
 export let globalPersistentData: PersistentData
@@ -57,7 +57,7 @@ let blockedExecutionCount = 0;
 const MAX_BLOCKED_EXECUTION_COUNT = 3;
 export let globalStakingData: StakingData
 export let globalLiquidityData: LiquidityData
-export let globalWithdrawdata: WithdrawData
+export let globalWithdrawData: WithdrawData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
@@ -691,11 +691,11 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 async function refreshQMetrics() {
     const account = getConfig().qStakeDelegatedAccount
 
-    const qValutContract = new QValutContract()
+    const qVaultContract = new QVaultContract()
     const [
         delegationsList
     ] = await Promise.all([
-        qValutContract.getDelegationsList(account)
+        qVaultContract.getDelegationsList(account)
     ])
 
     delegationsList.forEach((validatorData: any[]) => {
@@ -856,7 +856,7 @@ async function refreshWithdrawData() {
     ])
 
 
-    globalWithdrawdata = {
+    globalWithdrawData = {
         balance,
         epoch: Number(epoch),
         epochTimeLeft: Number(epochTimeLeft),
@@ -872,10 +872,10 @@ function refreshContractData() {
     globalPersistentData.stakingBalance = globalStakingData.stakingBalance.toString()
     globalPersistentData.liqBalance = globalLiquidityData.liquidityBalance.toString()
     globalPersistentData.liqMpEthBalance = globalLiquidityData.mpEthBalance.toString()
-    globalPersistentData.withdrawBalance = globalWithdrawdata.balance.toString()
-    globalPersistentData.totalPendingWithdraws = globalWithdrawdata.totalPendingWithdraw.toString()
-    globalPersistentData.withdrawAvailableEthForValidators = (globalWithdrawdata.balance - globalWithdrawdata.totalPendingWithdraw).toString()
-    globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(globalWithdrawdata.epochTimeLeft.toString())
+    globalPersistentData.withdrawBalance = globalWithdrawData.balance.toString()
+    globalPersistentData.totalPendingWithdraws = globalWithdrawData.totalPendingWithdraw.toString()
+    globalPersistentData.withdrawAvailableEthForValidators = (globalWithdrawData.balance - globalWithdrawData.totalPendingWithdraw).toString()
+    globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(globalWithdrawData.epochTimeLeft.toString())
 
     globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
     globalPersistentData.estimatedMpEthPrice = calculateMpEthPriceTotalUnderlying().toString()

@@ -185,10 +185,10 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         console.log("Calculating validators to disassemble")
         console.log("Needed eth", neededEth)
         console.log("Available eth from liq", liqAvailableEthForValidators)
-        let validatorsToDissasemble = 0
+        let validatorsToDisassemble = 0
         let ethToTransferFromLiq = neededEth
         while (ethToTransferFromLiq > liqAvailableEthForValidators) {
-            validatorsToDissasemble++
+            validatorsToDisassemble++
             ethToTransferFromLiq -= 32
         }
 
@@ -196,14 +196,14 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
         }
 
-        const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDissasemble)
+        const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDisassemble)
         
-        const dissasembleApiResponse = await callDissasembleApi(vIndexes)
+        const disassembleApiResponse = await callDisassembleApi(vIndexes)
 
         ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
         const subject = "Disassemble validators"
         let body = `
-            VALIDATORS TO DISASSEMBLE: ${validatorsToDissasemble}
+            VALIDATORS TO DISASSEMBLE: ${validatorsToDisassemble}
             ${balancesBody}
             ${epochInfoBody}
             Needed ETH: ${neededEth}
@@ -212,12 +212,12 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         `
 
         let severity: Severity
-        if (dissasembleApiResponse.isSuccess) {
+        if (disassembleApiResponse.isSuccess) {
             severity = Severity.IMPORTANT
         } else {
             severity = Severity.ERROR
             body =
-                `${dissasembleApiResponse.message}${body}`
+                `${disassembleApiResponse.message}${body}`
         }
         return {
             ...output,
@@ -238,7 +238,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
     }
 }
 
-export async function callDissasembleApi(vIndexes: string[]) {
+export async function callDisassembleApi(vIndexes: string[]) {
     try {
         const config = getConfig()
         if(config.network === "testnet") {
@@ -249,7 +249,7 @@ export async function callDissasembleApi(vIndexes: string[]) {
         }
         const data = await encrypt(vIndexes.join(","))
 
-        const baseUrl = config.dissasembleBotBaseUrl
+        const baseUrl = config.disassembleBotBaseUrl
         const response = await fetch(baseUrl, {
             method: "POST", // *GET, POST, PUT, DELETE, etc.
             mode: "cors", // no-cors, *cors, same-origin
@@ -265,7 +265,7 @@ export async function callDissasembleApi(vIndexes: string[]) {
         });
         return response.json(); // parses JSON response into native JavaScript objects
     } catch (err: any) {
-        const errMessage = `Unexpected error while calling dissasemble api ${err.message}`
+        const errMessage = `Unexpected error while calling disassemble api ${err.message}`
         console.error(errMessage)
         return {
             isSuccess: false,
@@ -280,7 +280,7 @@ export async function getValidatorsRecommendedToBeDisassembled(amount: number): 
     })
 
     validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-    const validatorsToDissasemble = validatorsProposalsArray.map((v: [string, number]) => {
+    const validatorsToDisassemble = validatorsProposalsArray.map((v: [string, number]) => {
         const index = v[0]
         const validatorData = globalBeaconChainData.validatorsData.find((v: ValidatorData) => {
             return v.validatorindex === Number(index)
@@ -293,9 +293,9 @@ export async function getValidatorsRecommendedToBeDisassembled(amount: number): 
 
     let possibleValidators
     // Fill with validators by luck
-    if (validatorsToDissasemble.length < amount) {
+    if (validatorsToDisassemble.length < amount) {
         possibleValidators = globalBeaconChainData.validatorsData.filter((v: ValidatorData) => {
-            return !validatorsToDissasemble.includes(v.pubkey)
+            return !validatorsToDisassemble.includes(v.pubkey)
         })
 
         const validatorsLuck: [string, ILuckResponse][] = []
@@ -308,11 +308,11 @@ export async function getValidatorsRecommendedToBeDisassembled(amount: number): 
             return luck2[1].data.next_proposal_estimate_ts - luck1[1].data.next_proposal_estimate_ts
         })
 
-        const validatorQtyToAppend = amount - validatorsToDissasemble.length
+        const validatorQtyToAppend = amount - validatorsToDisassemble.length
         const validatorsToAppend = validatorsLuck.map((luck: [string, ILuckResponse]) => {
             return luck[0]
         }).slice(0, validatorQtyToAppend)
-        validatorsToDissasemble.push(...validatorsToAppend)
+        validatorsToDisassemble.push(...validatorsToAppend)
     }
-    return validatorsToDissasemble
+    return validatorsToDisassemble
 }

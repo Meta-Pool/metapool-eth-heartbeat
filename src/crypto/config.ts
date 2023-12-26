@@ -8,7 +8,7 @@ export interface EthConfig {
     withdrawContractAddress: string
     ssvContractAddress: string
     validatorOwnerAddress: string
-    dissasembleBotBaseUrl: string
+    disassembleBotBaseUrl: string
     depositContractAddress: string
     // Aurora
     stakingManagerAddress: string
@@ -32,7 +32,7 @@ const MAINNET_CONFIG: EthConfig = {
     liquidityContractAddress: "0xdF261F967E87B2aa44e18a22f4aCE5d7f74f03Cc",
     withdrawContractAddress: "0xE55E5fDe6C25ac4AD75D867817D2d8a45836Af49",
     validatorOwnerAddress: "0x52e5219EF6Af019776c0a64925370f92caB282EC",
-    dissasembleBotBaseUrl: "http://148.113.20.187:4001/dissasemble",
+    disassembleBotBaseUrl: "http://148.113.20.187:4001/dissasemble",
     depositContractAddress: "0x00000000219ab540356cBB839Cbe05303d7705Fa",
 
     // Aurora
@@ -58,7 +58,7 @@ const GOERLI_CONFIG: EthConfig = {
     liquidityContractAddress: "0x37774000C885e9355eA7C6B025EbF1704141093C",
     withdrawContractAddress: "0x1A8c25ADc96Fb62183C4CB5B9F0c47746B847e05",
     validatorOwnerAddress: "0x52e5219EF6Af019776c0a64925370f92caB282EC",
-    dissasembleBotBaseUrl: "NOT_SET_YET",
+    disassembleBotBaseUrl: "NOT_SET_YET",
     depositContractAddress: "0xff50ed3d0ec03ac01d4c79aad74928bff48a7b2b",
     
     // Aurora
