@@ -16,5 +16,5 @@ export async function refreshStakedQVaultMetrics() {
 
     globalQData.totalAssets = totalAssets
     globalQData.totalSupply = totalSupply
-    globalQData.getStQPrice = getStQPrice
+    globalQData.stQPrice = getStQPrice
 }

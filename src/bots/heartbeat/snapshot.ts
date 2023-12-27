@@ -83,6 +83,7 @@ export type Snapshot = {
     aurBotBalance: U128String
 
     // Q data
+    stQPrice: number
     qTotalAssets: number
     qTotalSupply: number
     q_3_day_apy: number
@@ -133,6 +134,7 @@ export type SnapshotHR = {
     aurBotBalance: number
 
     // Q data
+    stQPrice: number
     qTotalAssets: number
     qTotalSupply: number
     q_3_day_apy: number
@@ -190,6 +192,7 @@ export function fromGlobalState(): Record<string,any> {
 
         mpethPriceUnderlying: wtoe(globalPersistentData.estimatedMpEthPrice.toString()),
 
+        stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
         q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
@@ -263,6 +266,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
         mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
 
+        stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
         q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
