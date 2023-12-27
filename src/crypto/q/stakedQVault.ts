@@ -19,4 +19,8 @@ export class StakedQVaultContract extends QContract {
     totalSupply(): Promise<bigint> {
         return this.view("totalSupply")
     }
+
+    getStQPrice(): Promise<bigint> {
+        return this.view("getStQPrice")
+    }
 }
