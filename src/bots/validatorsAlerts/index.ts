@@ -118,8 +118,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             Previous epoch: ${previousEpoch}
             Current epoch: ${currentEpoch}
         `
-        const validatorsdata = await getValidatorsData()
-        const exitedValidators = validatorsdata.filter((validator: ValidatorData) => {
+        const validatorsData = await getValidatorsData()
+        const exitedValidators = validatorsData.filter((validator: ValidatorData) => {
             return validator.status === "exited"
         })
         // Status exited means it is not validating

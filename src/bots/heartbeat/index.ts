@@ -34,9 +34,10 @@ import { SsvContract } from "../../crypto/ssv";
 import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
 import { QVaultContract as QVaultContract } from "../../crypto/qVaultContract";
 import { QHeartBeatData } from "../../entities/q/q";
-import { StakedQVaultContract } from "../../crypto/stakedQVault";
+import { StakedQVaultContract } from "../../crypto/q/stakedQVault";
 import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { DepositContract } from "../../crypto/ethereum/depositContract";
+import { refreshStakedQVaultMetrics } from "../metricsRefresher";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -688,14 +689,14 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
     return true;
 }
 
-async function refreshQMetrics() {
+async function refreshQVaultMetrics() {
     const account = getConfig().qStakeDelegatedAccount
 
     const qVaultContract = new QVaultContract()
     const [
         delegationsList
     ] = await Promise.all([
-        qVaultContract.getDelegationsList(account)
+        qVaultContract.getDelegationsList(account),
     ])
 
     delegationsList.forEach((validatorData: any[]) => {
@@ -924,7 +925,8 @@ async function refreshMetrics() {
         refreshWithdrawData(),
         refreshBeaconChainData(),
         refreshSsvData(),
-        refreshQMetrics(),
+        refreshQVaultMetrics(),
+        refreshStakedQVaultMetrics(),
         refreshOtherMetrics(),
     ]) // These calls can be executed in parallel
     refreshContractData() // Contract data depends on previous refreshes
@@ -1304,8 +1306,8 @@ function processArgs() {
 async function debugActions(runWhile: boolean) {
     initializeUninitializedGlobalData()
     await refreshMetrics()
-    const depositRoot: string = await depositContract.getDepositRoot()
-    console.log(1, depositRoot)
+    // const depositRoot: string = await depositContract.getDepositRoot()
+    // console.log(1, depositRoot)
     while(runWhile) {
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
