@@ -7,11 +7,14 @@ export async function refreshStakedQVaultMetrics() {
     const [
         totalAssets,
         totalSupply,
+        getStQPrice,
     ] = await Promise.all([
         stakedQVaultContract.totalAssets(),
         stakedQVaultContract.totalSupply(),
+        stakedQVaultContract.getStQPrice(),
     ])
 
     globalQData.totalAssets = totalAssets
     globalQData.totalSupply = totalSupply
+    globalQData.getStQPrice = getStQPrice
 }
