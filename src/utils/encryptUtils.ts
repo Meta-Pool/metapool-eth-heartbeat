@@ -6,7 +6,7 @@ import { getConfig } from '../crypto/config'
 
 function getPubKey() {
     const config = getConfig()
-    const pubkeyPath = path.join(os.homedir(), `.config/${config.network}/dissasemblePubkey.txt`)
+    const pubkeyPath = path.join(os.homedir(), `.config/${config.network}/disassemblePubkey.txt`)
     const pubKey = readFileSync(pubkeyPath).toString()
     return pubKey
 }

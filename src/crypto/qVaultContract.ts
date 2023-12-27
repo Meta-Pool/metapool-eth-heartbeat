@@ -2,7 +2,7 @@ import abi from "./abi/VQToken.json"
 import { getConfig } from "./config"
 import { QContract } from "./qContracts"
 
-export class QValutContract extends QContract {
+export class QVaultContract extends QContract {
 
     constructor() {
         super(getConfig().qVaultAddress, abi)

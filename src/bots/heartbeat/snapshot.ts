@@ -1,11 +1,11 @@
 import { ethers } from "ethers";
-import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
 import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
 import { ETH_32 } from "../activateValidator";
-import { getEstimatedEthForCreatingValidator } from "../../utils/bussinessUtils";
+import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { groupQBalancesSortedByDate } from "../../utils/qUtils";
 
 export type U128String = string
@@ -83,6 +83,8 @@ export type Snapshot = {
     aurBotBalance: U128String
 
     // Q data
+    qTotalAssets: number
+    qTotalSupply: number
     q_3_day_apy: number
     q_7_day_apy: number
     q_15_day_apy: number
@@ -131,6 +133,8 @@ export type SnapshotHR = {
     aurBotBalance: number
 
     // Q data
+    qTotalAssets: number
+    qTotalSupply: number
     q_3_day_apy: number
     q_7_day_apy: number
     q_15_day_apy: number
@@ -186,6 +190,8 @@ export function fromGlobalState(): Record<string,any> {
 
         mpethPriceUnderlying: wtoe(globalPersistentData.estimatedMpEthPrice.toString()),
 
+        qTotalAssets: wtoe(globalQData.totalAssets),
+        qTotalSupply: wtoe(globalQData.totalSupply),
         q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
         q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
         q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
@@ -257,6 +263,8 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
         mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
 
+        qTotalAssets: wtoe(globalQData.totalAssets),
+        qTotalSupply: wtoe(globalQData.totalSupply),
         q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
         q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
         q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
@@ -286,7 +294,7 @@ export function forFront(): Record<string,any> {
     })
 
     let withdrawData: Record<string, number|string|bigint> = {}
-    Object.entries(globalWithdrawdata).forEach(([k, v]) => {
+    Object.entries(globalWithdrawData).forEach(([k, v]) => {
         const value = typeof v === "bigint" ? v.toString() : v
         withdrawData[k] = value
     })
