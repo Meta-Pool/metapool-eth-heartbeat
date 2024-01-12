@@ -4,7 +4,7 @@ import { Node, StakingContract } from "../../crypto/stakingContract"
 import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
 import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
 import { EthConfig, getConfig } from "../../crypto/config"
-import { ValidatorData } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, fetchValidatorsData } from '../../services/beaconcha/beaconcha'
 import { WithdrawContract } from "../../crypto/withdraw"
 import { sendEmail } from "../../utils/mailUtils"
 import { convertMpEthToEth } from "../../utils/convert"
@@ -111,19 +111,39 @@ export async function activateValidator(): Promise<IMailReportHelper> {
     
 }
 
-async function getValidatorsToActivate(): Promise<any[]> {
+function getValidatorsToActivate(): any[] {
     // const validatorsDataResponse: ValidatorDataResponse[] = beaconChainData.validatorsData
     const validatorsDataResponse: ValidatorData[] = globalBeaconChainData.validatorsData
-    return getDepositData().filter((depData: any) => {
+    const nonActivatedValidatorDataArray = getDepositData().filter((depData: any) => {
         return validatorsDataResponse.every((v: ValidatorData) => {
             return v.pubkey !== `0x${depData.pubkey}`
         })
     })
+    const blackListedValidators = globalPersistentData.blacklistedValidators
+    const nonBlacklistedValidatorsArray = nonActivatedValidatorDataArray.filter((depData: any) => {
+        return !blackListedValidators.includes("0x" + depData.pubkey)
+    })
+
+    return nonBlacklistedValidatorsArray
 }
 
 async function getNextNodesToActivate(qty: number): Promise<Node[]> {
     const nodes = await getValidatorsToActivate()
-    return nodes.slice(0, qty).map((node: any) => {
+    const pubKeysArray = nodes.map((node: any) => {
+        return "0x" + node.pubkey
+    })
+    const newBlacklistedValidatorsData = await fetchValidatorsData(pubKeysArray)
+    const newBlacklistedPubKeys: string[] = []
+    newBlacklistedValidatorsData.forEach((validatorData: ValidatorData) => {
+        globalPersistentData.blacklistedValidators.push(validatorData.pubkey)
+        newBlacklistedPubKeys.push(validatorData.pubkey)
+    })
+
+    const validNodes = nodes.filter((node: any) => {
+        return !newBlacklistedPubKeys.includes("0x" + node.pubkey)
+    })
+
+    return validNodes.slice(0, qty).map((node: any) => {
         return {
             pubkey: "0x" + node.pubkey,
             // withdrawCredentials: "0x" + node.withdrawal_credentials,

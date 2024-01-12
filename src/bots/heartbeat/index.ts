@@ -153,13 +153,13 @@ export interface PersistentData {
     lastPenalties: U128String
     ethBotBalance: U128String
     aurBotBalance: U128String
-    
 
     // Chain data
     latestEpochCheckedForReport: number
     latestEpochCheckedForPenalties: number
     latestBeaconChainEpochRegistered: number
     estimatedActivationEpochs: Record<string, ActivationData> // pubkey - data
+    blacklistedValidators: string[]
 
     // Testnet helper data
     lastIDHTs?: number
@@ -983,6 +983,8 @@ function initializeUninitializedGlobalData() {
 
     if(!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
 
+    if(!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
+
     if (isDebug) console.log("Global state initialized successfully")
 }
 
@@ -1306,8 +1308,7 @@ function processArgs() {
 async function debugActions(runWhile: boolean) {
     initializeUninitializedGlobalData()
     await refreshMetrics()
-    // const depositRoot: string = await depositContract.getDepositRoot()
-    // console.log(1, depositRoot)
+    // Add here
     while(runWhile) {
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
