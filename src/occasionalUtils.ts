@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "fs"
 import { getBeaconChainEpoch } from "./services/beaconcha/beaconcha"
 import { IEpochResponse } from "./services/beaconcha/entities"
 import { etow, wtoe } from "./utils/numberUtils"
+import { callDisassembleApi } from "./bots/validatorsAlerts"
 
 interface Donation {
     beaconEpoch: number,
@@ -169,7 +170,28 @@ async function getDonationsInfo() {
 
 
 function run() {
-    getDonationsInfo().then((a) => console.log(a))
+    const args = process.argv
+    if(args.length < 3) throw new Error("Use npm run utils --args ${method}")
+    const fn = args[2]
+    switch(fn) {
+        case "disassemble":
+            console.log("Calling disassemble")
+            callDisassembleValidators()
+            break
+        default:
+            throw new Error(`Function ${fn} not found`)
+    }
+    
+}
+
+function callDisassembleValidators() {
+    const args = process.argv
+    if(args.length < 4) throw new Error("Use npm run utils --args disassemble validatorsPubKey1 ... validatorsPubKeyN")
+    const validatorsPubKeys: string[] = []
+    for(let i = 3; i < args.length; i++) {
+        validatorsPubKeys.push(args[i])
+    }
+    callDisassembleApi(validatorsPubKeys)
 }
 
 run()
