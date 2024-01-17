@@ -19,7 +19,7 @@ const AUR_ESTIMATED_COST_PER_DAY = 0.00001
 const ETH_MIN_BALANCE = ETH_ESTIMATED_COST_PER_DAY * 60
 const AUR_MIN_BALANCE = AUR_ESTIMATED_COST_PER_DAY * 60
 
-const ALLOWED_MIN_PENALTIES = 2
+const ALLOWED_MIN_PENALTIES = 9
 
 
 export function reportWalletsBalances(): IMailReportHelper {
