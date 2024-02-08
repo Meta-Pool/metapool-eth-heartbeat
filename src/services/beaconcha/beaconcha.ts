@@ -90,7 +90,7 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     return validatorsData
 }
 
-async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorData[]> {
+export async function fetchValidatorsData(validatorIds: (number|string)[]): Promise<ValidatorData[]> {
     const chunkSize = 100
     let output: ValidatorData[] = []
     for(let i = 0; i < validatorIds.length; i += chunkSize) {
@@ -99,7 +99,7 @@ async function fetchValidatorsData(validatorIds: number[]): Promise<ValidatorDat
         const validatorsData = validatorsDataResponse.data
         if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
             output = output.concat(validatorsData)
-        } else {
+        } else if(validatorsData !== null) {
             output.push(validatorsData)
         }
     }
