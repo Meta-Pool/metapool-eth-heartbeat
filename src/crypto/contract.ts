@@ -75,6 +75,7 @@ export abstract class GenericContract {
     async view(fnName: string, ...args: any[]): Promise<any> {
         try {
             const tx = await this.contract[fnName](...args)            
+            console.log(fnName, tx)
             return tx
         } catch(err: any) {
             console.error("ERR viewing", fnName, err.message)

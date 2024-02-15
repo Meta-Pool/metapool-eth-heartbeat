@@ -64,8 +64,8 @@ export let globalWithdrawData: WithdrawData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
-export const ssvViewsContract: SsvViewsContract = new SsvViewsContract() 
-export const depositContract: DepositContract = new DepositContract() 
+export const ssvViewsContract: SsvViewsContract = new SsvViewsContract()
+export const depositContract: DepositContract = new DepositContract()
 export const ssvContract: SsvContract = new SsvContract()
 
 //time in ms
@@ -199,7 +199,7 @@ async function showQPerformance(resp: http.ServerResponse) {
             return difference < maxDaysToDisplay + 1
         }) // One more to have the apy of the first
 
-        if(index === 0) {
+        if (index === 0) {
             datesToDisplay = dataToDisplay[validatorAddress].map((balanceData: BalanceData) => balanceData.dateISO)
         }
     })
@@ -211,18 +211,18 @@ async function showQPerformance(resp: http.ServerResponse) {
     Object.keys(dataToDisplay).forEach((validatorAddress: string) => {
         const historicBalances = dataToDisplay[validatorAddress]
         finalDataToDisplay[validatorAddress] = historicBalances.map((balanceData: BalanceData, index: number) => {
-            if(index === 0) return {
+            if (index === 0) return {
                 balance: wtoe(balanceData.balance),
                 dateISO: balanceData.dateISO,
                 apy: 0
             }
             apyCount++
-            
+
             const prevBalance = wtoe(historicBalances[index - 1].balance)
             const currBalance = wtoe(balanceData.balance)
             const dailyRewards = currBalance - prevBalance
             const apy = ((dailyRewards * 365 / prevBalance) * 100)
-            
+
             apySum += apy
             return {
                 balance: currBalance,
@@ -230,13 +230,13 @@ async function showQPerformance(resp: http.ServerResponse) {
                 apy
             }
 
-            
+
         }).slice(-maxDaysToDisplay)
 
         Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
-            if(finalDataToDisplay[validatorAddress].length < datesToDisplay.length) {
+            if (finalDataToDisplay[validatorAddress].length < datesToDisplay.length) {
                 const pendingLength = datesToDisplay.length - finalDataToDisplay[validatorAddress].length
-                const filling = Array.from({length: pendingLength}).fill({
+                const filling = Array.from({ length: pendingLength }).fill({
                     balance: "-",
                     dateISO: "",
                     apy: 0
@@ -254,7 +254,7 @@ async function showQPerformance(resp: http.ServerResponse) {
     resp.write("<th>Validator address</th>")
     datesToDisplay.forEach((date: string) => {
         resp.write(`<th colspan='2'>${date}</th>`)
-    })    
+    })
     resp.write("</tr>")
 
     resp.write("<tr>")
@@ -262,10 +262,10 @@ async function showQPerformance(resp: http.ServerResponse) {
     datesToDisplay.forEach((_) => {
         resp.write(`<th>Balance</th>`)
         resp.write(`<th>APY</th>`)
-    })    
+    })
     resp.write("</tr>")
     resp.write("</thead>")
-    
+
     resp.write("<tbody>")
     Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
         const balances = finalDataToDisplay[validatorAddress]
@@ -316,7 +316,7 @@ async function showSsvPerformance(resp: http.ServerResponse) {
         resp.write("<th>Index</th>")
         resp.write("<th>Balance (SSV)</th>")
         resp.write("<th>Estimated runway (Days)</th>")
-        
+
         resp.write("</tr>")
         resp.write("</thead>")
 
@@ -324,7 +324,7 @@ async function showSsvPerformance(resp: http.ServerResponse) {
         files.forEach((filename: string) => {
             const operatorIds = filename.split(".")[0]
             const estimatedRunway = getEstimatedRunwayInDays(operatorIds)
-            const { 
+            const {
                 clusterData
             } = globalSsvData.clusterInformationRecord[operatorIds]
             // const clusterData: ClusterData = getClusterData(operatorIds)
@@ -342,7 +342,7 @@ async function showSsvPerformance(resp: http.ServerResponse) {
         resp.write("</tbody>")
         resp.write("</table></div>")
 
-    } catch(err: any) {
+    } catch (err: any) {
         resp.write("<pre>" + err.message + "</pre>");
     }
 }
@@ -359,8 +359,8 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
             return validatorData.status !== "exited"
         })
 
-        
-        
+
+
         const idhFilteredByEpochDisplay = idh.filter((idhRegistry: IIncomeDetailHistoryData) => {
             return idhRegistry.epoch > latestCheckedEpoch - epochsToDisplay
         })
@@ -372,14 +372,14 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
         const epochsInYear = 365 * 24 * 60 / 6.4
         let apySum = 0
         let apyCount = 0
-        
+
         const asArray = validatorsWithIndex.map((validatorData: ValidatorData) => {
             const validatorIndex = validatorData.validatorindex
 
             const idhForValidator = idhFilteredByEpochDisplay.filter((idhRegistry: IIncomeDetailHistoryData) => {
                 return idhRegistry.validatorindex === validatorIndex
             })
-            
+
             const epochsData: Record<number, any> = {}
             idhForValidator.forEach((currentIDH: IIncomeDetailHistoryData) => {
                 const rewards = weiToGWei(sumRewards(currentIDH.income))
@@ -455,7 +455,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     <td>${item.estimatedActivationData ? item.estimatedActivationData.epoch : "-"}</td>
                     <td id="${item.pubkey}"></td>
                 `);
-                
+
                 for (let epoch = olderReadEpoch; epoch <= latestCheckedEpoch; epoch++) {
                     const info = item.data[epoch]
                     if (!info) {
@@ -474,7 +474,7 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                         if (isNaN(apy)) {
                             apy = 0
                         }
-                        
+
                         let bgTone = 64 + (apy - estimatedAvgApy) * 128
                         if (bgTone > 255) bgTone = 255;
                         if (bgTone < -255) bgTone = -255;
@@ -496,12 +496,12 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                     }
                 }
 
-                
+
             }
 
             const timestampObj: Record<string, number> = {}
             for (let item of asArray) {
-                if(item.estimatedActivationData && item.estimatedActivationData.timestamp > Date.now()) {
+                if (item.estimatedActivationData && item.estimatedActivationData.timestamp > Date.now()) {
                     timestampObj[item.pubkey] = item.estimatedActivationData.timestamp
                 }
             }
@@ -621,7 +621,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
                 respond_error(404, "invalid url " + pathname, resp)
                 return true;
             }
-        } else if(pathname.startsWith("/stakingRewards")) {
+        } else if (pathname.startsWith("/stakingRewards")) {
             showStakingRewardsApiData(resp)
             return true
         } else {
@@ -659,7 +659,7 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
             else if (pathname === '/perf_ssv') {
                 showSsvPerformance(resp)
             }
-            else if(pathname === '/perf_q') {
+            else if (pathname === '/perf_q') {
                 showQPerformance(resp)
             }
 
@@ -696,17 +696,17 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
 
 async function showStakingRewardsApiData(resp: http.ServerResponse) {
     try {
-      const data: StakingRewardsProvider = buildStakingRewardsProvider()
-  
-      resp.setHeader("content-type", 'application/json; version=0.0.4; charset=utf-8')
-      resp.write(JSON.stringify(data))
-      resp.end()
-  
-    } catch(ex: any) {
-      resp.write("<pre>" + ex.message + "</pre>");
+        const data: StakingRewardsProvider = buildStakingRewardsProvider()
+
+        resp.setHeader("content-type", 'application/json; version=0.0.4; charset=utf-8')
+        resp.write(JSON.stringify(data))
+        resp.end()
+
+    } catch (ex: any) {
+        resp.write("<pre>" + ex.message + "</pre>");
     }
-  
-  }
+
+}
 
 async function refreshQVaultMetrics() {
     const account = getConfig().qStakeDelegatedAccount
@@ -748,42 +748,85 @@ async function refreshOtherMetrics() {
     if (isDebug) console.log("Other metrics refreshed")
 }
 
-async function refreshStakingData() {
-    const [
-        stakingBalance,
-        totalAssets,
-        totalSupply,
-        totalUnderlying,
-        estimatedRewardsPerSecond,
-        submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
-        // nodesAndWithdrawalTotalBalance,
-        decimals,
-        name,
-        rewardsFee,
-        symbol,
-        totalNodesActivated,
-        whitelistEnabled,
-        depositFee,
-        submitReportTimelock,
-        minDeposit
-    ] = await Promise.all([
-        stakingContract.getWalletBalance(stakingContract.address),
-        stakingContract.totalAssets(),
-        stakingContract.totalSupply(),
-        stakingContract.totalUnderlying(),
-        stakingContract.estimatedRewardsPerSecond(),
-        stakingContract.submitReportUnlockTime(),
+// async function refreshStakingData() {
+//     const [
+//         stakingBalance,
+//         totalAssets,
+//         totalSupply,
+//         totalUnderlying,
+//         estimatedRewardsPerSecond,
+//         submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
+//         // nodesAndWithdrawalTotalBalance,
+//         decimals,
+//         name,
+//         rewardsFee,
+//         symbol,
+//         totalNodesActivated,
+//         whitelistEnabled,
+//         depositFee,
+//         submitReportTimelock,
+//         minDeposit
+//     ] = await Promise.all([
+//         stakingContract.getWalletBalance(stakingContract.address),
+//         stakingContract.totalAssets(),
+//         stakingContract.totalSupply(),
+//         stakingContract.totalUnderlying(),
+//         stakingContract.estimatedRewardsPerSecond(),
+//         stakingContract.submitReportUnlockTime(),
 
-        stakingContract.decimals(),
-        stakingContract.name(),
-        stakingContract.rewardsFee(),
-        stakingContract.symbol(),
-        stakingContract.totalNodesActivated(),
-        stakingContract.whitelistEnabled(),
-        stakingContract.depositFee(),
-        stakingContract.submitReportTimelock(),
-        stakingContract.minDeposit(),
-    ])
+//         stakingContract.decimals(),
+//         stakingContract.name(),
+//         stakingContract.rewardsFee(),
+//         stakingContract.symbol(),
+//         stakingContract.totalNodesActivated(),
+//         stakingContract.whitelistEnabled(),
+//         stakingContract.depositFee(),
+//         stakingContract.submitReportTimelock(),
+//         stakingContract.minDeposit(),
+//     ])
+
+//     globalStakingData = {
+//         stakingBalance,
+//         totalAssets,
+//         totalSupply,
+//         totalUnderlying,
+//         estimatedRewardsPerSecond,
+//         submitReportUnlockTime,
+
+//         decimals: Number(decimals),
+//         name,
+//         rewardsFee: Number(rewardsFee),
+//         symbol,
+//         totalNodesActivated: Number(totalNodesActivated),
+//         whitelistEnabled,
+//         depositFee: Number(depositFee),
+//         submitReportTimelock: Number(submitReportTimelock),
+//         minDeposit
+//     }
+
+//     if (isDebug) console.log("Staking data refreshed")
+// }
+
+async function refreshStakingData() {
+
+    const stakingBalance = await stakingContract.getWalletBalance(stakingContract.address)
+    const totalAssets = await stakingContract.totalAssets()
+    const totalSupply = await stakingContract.totalSupply()
+
+    const totalUnderlying = await stakingContract.totalUnderlying()
+
+    const estimatedRewardsPerSecond = await stakingContract.estimatedRewardsPerSecond()
+    const submitReportUnlockTime = await stakingContract.submitReportUnlockTime() // Last time updateNodesBalanceWasCalled
+
+    const decimals = await stakingContract.decimals()
+    const name = await stakingContract.name()
+    const rewardsFee = await stakingContract.rewardsFee()
+    const symbol = await stakingContract.symbol()
+    const totalNodesActivated = await stakingContract.totalNodesActivated()
+    const whitelistEnabled = await stakingContract.whitelistEnabled()
+    const depositFee = await stakingContract.depositFee()
+    const submitReportTimelock = await stakingContract.submitReportTimelock()
+    const minDeposit = await stakingContract.minDeposit()
 
     globalStakingData = {
         stakingBalance,
@@ -801,41 +844,25 @@ async function refreshStakingData() {
         whitelistEnabled,
         depositFee: Number(depositFee),
         submitReportTimelock: Number(submitReportTimelock),
-        minDeposit
+        minDeposit,
     }
 
     if (isDebug) console.log("Staking data refreshed")
 }
 
 async function refreshLiquidityData() {
-    const [
-        totalAssets,
-        totalSupply,
 
-        mpEthBalance,
-        name,
-        symbol,
-        targetLiquidity,
-        decimals,
-        minDeposit,
-        liquidityBalance,
-        minFee,
-        maxFee,
-    ] = await Promise.all([
-        liquidityContract.totalAssets(),
-        liquidityContract.totalSupply(),
-
-        stakingContract.balanceOf(liquidityContract.address),
-        liquidityContract.name(),
-        liquidityContract.symbol(),
-        liquidityContract.targetLiquidity(),
-        liquidityContract.decimals(),
-        liquidityContract.minDeposit(),
-        liquidityContract.getWalletBalance(liquidityContract.address),
-        liquidityContract.minFee(),
-        liquidityContract.maxFee(),
-    ])
-
+    const totalAssets = await liquidityContract.totalAssets()
+    const totalSupply = await liquidityContract.totalSupply()
+    const mpEthBalance = await stakingContract.balanceOf(liquidityContract.address)
+    const name = await liquidityContract.name()
+    const symbol = await liquidityContract.symbol()
+    const targetLiquidity = await liquidityContract.targetLiquidity()
+    const decimals = await liquidityContract.decimals()
+    const minDeposit = await liquidityContract.minDeposit()
+    const liquidityBalance = await liquidityContract.getWalletBalance(liquidityContract.address)
+    const minFee = await liquidityContract.minFee()
+    const maxFee = await liquidityContract.maxFee()
 
     globalLiquidityData = {
         totalAssets,
@@ -859,35 +886,26 @@ async function refreshLiquidityData() {
 }
 
 async function refreshWithdrawData() {
-    const [
-        balance,
-        epoch,
-        epochTimeLeft,
-        startTimestamp,
-        totalPendingWithdraw,
-        withdrawalsStartEpoch,
-        validatorsDisassembleTime
-    ] = await Promise.all([
-        withdrawContract.getWalletBalance(withdrawContract.address),
-        withdrawContract.getEpoch(),
-        withdrawContract.getEpochTimeLeft(),
-        withdrawContract.startTimestamp(),
-        withdrawContract.totalPendingWithdraw(),
-        withdrawContract.withdrawalsStartEpoch(),
-        withdrawContract.validatorsDisassembleTime(),
-    ])
+
+    const balance = await withdrawContract.getWalletBalance(withdrawContract.address)
+    const epoch = await withdrawContract.getEpoch()
+    const epochTimeLeft = await withdrawContract.getEpochTimeLeft()
+    const startTimestamp = await withdrawContract.startTimestamp()
+    const totalPendingWithdraw = await withdrawContract.totalPendingWithdraw()
+    const withdrawalsStartEpoch = await withdrawContract.withdrawalsStartEpoch()
+    const validatorsDisassembleTime = await withdrawContract.validatorsDisassembleTime()
 
 
     globalWithdrawData = {
         balance,
         epoch: Number(epoch),
-        epochTimeLeft: Number(epochTimeLeft),
-        startTimestamp: Number(startTimestamp),
-        totalPendingWithdraw,
-        withdrawalsStartEpoch: Number(withdrawalsStartEpoch),
-        validatorsDisassembleTime,
+            epochTimeLeft: Number(epochTimeLeft),
+                startTimestamp: Number(startTimestamp),
+                    totalPendingWithdraw,
+                    withdrawalsStartEpoch: Number(withdrawalsStartEpoch),
+                        validatorsDisassembleTime,
     }
-    if (isDebug) console.log("Withdraw data refreshed")
+if (isDebug) console.log("Withdraw data refreshed")
 }
 
 function refreshContractData() {
@@ -924,7 +942,7 @@ async function claimQRewards() {
     try {
         const stakedQVaultContract = new StakedQVaultContract()
         return stakedQVaultContract.claimStakeDelegatorReward()
-    } catch(err: any) {
+    } catch (err: any) {
         console.error("Error claiming Q rewards", err.message)
         sendEmail("[ERR] Q Rewards", `Error while claiming Q rewards: \n ${err.message}`)
     }
@@ -991,20 +1009,20 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.lastPenalties) globalPersistentData.lastPenalties = "0"
     if (!globalPersistentData.latestEpochCheckedForPenalties) globalPersistentData.latestEpochCheckedForPenalties = 192000
     if (!globalPersistentData.latestBeaconChainEpochRegistered) globalPersistentData.latestBeaconChainEpochRegistered = 192000
-    
+
     if (!globalBeaconChainData.incomeDetailHistory) globalBeaconChainData.incomeDetailHistory = []
 
-    if(!globalSsvData) globalSsvData = {
+    if (!globalSsvData) globalSsvData = {
         clusterInformationRecord: {}
     }
-    if(!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {} 
+    if (!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {}
 
-    if(!globalQData.validatorsBalancesByAddress) globalQData.validatorsBalancesByAddress = {}
-    if(!globalPersistentData.qBalances) globalPersistentData.qBalances = {}
+    if (!globalQData.validatorsBalancesByAddress) globalQData.validatorsBalancesByAddress = {}
+    if (!globalPersistentData.qBalances) globalPersistentData.qBalances = {}
 
-    if(!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
+    if (!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
 
-    if(!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
+    if (!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -1069,12 +1087,12 @@ function updateDailyGlobalData(currentDateISO: string) {
 
     Object.keys(globalQData.validatorsBalancesByAddress).forEach((address: string) => {
         const balance = globalQData.validatorsBalancesByAddress[address]
-        if(!globalPersistentData.qBalances[address]) {
+        if (!globalPersistentData.qBalances[address]) {
             globalPersistentData.qBalances[address] = []
         }
         globalPersistentData.qBalances[address].push({
             dateISO: currentDateISO,
-            balance: balance.toString()    
+            balance: balance.toString()
         })
     })
 
@@ -1137,12 +1155,12 @@ async function beat() {
         globalPersistentData.lastIDHTs = Date.now()
         await setIncomeDetailHistory()
         // }
-        
+
         const dailyReports = await runDailyActionsAndReport()
         mailReportsToSend.push(...dailyReports)
     } // Calls made once a day
 
-    if(Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR || isFirstCallOfTheDay) { // Calls made every 6 hours
+    if (Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR || isFirstCallOfTheDay) { // Calls made every 6 hours
         console.log("Sending report - 6 hours")
         await registerValidatorsProposals()
         const reportsMadeEvery6Hours: IMailReportHelper[] = (await Promise.all([
@@ -1152,7 +1170,7 @@ async function beat() {
             console.log("Penalties report", report)
             return report.severity !== Severity.OK
         })
-        mailReportsToSend.push(...reportsMadeEvery6Hours)        
+        mailReportsToSend.push(...reportsMadeEvery6Hours)
 
     } // Calls made every 6 hours
 
@@ -1167,11 +1185,11 @@ async function beat() {
     ])
 
     const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
-    if(reportsWithErrors.length) {
+    if (reportsWithErrors.length) {
         mailReportsToSend.push(...reportsWithErrors)
     }
 
-    if(mailReportsToSend.length) {
+    if (mailReportsToSend.length) {
         buildAndSendReport(mailReportsToSend)
     }
 
@@ -1292,7 +1310,7 @@ function heartLoop() {
 
 function buildAndSendMailForError(err: any) {
     let subject = `[ERROR] Unexpected error - ${err.message}`
-    if(isTestnet || isDebug) {
+    if (isTestnet || isDebug) {
         subject = `TESTNET: ${subject}`
     }
 
@@ -1325,9 +1343,10 @@ function processArgs() {
 
 async function debugActions(runWhile: boolean) {
     initializeUninitializedGlobalData()
+    await stakingContract.totalAssets()
     await refreshMetrics()
     // Add here
-    while(runWhile) {
+    while (runWhile) {
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
     }
@@ -1351,7 +1370,9 @@ export async function run() {
     server = new BareWebServer('public_html', appHandler, MONITORING_PORT)
     server.start()
 
-    if(isDebug) { 
+    console.log("Running debug?", isDebug)
+    if (isDebug) {
+        console.log("Running debug")
         const runWhile = false
         await debugActions(runWhile)
         return
