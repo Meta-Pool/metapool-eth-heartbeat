@@ -6,10 +6,10 @@ import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
 import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
 import { wtoe } from "../utils/numberUtils";
 import { isDebug } from "../bots/heartbeat";
-
-// TODO regenerate private data and get from .env
-const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
-const INFURA_API_KEY = "2dd8a76e1c2842c19115ed0212375464"
+import { readFileSync } from "fs";
+import path from "path";
+import { homedir } from "os";
+import { getConfig } from "./config";
 
 const abis = [
     ssvNetworkViewsAbi,
@@ -37,14 +37,19 @@ export abstract class GenericContract {
     }
 
     abstract getProvider(network: string, apiKey: string): Provider;
+
+    getInfuraApiKey() {
+        const config = getConfig()
+        return readFileSync(path.join(homedir(), `.config/${config.network}/infuraApiKey.txt`)).toString().trim()
+    }
     
     getWalletBalance(address: string) {
-        return this.getProvider(this.network, INFURA_API_KEY).getBalance(address)
+        return this.getProvider(this.network, this.getInfuraApiKey()).getBalance(address)
         // return this.getProvider(this.network, API_KEY).getBalance(address)
     }
     
     getWallet(privateKey: string) {
-        const provider = this.getProvider(this.network, INFURA_API_KEY)
+        const provider = this.getProvider(this.network, this.getInfuraApiKey())
         // const provider = this.getProvider(this.network, API_KEY)
         return new ethers.Wallet(privateKey, provider)
     }
