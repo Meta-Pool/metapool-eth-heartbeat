@@ -37,11 +37,14 @@ import { QHeartBeatData } from "../../entities/q/q";
 import { StakedQVaultContract } from "../../crypto/q/stakedQVault";
 import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { DepositContract } from "../../crypto/ethereum/depositContract";
-import { refreshStakedQVaultMetrics } from "../metricsRefresher";
+import { refreshContractData, refreshLiquidityData, refreshOtherMetrics, refreshQVaultMetrics, refreshStakedQVaultMetrics, refreshStakingData, refreshWithdrawData } from "../metricsRefresher";
 import { getPrice, getTokenHoldersQty } from "../../services/tokens/tokens";
 import { StakingRewardsProvider, buildStakingRewardsProvider } from "../../api/stakingRewards";
 
 export let globalPersistentData: PersistentData
+export let globalStakingData: StakingData = {} as StakingData
+export let globalLiquidityData: LiquidityData = {} as LiquidityData
+export let globalWithdrawData: WithdrawData = {} as WithdrawData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
 export let globalSsvData: SsvData
 export let globalQData: QHeartBeatData = {} as QHeartBeatData
@@ -58,9 +61,6 @@ export let isTestnet: boolean = false
 let loopsExecuted = 0;
 let blockedExecutionCount = 0;
 const MAX_BLOCKED_EXECUTION_COUNT = 3;
-export let globalStakingData: StakingData
-export let globalLiquidityData: LiquidityData
-export let globalWithdrawData: WithdrawData
 export const stakingContract: StakingContract = new StakingContract()
 export const liquidityContract: LiquidityContract = new LiquidityContract()
 export const withdrawContract: WithdrawContract = new WithdrawContract()
@@ -708,185 +708,7 @@ async function showStakingRewardsApiData(resp: http.ServerResponse) {
 
 }
 
-async function refreshQVaultMetrics() {
-    const account = getConfig().qStakeDelegatedAccount
 
-    const qVaultContract = new QVaultContract()
-    const [
-        delegationsList
-    ] = await Promise.all([
-        qVaultContract.getDelegationsList(account),
-    ])
-
-    delegationsList.forEach((validatorData: any[]) => {
-        const address = validatorData[0]
-        // index 1: actual stake - index 6: claimableRewards
-        const balance = validatorData[1] + validatorData[6]
-        globalQData.validatorsBalancesByAddress[address] = balance
-    })
-}
-
-async function refreshOtherMetrics() {
-    const aurContract = new StakingManagerContract()
-    const [
-        ethBotWalletBalance,
-        aurBotWalletBalance,
-        ethPrice,
-        mpethHoldersQty,
-    ] = await Promise.all([
-        stakingContract.getWalletBalance(stakingContract.connectedWallet.address),
-        aurContract.getWalletBalance(aurContract.connectedWallet.address),
-        getPrice("ETH"),
-        getTokenHoldersQty(getConfig().stakingContractAddress)
-    ])
-
-    globalPersistentData.ethBotBalance = ethBotWalletBalance.toString()
-    globalPersistentData.aurBotBalance = aurBotWalletBalance.toString()
-    globalPersistentData.ethPrice = ethPrice
-    globalPersistentData.mpethHoldersQty = mpethHoldersQty
-
-    if (isDebug) console.log("Other metrics refreshed")
-}
-
-/**
- * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting
- */
-async function refreshStakingData() {
-
-    const stakingBalance = await stakingContract.getWalletBalance(stakingContract.address)
-    const totalAssets = await stakingContract.totalAssets()
-    const totalSupply = await stakingContract.totalSupply()
-
-    const totalUnderlying = await stakingContract.totalUnderlying()
-
-    const estimatedRewardsPerSecond = await stakingContract.estimatedRewardsPerSecond()
-    const submitReportUnlockTime = await stakingContract.submitReportUnlockTime() // Last time updateNodesBalanceWasCalled
-
-    const decimals = await stakingContract.decimals()
-    const name = await stakingContract.name()
-    const rewardsFee = await stakingContract.rewardsFee()
-    const symbol = await stakingContract.symbol()
-    const totalNodesActivated = await stakingContract.totalNodesActivated()
-    const whitelistEnabled = await stakingContract.whitelistEnabled()
-    const depositFee = await stakingContract.depositFee()
-    const submitReportTimelock = await stakingContract.submitReportTimelock()
-    const minDeposit = await stakingContract.minDeposit()
-
-    globalStakingData = {
-        stakingBalance,
-        totalAssets,
-        totalSupply,
-        totalUnderlying,
-        estimatedRewardsPerSecond,
-        submitReportUnlockTime,
-
-        decimals: Number(decimals),
-        name,
-        rewardsFee: Number(rewardsFee),
-        symbol,
-        totalNodesActivated: Number(totalNodesActivated),
-        whitelistEnabled,
-        depositFee: Number(depositFee),
-        submitReportTimelock: Number(submitReportTimelock),
-        minDeposit,
-    }
-
-    if (isDebug) console.log("Staking data refreshed")
-}
-
-/**
- * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting
- */
-async function refreshLiquidityData() {
-
-    const totalAssets = await liquidityContract.totalAssets()
-    const totalSupply = await liquidityContract.totalSupply()
-    const mpEthBalance = await stakingContract.balanceOf(liquidityContract.address)
-    const name = await liquidityContract.name()
-    const symbol = await liquidityContract.symbol()
-    const targetLiquidity = await liquidityContract.targetLiquidity()
-    const decimals = await liquidityContract.decimals()
-    const minDeposit = await liquidityContract.minDeposit()
-    const liquidityBalance = await liquidityContract.getWalletBalance(liquidityContract.address)
-    const minFee = await liquidityContract.minFee()
-    const maxFee = await liquidityContract.maxFee()
-
-    globalLiquidityData = {
-        totalAssets,
-        totalSupply,
-
-        liquidityBalance,
-        mpEthBalance,
-        name,
-        symbol,
-        // MAX_FEE: Number(MAX_FEE),
-        // MIN_FEE: Number(MIN_FEE),
-        targetLiquidity,
-        decimals: Number(decimals),
-        minDeposit,
-        minFee: Number(minFee),
-        maxFee: Number(maxFee),
-    }
-
-    globalPersistentData.lpPrice = calculateLpPrice().toString()
-    if (isDebug) console.log("Liq data refreshed")
-}
-
-/**
- * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting
- */
-async function refreshWithdrawData() {
-
-    const balance = await withdrawContract.getWalletBalance(withdrawContract.address)
-    const epoch = await withdrawContract.getEpoch()
-    const epochTimeLeft = await withdrawContract.getEpochTimeLeft()
-    const startTimestamp = await withdrawContract.startTimestamp()
-    const totalPendingWithdraw = await withdrawContract.totalPendingWithdraw()
-    const withdrawalsStartEpoch = await withdrawContract.withdrawalsStartEpoch()
-    const validatorsDisassembleTime = await withdrawContract.validatorsDisassembleTime()
-
-
-    globalWithdrawData = {
-        balance,
-        epoch: Number(epoch),
-            epochTimeLeft: Number(epochTimeLeft),
-                startTimestamp: Number(startTimestamp),
-                    totalPendingWithdraw,
-                    withdrawalsStartEpoch: Number(withdrawalsStartEpoch),
-                        validatorsDisassembleTime,
-    }
-if (isDebug) console.log("Withdraw data refreshed")
-}
-
-function refreshContractData() {
-    globalPersistentData.stakingBalance = globalStakingData.stakingBalance.toString()
-    globalPersistentData.liqBalance = globalLiquidityData.liquidityBalance.toString()
-    globalPersistentData.liqMpEthBalance = globalLiquidityData.mpEthBalance.toString()
-    globalPersistentData.withdrawBalance = globalWithdrawData.balance.toString()
-    globalPersistentData.totalPendingWithdraws = globalWithdrawData.totalPendingWithdraw.toString()
-    globalPersistentData.withdrawAvailableEthForValidators = (globalWithdrawData.balance - globalWithdrawData.totalPendingWithdraw).toString()
-    globalPersistentData.timeRemainingToFinishMetapoolEpoch = Number(globalWithdrawData.epochTimeLeft.toString())
-
-    globalPersistentData.mpethPrice = calculateMpEthPrice().toString()
-    globalPersistentData.estimatedMpEthPrice = calculateMpEthPriceTotalUnderlying().toString()
-    globalPersistentData.stakingTotalSupply = globalStakingData.totalSupply.toString()
-    globalPersistentData.liqTotalSupply = globalLiquidityData.totalSupply.toString()
-    globalPersistentData.rewardsPerSecondsInWei = globalStakingData.estimatedRewardsPerSecond.toString()
-
-    globalPersistentData.activeValidatorsQty = globalBeaconChainData.validatorsData.reduce((acc: number, curr: ValidatorData) => {
-        if (curr.status === "active" || curr.status === "active_offline" || curr.status === "active_online") {
-            return acc + 1
-        } else {
-            return acc
-        }
-    }, 0)
-
-    if (!globalPersistentData.nodesBalances) globalPersistentData.nodesBalances = {}
-    globalBeaconChainData.validatorsData.forEach((node: ValidatorData) => {
-        globalPersistentData.nodesBalances[node.pubkey] = node.balance.toString() + ZEROS_9
-    })
-    if (isDebug) console.log("Contract data refreshed")
-}
 
 async function claimQRewards() {
     try {
