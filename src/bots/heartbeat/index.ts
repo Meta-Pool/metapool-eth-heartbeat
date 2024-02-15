@@ -38,6 +38,8 @@ import { StakedQVaultContract } from "../../crypto/q/stakedQVault";
 import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { DepositContract } from "../../crypto/ethereum/depositContract";
 import { refreshStakedQVaultMetrics } from "../metricsRefresher";
+import { getPrice, getTokenHoldersQty } from "../../services/tokens/tokens";
+import { StakingRewardsProvider, buildStakingRewardsProvider } from "../../api/stakingRewards";
 
 export let globalPersistentData: PersistentData
 export let globalBeaconChainData: IBeaconChainHeartBeatData
@@ -153,6 +155,8 @@ export interface PersistentData {
     lastPenalties: U128String
     ethBotBalance: U128String
     aurBotBalance: U128String
+    ethPrice: number
+    mpethHoldersQty: number
 
     // Chain data
     latestEpochCheckedForReport: number
@@ -617,9 +621,10 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
                 respond_error(404, "invalid url " + pathname, resp)
                 return true;
             }
-        }
-        
-        else {
+        } else if(pathname.startsWith("/stakingRewards")) {
+            showStakingRewardsApiData(resp)
+            return true
+        } else {
             if (req.socket.localPort == 80) {
                 resp.end();
                 return true;
@@ -689,6 +694,20 @@ export function appHandler(server: BareWebServer, urlParts: url.UrlWithParsedQue
     return true;
 }
 
+async function showStakingRewardsApiData(resp: http.ServerResponse) {
+    try {
+      const data: StakingRewardsProvider = buildStakingRewardsProvider()
+  
+      resp.setHeader("content-type", 'application/json; version=0.0.4; charset=utf-8')
+      resp.write(JSON.stringify(data))
+      resp.end()
+  
+    } catch(ex: any) {
+      resp.write("<pre>" + ex.message + "</pre>");
+    }
+  
+  }
+
 async function refreshQVaultMetrics() {
     const account = getConfig().qStakeDelegatedAccount
 
@@ -712,13 +731,19 @@ async function refreshOtherMetrics() {
     const [
         ethBotWalletBalance,
         aurBotWalletBalance,
+        ethPrice,
+        mpethHoldersQty,
     ] = await Promise.all([
         stakingContract.getWalletBalance(stakingContract.connectedWallet.address),
         aurContract.getWalletBalance(aurContract.connectedWallet.address),
+        getPrice("ETH"),
+        getTokenHoldersQty(getConfig().stakingContractAddress)
     ])
 
     globalPersistentData.ethBotBalance = ethBotWalletBalance.toString()
     globalPersistentData.aurBotBalance = aurBotWalletBalance.toString()
+    globalPersistentData.ethPrice = ethPrice
+    globalPersistentData.mpethHoldersQty = mpethHoldersQty
 
     if (isDebug) console.log("Other metrics refreshed")
 }
