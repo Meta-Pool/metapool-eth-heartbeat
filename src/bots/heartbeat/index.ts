@@ -748,65 +748,9 @@ async function refreshOtherMetrics() {
     if (isDebug) console.log("Other metrics refreshed")
 }
 
-// async function refreshStakingData() {
-//     const [
-//         stakingBalance,
-//         totalAssets,
-//         totalSupply,
-//         totalUnderlying,
-//         estimatedRewardsPerSecond,
-//         submitReportUnlockTime, // Last time updateNodesBalanceWasCalled
-//         // nodesAndWithdrawalTotalBalance,
-//         decimals,
-//         name,
-//         rewardsFee,
-//         symbol,
-//         totalNodesActivated,
-//         whitelistEnabled,
-//         depositFee,
-//         submitReportTimelock,
-//         minDeposit
-//     ] = await Promise.all([
-//         stakingContract.getWalletBalance(stakingContract.address),
-//         stakingContract.totalAssets(),
-//         stakingContract.totalSupply(),
-//         stakingContract.totalUnderlying(),
-//         stakingContract.estimatedRewardsPerSecond(),
-//         stakingContract.submitReportUnlockTime(),
-
-//         stakingContract.decimals(),
-//         stakingContract.name(),
-//         stakingContract.rewardsFee(),
-//         stakingContract.symbol(),
-//         stakingContract.totalNodesActivated(),
-//         stakingContract.whitelistEnabled(),
-//         stakingContract.depositFee(),
-//         stakingContract.submitReportTimelock(),
-//         stakingContract.minDeposit(),
-//     ])
-
-//     globalStakingData = {
-//         stakingBalance,
-//         totalAssets,
-//         totalSupply,
-//         totalUnderlying,
-//         estimatedRewardsPerSecond,
-//         submitReportUnlockTime,
-
-//         decimals: Number(decimals),
-//         name,
-//         rewardsFee: Number(rewardsFee),
-//         symbol,
-//         totalNodesActivated: Number(totalNodesActivated),
-//         whitelistEnabled,
-//         depositFee: Number(depositFee),
-//         submitReportTimelock: Number(submitReportTimelock),
-//         minDeposit
-//     }
-
-//     if (isDebug) console.log("Staking data refreshed")
-// }
-
+/**
+ * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting
+ */
 async function refreshStakingData() {
 
     const stakingBalance = await stakingContract.getWalletBalance(stakingContract.address)
@@ -850,6 +794,9 @@ async function refreshStakingData() {
     if (isDebug) console.log("Staking data refreshed")
 }
 
+/**
+ * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting
+ */
 async function refreshLiquidityData() {
 
     const totalAssets = await liquidityContract.totalAssets()
@@ -885,6 +832,9 @@ async function refreshLiquidityData() {
     if (isDebug) console.log("Liq data refreshed")
 }
 
+/**
+ * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting
+ */
 async function refreshWithdrawData() {
 
     const balance = await withdrawContract.getWalletBalance(withdrawContract.address)
