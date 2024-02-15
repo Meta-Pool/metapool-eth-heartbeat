@@ -2,6 +2,7 @@ import { ENV, getEnv } from "../entities/env"
 
 export interface EthConfig {
     network: string
+    networkId: number
     // Ethereum
     stakingContractAddress: string
     liquidityContractAddress: string
@@ -27,6 +28,7 @@ export interface EthConfig {
 
 const MAINNET_CONFIG: EthConfig = {
     network: 'mainnet',
+    networkId: 1,
     // Ethereum
     stakingContractAddress: "0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710",
     liquidityContractAddress: "0xdF261F967E87B2aa44e18a22f4aCE5d7f74f03Cc",
@@ -53,6 +55,7 @@ const MAINNET_CONFIG: EthConfig = {
 
 const GOERLI_CONFIG: EthConfig = {
     network: 'goerli',
+    networkId: 5,
     // Ethereum
     stakingContractAddress: "0x748c905130CC15b92B97084Fd1eEBc2d2419146f",
     liquidityContractAddress: "0x37774000C885e9355eA7C6B025EbF1704141093C",
