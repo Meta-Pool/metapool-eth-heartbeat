@@ -2,15 +2,14 @@ import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/e
 import { globalPersistentData } from "../heartbeat";
 import { wtoe } from "../../utils/numberUtils";
 
-// Done async to fit behaviour of daily reports
-export function alertCheckProfit(): Promise<IMailReportHelper> {
+export function alertCheckProfit(): IMailReportHelper {
     let output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: "alertCheckProfit" }
-    if(globalPersistentData.mpEthPrices.length < 2) return Promise.resolve({...output, ok: true, body: "Not enough prices to calculate", severity: Severity.OK})
+    if(globalPersistentData.mpEthPrices.length < 2) return {...output, ok: true, body: "Not enough prices to calculate", severity: Severity.OK}
     const lastPrice = wtoe(globalPersistentData.mpethPrice)
     const priceBefore = wtoe(globalPersistentData.mpEthPrices[globalPersistentData.mpEthPrices.length - 2].price)
 
-    const minExpectedDailyPercentageIncrease = 0.01
-    const maxExpectedDailyPercentageIncrease = 0.014
+    const minExpectedDailyPercentageIncrease = 2 / 365 // Validators give normally 2% 
+    const maxExpectedDailyPercentageIncrease = 15 / 365 // With donations, the APY increases to 11% currently
     const minExpectedValue = (1 + minExpectedDailyPercentageIncrease / 100) * priceBefore
     const maxExpectedValue = (1 + maxExpectedDailyPercentageIncrease / 100) * priceBefore
 
@@ -25,7 +24,7 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
             Min expected value: ${minExpectedValue}
         `
         output.severity = Severity.ERROR
-        return Promise.resolve(output)
+        return output
     } // Price didn't increase enough
 
     if (maxExpectedValue < lastPrice) {
@@ -39,7 +38,7 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
             Max expected value: ${maxExpectedValue}
         `
         output.severity = Severity.IMPORTANT
-        return Promise.resolve(output)
+        return output
     } // Price increased a lot
 
     output.ok = true
@@ -53,5 +52,5 @@ export function alertCheckProfit(): Promise<IMailReportHelper> {
         `
     output.severity = Severity.OK
 
-    return Promise.resolve(output)
+    return output
 }

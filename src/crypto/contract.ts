@@ -1,20 +1,22 @@
 import { Contract, Provider, Wallet, ethers } from "ethers";
-import { ENV, getEnv } from "../entities/env";
 import stakingAbi from "./abi/Staking.json"
 import liquidityAbi from "./abi/LiquidUnstakePool.json"
 import withdrawAbi from "./abi/withdrawAbi.json"
-import { parse } from "path";
+import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
+import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
 import { wtoe } from "../utils/numberUtils";
+import { isDebug } from "../bots/heartbeat";
 
-const NETWORK = 'goerli'
-const RPC_URL = "https://goerli.infura.io/v3/"
 // TODO regenerate private data and get from .env
 const API_KEY = "mrTmFCjo_n7xJBq-V3Oli5AuQiqH3GEy"
+const INFURA_API_KEY = "2dd8a76e1c2842c19115ed0212375464"
 
 const abis = [
+    ssvNetworkViewsAbi,
+    ssvBaseNetworkViewsAbi,
     stakingAbi.abi,
     liquidityAbi.abi,
-    withdrawAbi.abi
+    withdrawAbi.abi,
 ]
 
 export abstract class GenericContract {
@@ -37,11 +39,13 @@ export abstract class GenericContract {
     abstract getProvider(network: string, apiKey: string): Provider;
     
     getWalletBalance(address: string) {
-        return this.getProvider(this.network, API_KEY).getBalance(address)
+        return this.getProvider(this.network, INFURA_API_KEY).getBalance(address)
+        // return this.getProvider(this.network, API_KEY).getBalance(address)
     }
     
     getWallet(privateKey: string) {
-        const provider = this.getProvider(this.network, API_KEY)
+        const provider = this.getProvider(this.network, INFURA_API_KEY)
+        // const provider = this.getProvider(this.network, API_KEY)
         return new ethers.Wallet(privateKey, provider)
     }
 
@@ -62,12 +66,30 @@ export abstract class GenericContract {
         err.message = "Unknown error"
         throw err
     }
+
+    async view(fnName: string, ...args: any[]): Promise<any> {
+        try {
+            const tx = await this.contract[fnName](...args)            
+            return tx
+        } catch(err: any) {
+            console.error("ERR viewing", fnName, err.message)
+            this.decodeError(err)   
+        }
+    }
     
+    /**
+     * When on debug mode, we don't want to make any actual call to the contract. If you happen to do, comment the first line and be very careful
+     * @param fnName 
+     * @param args 
+     * @returns 
+     */
     async call(fnName: string, ...args: any[]): Promise<any> {
+        if(isDebug) {
+            console.log("Trying to call contract function in debug mode. Not making the call.")
+            return new Promise(() => {})
+        }
         try {
             const tx = await this.contract[fnName](...args)
-            console.log("Tx", tx)
-            // const gasInWei: bigint = BigInt(tx.gasUsed * tx.gasPrice)
             const gasInWei: bigint = 100000000n
             const walletBalance = await this.getWalletBalance(this.connectedWallet.address)
             if(wtoe(gasInWei) > wtoe(walletBalance)) {
@@ -78,8 +100,7 @@ export abstract class GenericContract {
             return tx
         } catch(err: any) {
             console.error("ERR calling", fnName, err.message)
-            this.decodeError(err)
-            
+            this.decodeError(err)   
         }
     }
     

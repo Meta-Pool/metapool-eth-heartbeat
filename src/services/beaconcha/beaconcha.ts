@@ -1,8 +1,8 @@
-import { isDebug, isTestnet } from "../../bots/heartbeat"
 import { ZEROS_9 } from "../../bots/nodesBalance"
+import { ILuckResponse } from "../../entities/beaconcha/validator"
 import { getEnv } from "../../entities/env"
-import { getConfig } from "../../ethereum/config"
-import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport } from "./entities"
+import { getConfig } from "../../crypto/config"
+import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
@@ -17,9 +17,15 @@ const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
 const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory"
 const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}"
 
+const QUEUE_URL = BASE_URL + "validators/queue"
+
 export interface DeployerDataResponse {
     status: string
     data: ValidatorBasicData[]
+}
+
+export interface BeaconChainDataError {
+    message: string
 }
 
 export interface ValidatorBasicData {
@@ -30,7 +36,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData
+    data: ValidatorData[]|ValidatorData
 }
 
 export interface ValidatorData {
@@ -64,19 +70,48 @@ export interface IBalanceHistoryData {
     week_end: string
 }
 
-export async function getValidatorsData(): Promise<ValidatorDataResponse[]> {
+export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}`)
     
-    const validatorData: DeployerDataResponse = await validatorsDataResponse.json()
+    const validatorData: DeployerDataResponse|BeaconChainDataError = await validatorsDataResponse.json()
+    
+    if(validatorData && 'message' in validatorData) {
+        throw new Error(validatorData.message)
+    }
     // When a validator is getting activated, the validator id is temporary null, so it has the 32 ETH
     const nonNullValidatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex).filter(id => id != null)
-    const nullValidatorsData: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
+    const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
     
-    const responses = await Promise.all(nonNullValidatorIds.map(id => fetch(`${VALIDATOR_DATA_BASE_URL}${id}`)))
-    const jsons: ValidatorDataResponse[] = await Promise.all(responses.map(r => r.json()))
+    const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
+    const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data as ValidatorData)
+    const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
+
+    return validatorsData
+}
+
+export async function fetchValidatorsData(validatorIds: (number|string)[]): Promise<ValidatorData[]> {
+    const chunkSize = 100
+    let output: ValidatorData[] = []
+    for(let i = 0; i < validatorIds.length; i += chunkSize) {
+        const ids = validatorIds.slice(i, i + chunkSize)
+        const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
+        const validatorsData = validatorsDataResponse.data
+        if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
+            output = output.concat(validatorsData)
+        } else if(validatorsData !== null) {
+            output.push(validatorsData)
+        }
+    }
     
-    return [jsons, nullValidatorsData].flat()
+    return output
+}
+
+
+export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
+    if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
+    const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
+    return responses.json()
 }
 
 function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicData) {
@@ -107,7 +142,6 @@ export function getBeaconChainEpoch(epoch: string = "finalized"): Promise<IEpoch
 
 export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
     const url = BASE_URL + `validator/${validatorIndex}/proposals`
-    if(isDebug) console.log("Validator proposal url", url)
     return fetch(url).then(r => r.json())
 }
 
@@ -119,7 +153,6 @@ export function getValidatorProposal(validatorIndex: number): Promise<IValidator
  */
 export function getValidatorWithrawalInEpoch(indexOrPubKey: string|number, epoch?: number) {
     const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + epoch ? `?epoch=${epoch}` : ""
-    if(isDebug) console.log("Withrawal url:", url)
     return fetch(url).then(r => r.json())
 }
 
@@ -130,31 +163,11 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
         .replace("{latest_epoch}", lastEpoch.toString())
     return (await fetch(validatorsUrl)).json()
-    // let queryEpoch = lastEpoch
-    // const output: IIncomeDetailHistoryResponse = {
-    //     status: "OK",
-    //     data: []
-    // }
-    // while(queryEpoch > firstEpoch) {
-    //     const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
-    //     const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
-    //     if(idhResponse.status !== "OK") {
-    //         output.status = idhResponse.status
-    //     }
-    //     output.data.push(...idhResponse.data)
-    //     queryEpoch -= 100
-    // }
-    // output.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
-    //     if(data1.validatorindex === data2.validatorindex) {
-    //         return data1.epoch - data2.epoch
-    //     }
-    //     return data1.validatorindex - data2.validatorindex
-    // })
-    // return output
+
 }
 
 export async function  getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
-    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(","))
+    const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(",")).replace("{limit}", "100")
     let output: Record<number, MiniIDHReport> = {}
     indexes.forEach((index: number) => {
         output[index] = {
@@ -168,6 +181,7 @@ export async function  getValidatorsIncomeDetailHistory(indexes: number[], first
     let queryEpoch = lastEpoch
     while(queryEpoch > firstEpoch) {
         const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
+        console.log("Getting IDH", epochIDHUrl)
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
         output = await processIDHResponse(output, idhResponse, firstEpoch)
         queryEpoch -= 100
@@ -195,7 +209,8 @@ export async function getValidatorsIncomeDetailHistoryCount(indexes: number[], f
 }
 
 async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, MiniIDHReport>> {
-    if(!idhResponse || !idhResponse.data) return output
+    if(idhResponse.data === null) throw new Error(idhResponse.status)
+    if(!idhResponse || !idhResponse.data) return output // If you request epochs which wasn't validating returns empty array
     const errorMessages: string[] = []
     idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
         if(data.epoch < firstEpoch) return
@@ -259,12 +274,27 @@ export function sumPenalties(data: IIncomeData): bigint {
         + BigInt((data.sync_committee_penalty || 0) + ZEROS_9)
 }
 
-function countPenalties(data: IIncomeData): number {
+export function countPenalties(data: IIncomeData): number {
     let penalties = 0
     if(data.attestation_source_penalty) penalties++
     if(data.attestation_target_penalty) penalties++
     if(data.finality_delay_penalty) penalties++
+    if(data.proposals_missed) penalties++
     if(data.slashing_penalty) penalties++
     if(data.sync_committee_penalty) penalties++
     return penalties
+}
+
+export async function getCurrentQueue(): Promise<QueueResponse> {
+    return (await fetch(QUEUE_URL)).json()
+}
+
+/**
+ * 
+ * @param validators 
+ * @returns The luck data of all the validators provided, not individually, but as a whole
+ */
+export async function getProposalLuck(validators: string): Promise<ILuckResponse> {
+    const url = BASE_URL + "validators/proposalLuck?validators=" + validators
+    return (await fetch(url)).json()
 }

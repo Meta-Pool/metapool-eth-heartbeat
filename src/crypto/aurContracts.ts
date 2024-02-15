@@ -13,8 +13,7 @@ import os from "os";
 export class AurContract extends GenericContract {
 
     constructor(address: string, abi: ethers.InterfaceAbi, network: string = "goerli") {
-        const filename = getEnv().NETWORK === "mainnet" ? "aurBot" : "testAurBot"
-        const pk = readFileSync(path.join(os.homedir(), `.config/${filename}.txt`)).toString()
+        const pk = readFileSync(path.join(os.homedir(), `.config/${network}/aurBot.txt`)).toString().trim()
         super(address, abi, pk, network)
     }
 
@@ -23,10 +22,14 @@ export class AurContract extends GenericContract {
             case 'mainnet':
                 return new ethers.JsonRpcProvider("https://mainnet.aurora.dev")
             case 'goerli':
-                return new ethers.AlchemyProvider(
+                return new ethers.InfuraProvider(
                     network,
                     apiKey
                 );
+                // return new ethers.AlchemyProvider(
+                //     network,
+                //     apiKey
+                // );
             default:
                 throw new Error(`Network ${network} not defined for aurora`)
         }

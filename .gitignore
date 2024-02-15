@@ -16,7 +16,6 @@ src/bots/assignOperatorsToValidatorBot/groups.json
 src/bots/assignOperatorsToValidatorBot/operators.json
 db/
 
-src/index.ts
 src/generateDonationsFile.ts
 
 src/validator_data/old_deposit_data-1677016004.json
@@ -30,3 +29,5 @@ src/testerHelper.ts
 src/ethereum/abi/StakedAuroraVault.json
 
 deleteme_ssv.ts
+deleteme.js
+idh.json

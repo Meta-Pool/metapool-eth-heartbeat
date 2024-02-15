@@ -1,11 +1,12 @@
 import { ethers } from "ethers";
-import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalStakingData, globalWithdrawdata, MS_IN_SECOND, PriceData } from "./index"
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, MS_IN_SECOND, PriceData } from "./index"
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
 import { etow, wtoe } from "../../utils/numberUtils";
-import { ValidatorDataResponse } from "../../services/beaconcha/beaconcha";
+import { ValidatorData } from "../../services/beaconcha/beaconcha";
 import { ZEROS_9 } from "../nodesBalance";
-import { getEstimatedMpEthPrice } from "../../utils/bussinessUtils";
-import { calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
+import { ETH_32 } from "../activateValidator";
+import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
+import { groupQBalancesSortedByDate } from "../../utils/qUtils";
 
 export type U128String = string
 
@@ -65,6 +66,7 @@ export type Snapshot = {
     withdrawBalance: U128String
     totalPendingWithdraws: U128String
     totalNodesBalances: U128String
+    ethNeededToActivateValidator: U128String
 
     stakingTotalUnderlying: U128String
     stakingTotalAssets: U128String
@@ -79,6 +81,15 @@ export type Snapshot = {
     lastPenalties: U128String
     ethBotBalance: U128String
     aurBotBalance: U128String
+
+    // Q data
+    stQPrice: number
+    qTotalAssets: number
+    qTotalSupply: number
+    q_3_day_apy: number
+    q_7_day_apy: number
+    q_15_day_apy: number
+    q_30_day_apy: number
     
     // nodesBalances: Record<string, number>
     // validatorsTypesQty: Record<string, number>
@@ -106,6 +117,7 @@ export type SnapshotHR = {
     withdrawBalance: number
     totalPendingWithdraws: number
     totalNodesBalance: number
+    ethNeededToActivateValidator: number
     
     stakingTotalUnderlying: number
     stakingTotalAssets: number
@@ -120,6 +132,15 @@ export type SnapshotHR = {
     lastPenalties: number
     ethBotBalance: number
     aurBotBalance: number
+
+    // Q data
+    stQPrice: number
+    qTotalAssets: number
+    qTotalSupply: number
+    q_3_day_apy: number
+    q_7_day_apy: number
+    q_15_day_apy: number
+    q_30_day_apy: number
     
     nodesBalances: Record<string, number>
     validatorsTypesQty: Record<string, number>
@@ -128,10 +149,11 @@ export type SnapshotHR = {
 
 export function fromGlobalState(): Record<string,any> {
 
-    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
-        return acc + BigInt(v.data.balance + ZEROS_9)
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
+        return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
+    const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
     
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
@@ -152,6 +174,7 @@ export function fromGlobalState(): Record<string,any> {
         withdrawBalance: globalPersistentData.withdrawBalance,
         totalPendingWithdraws: globalPersistentData.totalPendingWithdraws,
         totalNodesBalances: nodesBalanceSum.toString(),
+        ethNeededToActivateValidator: etow(getEstimatedEthForCreatingValidator()).toString(),
         
         stakingTotalUnderlying: globalStakingData.totalUnderlying.toString(),
         stakingTotalAssets: globalStakingData.totalAssets.toString(),
@@ -168,6 +191,14 @@ export function fromGlobalState(): Record<string,any> {
         aurBotBalance: globalPersistentData.aurBotBalance,
 
         mpethPriceUnderlying: wtoe(globalPersistentData.estimatedMpEthPrice.toString()),
+
+        stQPrice: wtoe(globalQData.stQPrice),
+        qTotalAssets: wtoe(globalQData.totalAssets),
+        qTotalSupply: wtoe(globalQData.totalSupply),
+        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
+        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
+        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
+        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
     }
 
     const output: Record<string, string|number> = snap
@@ -187,14 +218,17 @@ export function fromGlobalState(): Record<string,any> {
 
 export function fromGlobalStateForHuman(): Record<string,any> {
 
-    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorDataResponse) => {
-        return acc + BigInt(v.data.balance + ZEROS_9)
+    const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
+        return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
     const nodesBalances: Record<string, number> = {}
-    globalBeaconChainData.validatorsData.forEach((v: ValidatorDataResponse) => {
-        nodesBalances[v.data.pubkey] = wtoe(v.data.balance + ZEROS_9)
+    globalBeaconChainData.validatorsData.forEach((v: ValidatorData) => {
+        nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
+
+    const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
+
 
     let snap: SnapshotHR = {
         mpethPrice: wtoe(globalPersistentData.mpethPrice),
@@ -220,6 +254,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         withdrawBalance: wtoe(globalPersistentData.withdrawBalance),
         totalPendingWithdraws: wtoe(globalPersistentData.totalPendingWithdraws),
         totalNodesBalance: wtoe(nodesBalanceSum.toString()),
+        ethNeededToActivateValidator: getEstimatedEthForCreatingValidator(),
         
         activatedValidators: globalPersistentData.activeValidatorsQty,
         createdValidatorsLeft: globalPersistentData.createdValidatorsLeft,
@@ -230,6 +265,14 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         ethBotBalance: wtoe(globalPersistentData.ethBotBalance),
         aurBotBalance: wtoe(globalPersistentData.aurBotBalance),
         mpethPriceUnderlying: Number(ethers.formatEther(globalPersistentData.estimatedMpEthPrice)),
+
+        stQPrice: wtoe(globalQData.stQPrice),
+        qTotalAssets: wtoe(globalQData.totalAssets),
+        qTotalSupply: wtoe(globalQData.totalSupply),
+        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
+        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
+        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
+        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
         
         nodesBalances,
         validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,
@@ -255,7 +298,7 @@ export function forFront(): Record<string,any> {
     })
 
     let withdrawData: Record<string, number|string|bigint> = {}
-    Object.entries(globalWithdrawdata).forEach(([k, v]) => {
+    Object.entries(globalWithdrawData).forEach(([k, v]) => {
         const value = typeof v === "bigint" ? v.toString() : v
         withdrawData[k] = value
     })
