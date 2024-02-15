@@ -55,7 +55,7 @@ export const MS_IN_SECOND = 1000
 export const MS_IN_MINUTES = 60 * MS_IN_SECOND
 export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
-const INTERVAL = 5 * MS_IN_MINUTES
+const INTERVAL = 30 * MS_IN_MINUTES
 
 const TotalCalls = {
     beats: 0,
@@ -608,8 +608,6 @@ async function refreshLiquidityData() {
         mpEthBalance,
         name,
         symbol,
-        // MAX_FEE,
-        // MIN_FEE,
         targetLiquidity,
         decimals,
         minDeposit,
@@ -623,8 +621,6 @@ async function refreshLiquidityData() {
         stakingContract.balanceOf(liquidityContract.address),
         liquidityContract.name(),
         liquidityContract.symbol(),
-        // liquidityContract.MAX_FEE(),
-        // liquidityContract.MIN_FEE(),
         liquidityContract.targetLiquidity(),
         liquidityContract.decimals(),
         liquidityContract.minDeposit(),
@@ -883,17 +879,7 @@ async function beat() {
     const currentDate = new Date(new Date().toLocaleString('en', { timeZone: 'America/New_York' })) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
-    // if(!isFirstCallOfTheDay && getEnv().NETWORK === "goerli") {
-    //     console.log("Ms since las IDH report", Date.now() - globalPersistentData.lastIDHTs!)
-    //     const msLeft = 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES - (Date.now() - globalPersistentData.lastIDHTs!)
-    //     console.log("Time remaining for next IDH call", sLeftToTimeLeft(msLeft / 1000))
-    //     if(Date.now() - globalPersistentData.lastIDHTs! >= 6 * MS_IN_HOUR + 5 * MS_IN_MINUTES) {
-    //         console.log("Calling IDH in the middle of the day")
-    //         globalPersistentData.lastIDHTs = Date.now()
-    //         saveGlobalPersistentData()
-    //         if(!isDebug) await setIncomeDetailHistory()
-    //     }
-    // }
+
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
         truncateLongGlobalArrays()
@@ -907,11 +893,6 @@ async function beat() {
         console.log("--Checking if a validator can be activated")
         const wasValidatorCreated = await activateValidator()
         console.log("Was validator created?", wasValidatorCreated)
-
-        // if(!isDebug) {
-        //     globalPersistentData.lastIDHTs = Date.now()
-        //     await setIncomeDetailHistory()
-        // }
         
         const dailyReports = await runDailyActionsAndReport()
         mailReportsToSend.push(...dailyReports)
