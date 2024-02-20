@@ -3,6 +3,7 @@ import { ILuckResponse } from "../../entities/beaconcha/validator"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../crypto/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
+import { globalBeaconChainData } from "../../bots/heartbeat"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
@@ -88,6 +89,13 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
 
     return validatorsData
+}
+
+export function getActiveValidatorsData(): ValidatorData[] {
+    const validatorsData = globalBeaconChainData.validatorsData
+    return validatorsData.filter((validatorData: ValidatorData) => {
+        return validatorData.status !== "exited" && validatorData.status !== "exiting"
+    })
 }
 
 export async function fetchValidatorsData(validatorIds: (number|string)[]): Promise<ValidatorData[]> {

@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { ValidatorData, getProposalLuck, getValidatorsData } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, getActiveValidatorsData, getProposalLuck, getValidatorsData } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, getBalances, getDepositData } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
@@ -274,27 +274,52 @@ export async function callDisassembleApi(vIndexes: string[]) {
     }
 }
 
-export async function getValidatorsRecommendedToBeDisassembled(amount: number): Promise<string[]> {
+function getSenseiActiveValidatorsPubKeys(): ValidatorData[] {
+    const activatedSenseiValidatorsPubKeys = [
+        "0xafb05b66a8bed736084542f85e6ff692a04ecd043feff5ab1b380bb798768253a9fde77f6b2f1d4d654a9039f11017c6",
+        "0x87e57cf6e9f0629ba87d923c233f468770f495f744327a1c4ba35a42a3eb707f14eb9a6454da921269f1d8924affe0c3",
+        "0x96138fb23f13df39d13917f9bef5849bbe999f99e0da27ca56e6c0e1c2809c4886efb1edf27ba77adfe2d87423220129",
+        "0x8d45e58cb392af0f7533ce50e6774031e9d141ec134dbf2da12634fca175e8adf4b1eb7e73c3930473de0fd96dd70996",
+        "0xae41d26cdaf5fb186063238c71c5bcb08f93544fde6e91c455331a755f74fff54e4beb10d728942f9671e12f79f5ceef",
+        "0xa49d06a3ad510dba1f13b1dbb62ccb9db9bec998048ed5f038591f57a707309d4e61cab6ead89d35becb97fe7034b8e2",
+        "0x984024c053a3b6a3f507b70f01a23a6708db79b9ff12a90cd587e2151ece43821a3773c348551d70809c79ff78ff2646",
+        "0xa6c7c72e656264a78dc11116b0eb9d3a3ec648fc0e7347271aa0de0489868f0823332134b1fa7b9dcbf28e5c15615616",
+        "0x8744f7d5cdb4f1b40e83f19880efb00c7cb911ac9f56098c8337a0e5ef35670e28c69d4592fc65f4f2c74e84c6cef1f9",
+        "0xb707ac879ce6ef3693912b0cac56e1c77589877829e89feb407378cb17b29a7e1db48510b755760c8958afb2f47d755c",
+        "0xb0260dd2d3007f08a00f9d299cff8c160c0625e7447d7a5df26206ecb4b965c3f1286ce9bdc2bdde187f04643fc9c467",
+        "0xb535a7f5222cc204660f8cc64fb0e95cb53cee62acbd33d40989cdbd4d6ffb41bd0c56d3c3118627028bc871f09a2590",
+        "0x94b19b888ee64dccfa123fdd7cc72b3580ed3dd6b05166a0563bb93c3dc6e98e0946e3d0240042424f8c9b9a3773a3af",
+        "0xb06ffd238f7632deeffc29413e182dccde94027c6a091d6e1548d2fab990e4d43cc6923927a21bf0f3996ad59c98f6bc",
+    ]
+    const activeValidatorsData = getActiveValidatorsData()
+    return activeValidatorsData.filter((validatorData: ValidatorData) => {
+        return activatedSenseiValidatorsPubKeys.includes(validatorData.pubkey)
+    })
+}
+
+async function getValidatorsRecommendedToBeDisassembledFromList(amount: number, validatorsData: ValidatorData[]) {
+    if(amount === 0) return []
     const validatorsProposalsArray: [string, number][] = Object.keys(globalPersistentData.validatorsLatestProposal).map((validatorIndex: string) => {
         return [validatorIndex, globalPersistentData.validatorsLatestProposal[Number(validatorIndex)]]
     })
 
+    const activeValidatorsData = getActiveValidatorsData()
+
     validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
     const validatorsToDisassemble = validatorsProposalsArray.map((v: [string, number]) => {
         const index = v[0]
-        const validatorData = globalBeaconChainData.validatorsData.find((v: ValidatorData) => {
+        const validatorData = activeValidatorsData.find((v: ValidatorData) => {
             return v.validatorindex === Number(index)
         })
         if(!validatorData) {
             throw new Error(`Validator with index ${index} not found`)
         }
         return validatorData?.pubkey
-    }).slice(0, amount)
+    }).filter((pubKey: string) => validatorsData.map((v: ValidatorData) => v.pubkey).includes(pubKey)).slice(0, amount)
 
-    let possibleValidators
     // Fill with validators by luck
     if (validatorsToDisassemble.length < amount) {
-        possibleValidators = globalBeaconChainData.validatorsData.filter((v: ValidatorData) => {
+        let possibleValidators = validatorsData.filter((v: ValidatorData) => {
             return !validatorsToDisassemble.includes(v.pubkey)
         })
 
@@ -315,4 +340,17 @@ export async function getValidatorsRecommendedToBeDisassembled(amount: number): 
         validatorsToDisassemble.push(...validatorsToAppend)
     }
     return validatorsToDisassemble
+}
+
+export async function getValidatorsRecommendedToBeDisassembled(amount: number): Promise<string[]> {
+    const senseiActiveValidators = getSenseiActiveValidatorsPubKeys()
+    const senseiActiveValidatorsPubKeys = senseiActiveValidators.map((vSensei: ValidatorData) => vSensei.pubkey)
+    const activeValidatorsData = getActiveValidatorsData().filter((v: ValidatorData) => {
+        return !senseiActiveValidatorsPubKeys.includes(v.pubkey)
+    })
+    
+    const senseiValidatorsToDisassemble = await getValidatorsRecommendedToBeDisassembledFromList(amount, senseiActiveValidators)
+    const ssvValidatorsToDisassemble = await getValidatorsRecommendedToBeDisassembledFromList(amount - senseiValidatorsToDisassemble.length, activeValidatorsData)
+
+    return senseiValidatorsToDisassemble.concat(ssvValidatorsToDisassemble)
 }
