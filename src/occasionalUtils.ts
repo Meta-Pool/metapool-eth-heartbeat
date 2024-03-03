@@ -1,8 +1,9 @@
-import { readFileSync, writeFileSync } from "fs"
-import { getBeaconChainEpoch } from "./services/beaconcha/beaconcha"
-import { IEpochResponse } from "./services/beaconcha/entities"
+import { existsSync, readFileSync, writeFileSync } from "fs"
+import { ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsData, sumPenalties, sumRewards } from "./services/beaconcha/beaconcha"
+import { IEpochResponse, IIncomeData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse } from "./services/beaconcha/entities"
 import { etow, wtoe } from "./utils/numberUtils"
 import { callDisassembleApi } from "./bots/validatorsAlerts"
+import { sleep } from "./bots/heartbeat"
 
 interface Donation {
     beaconEpoch: number,
@@ -169,7 +170,7 @@ async function getDonationsInfo() {
 }
 
 
-function run() {
+async function run() {
     const args = process.argv
     if(args.length < 3) throw new Error("Use npm run utils --args ${method}")
     const fn = args[2]
@@ -177,6 +178,10 @@ function run() {
         case "disassemble":
             console.log("Calling disassemble")
             callDisassembleValidators()
+            break
+        case "apy": 
+            await calculateAproxRewardsData()
+            await calculateExactAPYData()
             break
         default:
             throw new Error(`Function ${fn} not found`)
@@ -192,6 +197,126 @@ function callDisassembleValidators() {
         validatorsPubKeys.push(args[i])
     }
     callDisassembleApi(validatorsPubKeys)
+}
+
+function getValidatorsGroups(validatorIndexes: number[]): number[][] {
+    let i = 0
+    const output = []
+    while (i < validatorIndexes.length) {
+        output.push(validatorIndexes.slice(i, i + 100))
+        i += 100
+    }
+    return output
+}
+
+
+function joinMultipleIDH(idhArray: IIncomeDetailHistoryResponse[]) {
+    const finalIDH: IIncomeDetailHistoryResponse = {
+        status: "OK",
+        data: []
+    }
+    idhArray.forEach((idh: IIncomeDetailHistoryResponse) => {
+        if(idh.status !== "OK") {
+            finalIDH.status = idh.status
+        }
+        try {
+            finalIDH.data.push(...idh.data)
+        } catch(err) {
+            console.error("Error appending idh", idh)
+            throw err
+        }
+    })
+    return finalIDH
+}
+
+function sortIDH(idh: IIncomeDetailHistoryResponse) {
+    idh.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
+        if(data1.epoch === data2.epoch) {
+            return data1.validatorindex - data2.validatorindex
+        }
+        return data1.epoch - data2.epoch
+    })
+    return idh
+}
+
+async function getAllValidatorsIDH(validatorsData: ValidatorData[], fromEpoch: number, toEpoch: number): Promise<IIncomeDetailHistoryResponse> {
+    console.log("Getting validators IDH from", fromEpoch, "to", toEpoch)
+    if(fromEpoch === toEpoch) return {status: "OK", data: []}
+    const validatorIndexes: number[] = validatorsData
+        .map((v: ValidatorData) => v.validatorindex)
+        .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
+
+    // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
+    const validatorsGroups = getValidatorsGroups(validatorIndexes)
+    const validatorsIDHArray: IIncomeDetailHistoryResponse[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
+        const limits: number[] = [ fromEpoch ]
+        let auxFrom = fromEpoch
+        while(auxFrom < toEpoch) {
+            auxFrom = Math.min(toEpoch, auxFrom + 100)
+            limits.push(auxFrom)
+        }
+        
+        const idhResponses: IIncomeDetailHistoryResponse[] = (await Promise.all(limits.map(async (limitFrom: number, index: number) => {
+            if(index + 1 === limits.length) return undefined
+            const limitTo = limits[index + 1]
+            await sleep(index * 800)
+            return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
+        }))).filter((idh: IIncomeDetailHistoryResponse|undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
+        return joinMultipleIDH(idhResponses as IIncomeDetailHistoryResponse[])
+    }))
+
+
+    const unsortedIDHs: IIncomeDetailHistoryResponse = joinMultipleIDH(validatorsIDHArray)
+    const sortedIDH  = sortIDH(unsortedIDHs)
+    return sortedIDH
+}
+
+async function storeAllValidatorsIDH(filename: string) {
+    const currentBeaconChainEpochResponse: IEpochResponse = await getBeaconChainEpoch()
+    const currentBeaconChainEpoch = currentBeaconChainEpochResponse.data.epoch
+
+    const validatorsData: ValidatorData[] = await getValidatorsData()
+    console.log(validatorsData)
+    const firstEpoch = 223200
+    const finalEpoch = Math.min(firstEpoch + 3000, currentBeaconChainEpoch - 2)
+    const allValidatorsIDH = await getAllValidatorsIDH(validatorsData, firstEpoch, finalEpoch)
+    writeFileSync(`${filename}_${firstEpoch}_${finalEpoch}.json`, JSON.stringify(allValidatorsIDH))
+}
+
+async function calculateExactAPYData() {
+    const refetch = true
+    const filename = "delete_me_idh"
+    if(refetch || !existsSync(filename)) {
+        await storeAllValidatorsIDH(filename)
+    }
+
+    // const idhArray: IIncomeDetailHistoryData[] = JSON.parse(readFileSync(filename).toString()).data
+    // const idhGrouped: Record<number, IIncomeData[]> = {}
+    // idhArray.forEach((idh: IIncomeDetailHistoryData) => {
+    //     if(!idhGrouped[idh.validatorindex]) {
+    //         idhGrouped[idh.validatorindex] = []
+    //     }
+    //     idhGrouped[idh.validatorindex].push(idh.income)
+    // })
+    // const indexRewards: [number, bigint][] = Object.keys(idhGrouped).map((validatorIndexStr: string) => {
+    //     const validatorIndex = Number(validatorIndexStr)
+    //     const idh = idhGrouped[validatorIndex]
+    //     const totalRewards = idh.reduce((acc: bigint, curr: IIncomeData) => {
+    //         return acc + sumRewards(curr) - sumPenalties(curr)
+    //     }, 0n)
+    //     return [validatorIndex, totalRewards]
+    // })
+
+    // console.log("Index exact rewards", indexRewards)
+}
+
+async function calculateAproxRewardsData() {
+    const validatorsData: ValidatorData[] = await getValidatorsData()
+    const indexRewards = validatorsData.map((v: ValidatorData) => {
+        return [v.validatorindex, v.total_withdrawals! / 1e9]
+    })
+
+    console.log("Index aprox rewards", indexRewards)
 }
 
 run()

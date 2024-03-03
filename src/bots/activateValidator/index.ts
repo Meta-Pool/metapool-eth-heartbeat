@@ -73,7 +73,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
 
             const body = `
                 Validators created: ${validatorsToCreate}
-                Keys: ${nodes.map((node: Node) => node.pubkey).join("                \n")}
+                Keys: ${nodes.map((node: Node) => `https://beaconcha.in/validator/${node.pubkey}`).join("                \n")}
             `
 
             return {

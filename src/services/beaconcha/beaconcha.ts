@@ -54,6 +54,7 @@ export interface ValidatorData {
     validatorindex?: number
     withdrawableepoch?: number
     withdrawalcredentials?: string
+    total_withdrawals?: number
 }
 
 export interface BalanceHistory {
@@ -170,7 +171,14 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
         .replace("{indexes}", indexes.join(","))
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
         .replace("{latest_epoch}", lastEpoch.toString())
-    return (await fetch(validatorsUrl)).json()
+    return (await fetch(validatorsUrl)).json().then((json: any) => {
+        console.log("IDH from", firstEpoch, lastEpoch)
+        if(json.message && json.message === "API rate limit exceeded") {
+            console.error(json.message, firstEpoch, lastEpoch)
+            process.exit()
+        }
+        return json
+    })
 
 }
 
