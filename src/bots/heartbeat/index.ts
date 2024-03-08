@@ -75,6 +75,8 @@ export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
 const INTERVAL = 30 * MS_IN_MINUTES
 
+const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
+
 const TotalCalls = {
     beats: 0,
     stake: 0,
@@ -911,8 +913,12 @@ async function beat() {
     // keep record of stNEAR & LP price to compute APY%
     const currentDate = new Date(new Date().toLocaleString('en', { timeZone: 'America/New_York' })) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
+
+    const lastSavePriceDateTimestamp = new Date(globalPersistentData.lastSavedPriceDateISO).getTime()
+    const currentDateTimestamp = new Date(currentDateISO).getTime()
+    const shouldUpdateContract = currentDateTimestamp - CALL_SERVICES_PERIOD > lastSavePriceDateTimestamp
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
-    if (isFirstCallOfTheDay) {
+    if (shouldUpdateContract) {
         updateDailyGlobalData(currentDateISO)
         truncateLongGlobalArrays()
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
