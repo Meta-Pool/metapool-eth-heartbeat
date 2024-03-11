@@ -1,4 +1,4 @@
-import { MS_IN_MINUTES, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
+import { MS_IN_MINUTES, buildAndSendMailForError, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
@@ -214,6 +214,7 @@ export async function setIncomeDetailHistory() {
         
     } catch (err: any) {
         console.error("ERROR reporting income detail", err.message, err.stack)
+        buildAndSendMailForError(err)
     }
 }
 

@@ -111,6 +111,7 @@ export interface NodeBalance {
 export interface PersistentData {
     // Time data
     lastSavedPriceDateISO: string
+    lastContractUpdateISO: string
     beatCount: number
     timestamp: number
     delayedUnstakeEpoch: number
@@ -797,6 +798,7 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
 
     if (!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
+    if (!globalPersistentData.lastContractUpdateISO) globalPersistentData.lastContractUpdateISO = "2024-03-08"
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -914,28 +916,27 @@ async function beat() {
     const currentDate = new Date(new Date().toLocaleString('en', { timeZone: 'America/New_York' })) // -0200. Moved like this so daily report is sent at 22:00 in Argentina
     const currentDateISO = currentDate.toISOString().slice(0, 10)
 
-    const lastSavePriceDateTimestamp = new Date(globalPersistentData.lastSavedPriceDateISO).getTime()
+    const lastContractUpdateTimestamp = new Date(globalPersistentData.lastContractUpdateISO).getTime()
     const currentDateTimestamp = new Date(currentDateISO).getTime()
-    const shouldUpdateContract = currentDateTimestamp - CALL_SERVICES_PERIOD > lastSavePriceDateTimestamp
+    const shouldUpdateContract = currentDateTimestamp - CALL_SERVICES_PERIOD >= lastContractUpdateTimestamp
+    console.log("Should update contract?", shouldUpdateContract)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
-    if (shouldUpdateContract) {
+    if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)
         truncateLongGlobalArrays()
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
-
+        
         saveGlobalPersistentData()
-
-        // ------------------------------
-        // Check if a validator can be activated an do it
-        // ------------------------------
-
-        // if(!isDebug) {
-        globalPersistentData.lastIDHTs = Date.now()
-        await setIncomeDetailHistory()
-        // }
-
-        const dailyReports = await runDailyActionsAndReport()
-        mailReportsToSend.push(...dailyReports)
+        if(shouldUpdateContract) {
+            globalPersistentData.lastContractUpdateISO = currentDateISO
+            saveGlobalPersistentData()
+            if(!isDebug) {
+                globalPersistentData.lastIDHTs = Date.now()
+                await setIncomeDetailHistory()
+            }
+            const dailyReports = await runDailyActionsAndReport()
+            mailReportsToSend.push(...dailyReports)
+        }
     } // Calls made once a day
 
     if (Date.now() - globalPersistentData.lastValidatorCheckProposalTimestamp >= 6 * MS_IN_HOUR || isFirstCallOfTheDay) { // Calls made every 6 hours
@@ -976,9 +977,9 @@ async function beat() {
     const wasDelayedUnstakeOrderQueueRunForNewContract = await checkAuroraDelayedUnstakeOrders(false)
     console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForNewContract)
 
-    console.log("--Checking if order queue should be moved for old contract")
-    const wasDelayedUnstakeOrderQueueRunForOldContract = await checkAuroraDelayedUnstakeOrders(true)
-    console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForOldContract)
+    // console.log("--Checking if order queue should be moved for old contract")
+    // const wasDelayedUnstakeOrderQueueRunForOldContract = await checkAuroraDelayedUnstakeOrders(true)
+    // console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForOldContract)
 
     //refresh contract state
     console.log("Refresh metrics")
@@ -1086,7 +1087,7 @@ function heartLoop() {
     })
 }
 
-function buildAndSendMailForError(err: any) {
+export function buildAndSendMailForError(err: any) {
     let subject = `[ERROR] Unexpected error - ${err.message}`
     if (isTestnet || isDebug) {
         subject = `TESTNET: ${subject}`
