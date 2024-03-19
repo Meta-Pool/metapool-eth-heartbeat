@@ -195,7 +195,8 @@ async function showQPerformance(resp: http.ServerResponse) {
 
     // Keep data to be displayed
     const dataToDisplay: Record<string, BalanceData[]> = {}
-    const todayISO = new Date().toISOString()
+    const todayISO = new Date().toISOString().substring(0, 10)
+    
     Object.keys(data).forEach((validatorAddress: string, index: number) => {
         const historicBalances = data[validatorAddress]
         dataToDisplay[validatorAddress] = historicBalances.filter((b: BalanceData) => {
@@ -244,7 +245,7 @@ async function showQPerformance(resp: http.ServerResponse) {
             const todayDataCurrentValidator = currentValidator.find((data: any) => {
                 return data.dateISO === todayISO
             })
-            if(todayDataCurrentValidator) {
+            if(!todayDataCurrentValidator) {
                 qValidatorsWithNoBalance.push(validatorAddress)
                 return 
             }
