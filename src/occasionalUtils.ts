@@ -139,7 +139,6 @@ async function createDonationFileUntilDonationAmount() {
 
 async function getDonationsInfo() {
     const donationsFile: Donation[] = JSON.parse(readFileSync(`./db/donations.json`).toString())
-    // const donationsFile: Donation[] = JSON.parse(readFileSync(`./db/donations_2023-11-20_4.046428571428551ETH.json`).toString())
     
     const totalDonations = donationsFile.reduce((sum: number, donation: Donation) => {
         return sum + wtoe(donation.depositAmountWei)
