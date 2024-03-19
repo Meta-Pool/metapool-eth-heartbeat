@@ -196,6 +196,10 @@ async function showQPerformance(resp: http.ServerResponse) {
     const todayISO = new Date().toISOString()
     Object.keys(data).forEach((validatorAddress: string, index: number) => {
         const historicBalances = data[validatorAddress]
+        // Remove all validators that currently have 0 balance
+        if(wtoe(historicBalances[historicBalances.length - 1].balance) === 0) {
+            return
+        }
         dataToDisplay[validatorAddress] = historicBalances.filter((b: BalanceData) => {
             const difference = differenceInDays(todayISO, b.dateISO)
             return difference < maxDaysToDisplay + 1
