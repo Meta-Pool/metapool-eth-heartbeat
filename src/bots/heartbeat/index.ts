@@ -189,6 +189,7 @@ async function showQPerformance(resp: http.ServerResponse) {
 
     const maxDaysToDisplay = 10
     let datesToDisplay: string[] = []
+    const qValidatorsWithNoBalance: string[] = []
 
     const data = globalPersistentData.qBalances
 
@@ -197,10 +198,6 @@ async function showQPerformance(resp: http.ServerResponse) {
     const todayISO = new Date().toISOString()
     Object.keys(data).forEach((validatorAddress: string, index: number) => {
         const historicBalances = data[validatorAddress]
-        // Remove all validators that currently have 0 balance
-        if(wtoe(historicBalances[historicBalances.length - 1].balance) === 0) {
-            return
-        }
         dataToDisplay[validatorAddress] = historicBalances.filter((b: BalanceData) => {
             const difference = differenceInDays(todayISO, b.dateISO)
             return difference < maxDaysToDisplay + 1
@@ -240,9 +237,16 @@ async function showQPerformance(resp: http.ServerResponse) {
 
         }).slice(-maxDaysToDisplay)
 
+        
+
         Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
-            if (finalDataToDisplay[validatorAddress].length < datesToDisplay.length) {
-                const pendingLength = datesToDisplay.length - finalDataToDisplay[validatorAddress].length
+            const currentValidator = finalDataToDisplay[validatorAddress]
+            if(currentValidator[currentValidator.length - 1].dateISO !== todayISO) {
+                qValidatorsWithNoBalance.push(validatorAddress)
+                return 
+            }
+            if (currentValidator.length < datesToDisplay.length) {
+                const pendingLength = datesToDisplay.length - currentValidator.length
                 const filling = Array.from({ length: pendingLength }).fill({
                     balance: "-",
                     dateISO: "",
@@ -251,6 +255,10 @@ async function showQPerformance(resp: http.ServerResponse) {
                 finalDataToDisplay[validatorAddress] = filling.concat(finalDataToDisplay[validatorAddress])
             }
         })
+    })
+
+    qValidatorsWithNoBalance.forEach((address: string) => {
+        delete finalDataToDisplay[address]
     })
 
     const avgApy = apySum / apyCount
