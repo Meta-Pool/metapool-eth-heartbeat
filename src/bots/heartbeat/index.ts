@@ -241,7 +241,10 @@ async function showQPerformance(resp: http.ServerResponse) {
 
         Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
             const currentValidator = finalDataToDisplay[validatorAddress]
-            if(currentValidator[currentValidator.length - 1].dateISO !== todayISO) {
+            const todayDataCurrentValidator = currentValidator.find((data: any) => {
+                return data.dateISO === todayISO
+            })
+            if(todayDataCurrentValidator) {
                 qValidatorsWithNoBalance.push(validatorAddress)
                 return 
             }
