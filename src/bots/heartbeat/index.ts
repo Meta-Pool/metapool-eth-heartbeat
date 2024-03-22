@@ -1142,6 +1142,8 @@ async function debugActions(runWhile: boolean) {
     await refreshMetrics()
     // Add here
     while (runWhile) {
+        const validatorsToDisassemble = await getValidatorsRecommendedToBeDisassembled(3)
+        console.log(1, validatorsToDisassemble)
         await sleep(6.4 * MS_IN_MINUTES)
         await refreshMetrics()
     }
@@ -1168,7 +1170,7 @@ export async function run() {
     console.log("Running debug?", isDebug)
     if (isDebug) {
         console.log("Running debug")
-        const runWhile = false
+        const runWhile = true
         await debugActions(runWhile)
         return
     }

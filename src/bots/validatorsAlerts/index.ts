@@ -191,6 +191,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             validatorsToDisassemble++
             ethToTransferFromLiq -= 32
         }
+        console.log("Disassembling", validatorsToDisassemble, "validators")
 
         if (ethToTransferFromLiq > 0) {
             await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
@@ -274,7 +275,7 @@ export async function callDisassembleApi(vIndexes: string[]) {
     }
 }
 
-function getSenseiActiveValidatorsPubKeys(): ValidatorData[] {
+function getSenseiActiveValidatorsData(): ValidatorData[] {
     const activatedSenseiValidatorsPubKeys = [
         "0xafb05b66a8bed736084542f85e6ff692a04ecd043feff5ab1b380bb798768253a9fde77f6b2f1d4d654a9039f11017c6",
         "0x87e57cf6e9f0629ba87d923c233f468770f495f744327a1c4ba35a42a3eb707f14eb9a6454da921269f1d8924affe0c3",
@@ -297,60 +298,27 @@ function getSenseiActiveValidatorsPubKeys(): ValidatorData[] {
     })
 }
 
-async function getValidatorsRecommendedToBeDisassembledFromList(amount: number, validatorsData: ValidatorData[]) {
+export async function getValidatorsRecommendedToBeDisassembled(amount: number) {
     if(amount === 0) return []
-    const validatorsProposalsArray: [string, number][] = Object.keys(globalPersistentData.validatorsLatestProposal).map((validatorIndex: string) => {
-        return [validatorIndex, globalPersistentData.validatorsLatestProposal[Number(validatorIndex)]]
-    })
 
     const activeValidatorsData = getActiveValidatorsData()
-
-    validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-    const validatorsToDisassemble = validatorsProposalsArray.map((v: [string, number]) => {
-        const index = v[0]
-        const validatorData = activeValidatorsData.find((v: ValidatorData) => {
-            return v.validatorindex === Number(index)
-        })
-        if(!validatorData) {
-            throw new Error(`Validator with index ${index} not found`)
-        }
-        return validatorData?.pubkey
-    }).filter((pubKey: string) => validatorsData.map((v: ValidatorData) => v.pubkey).includes(pubKey)).slice(0, amount)
-
-    // Fill with validators by luck
-    if (validatorsToDisassemble.length < amount) {
-        let possibleValidators = validatorsData.filter((v: ValidatorData) => {
-            return !validatorsToDisassemble.includes(v.pubkey)
-        })
-
-        const validatorsLuck: [string, ILuckResponse][] = []
-        for (let i = 0; i < possibleValidators.length; i++) {
-            const pubkey = possibleValidators[i].pubkey
-            validatorsLuck.push([pubkey, await getProposalLuck(pubkey)])
-            await sleep(200) //To avoid `API rate limit exceeded` error
-        }
-        validatorsLuck.sort((luck1: [string, ILuckResponse], luck2: [string, ILuckResponse]) => {
-            return luck2[1].data.next_proposal_estimate_ts - luck1[1].data.next_proposal_estimate_ts
-        })
-
-        const validatorQtyToAppend = amount - validatorsToDisassemble.length
-        const validatorsToAppend = validatorsLuck.map((luck: [string, ILuckResponse]) => {
-            return luck[0]
-        }).slice(0, validatorQtyToAppend)
-        validatorsToDisassemble.push(...validatorsToAppend)
-    }
-    return validatorsToDisassemble
-}
-
-export async function getValidatorsRecommendedToBeDisassembled(amount: number): Promise<string[]> {
-    const senseiActiveValidators = getSenseiActiveValidatorsPubKeys()
-    const senseiActiveValidatorsPubKeys = senseiActiveValidators.map((vSensei: ValidatorData) => vSensei.pubkey)
-    const activeValidatorsData = getActiveValidatorsData().filter((v: ValidatorData) => {
-        return !senseiActiveValidatorsPubKeys.includes(v.pubkey)
-    })
+    const senseiActiveValidators = getSenseiActiveValidatorsData()
+    const senseiActivePubKeys = senseiActiveValidators.map((v) => v.pubkey)
     
-    const senseiValidatorsToDisassemble = await getValidatorsRecommendedToBeDisassembledFromList(amount, senseiActiveValidators)
-    const ssvValidatorsToDisassemble = await getValidatorsRecommendedToBeDisassembledFromList(amount - senseiValidatorsToDisassemble.length, activeValidatorsData)
+    activeValidatorsData.sort((first: ValidatorData, second: ValidatorData) => {
+        // First, we look to disassemble sensei validators
+        const isFirstASenseiValidatorNumber = senseiActivePubKeys.includes(first.pubkey) ? 1 : 0
+        const isSecondASenseiValidatorNumber = senseiActivePubKeys.includes(second.pubkey) ? 1 : 0
+        if(isFirstASenseiValidatorNumber - isSecondASenseiValidatorNumber !== 0) {
+            return isSecondASenseiValidatorNumber - isFirstASenseiValidatorNumber
+        }
 
-    return senseiValidatorsToDisassemble.concat(ssvValidatorsToDisassemble)
+        // If both validators belong to the same provider, we try to disassemble first the one that proposed a block latest
+        // Some validators have not proposed, so we take that like they proposed a block on block 0
+        const firstValidatorLatestProposal = globalPersistentData.validatorsLatestProposal[first.validatorindex!] ?? 0
+        const secondValidatorLatestProposal = globalPersistentData.validatorsLatestProposal[second.validatorindex!] ?? 0
+        return secondValidatorLatestProposal - firstValidatorLatestProposal
+    })
+
+    return activeValidatorsData.slice(0, amount).map((v) => v.validatorindex!.toString())
 }
