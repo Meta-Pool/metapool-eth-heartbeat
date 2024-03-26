@@ -77,7 +77,7 @@ export async function refreshQVaultMetrics() {
 
     const qVaultContract = new QVaultContract()
     const [
-        delegationsList
+        delegationsList,
     ] = await Promise.all([
         qVaultContract.getDelegationsList(account),
     ])

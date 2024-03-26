@@ -124,6 +124,7 @@ export interface PersistentData {
     mpethPrice: string
     estimatedMpEthPrice: string
     lpPrice: string
+    qPrices: PriceData[]
 
     // Historical data
     stakingBalances: BalanceData[]
@@ -136,7 +137,7 @@ export interface PersistentData {
     requestedDelayedUnstakeBalances: BalanceData[]
     historicalActiveValidators: SimpleNumberRecord[]
     incomeDetailHistory: IIncomeDetailHistoryData[]
-    qBalances: Record<string, BalanceData[]> // address - balanceData
+    qBalancesByAddress: Record<string, BalanceData[]> // address - balanceData
 
     // Current data
     stakingBalance: string
@@ -191,7 +192,7 @@ async function showQPerformance(resp: http.ServerResponse) {
     let datesToDisplay: string[] = []
     const qValidatorsWithNoBalance: string[] = []
 
-    const data = globalPersistentData.qBalances
+    const data = globalPersistentData.qBalancesByAddress
 
     // Keep data to be displayed
     const dataToDisplay: Record<string, BalanceData[]> = {}
@@ -809,7 +810,7 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {}
 
     if (!globalQData.validatorsBalancesByAddress) globalQData.validatorsBalancesByAddress = {}
-    if (!globalPersistentData.qBalances) globalPersistentData.qBalances = {}
+    if (!globalPersistentData.qBalancesByAddress) globalPersistentData.qBalancesByAddress = {}
 
     if (!globalPersistentData.weeklyDelimiterDateISO) globalPersistentData.weeklyDelimiterDateISO = "2023/10/24"
 
@@ -879,14 +880,22 @@ function updateDailyGlobalData(currentDateISO: string) {
 
     Object.keys(globalQData.validatorsBalancesByAddress).forEach((address: string) => {
         const balance = globalQData.validatorsBalancesByAddress[address]
-        if (!globalPersistentData.qBalances[address]) {
-            globalPersistentData.qBalances[address] = []
+        if (!globalPersistentData.qBalancesByAddress[address]) {
+            globalPersistentData.qBalancesByAddress[address] = []
         }
-        globalPersistentData.qBalances[address].push({
+        
+        globalPersistentData.qBalancesByAddress[address].push({
             dateISO: currentDateISO,
             balance: balance.toString()
         })
     })
+
+    globalPersistentData.qPrices.push({
+        dateISO: currentDateISO,
+        price: globalQData.stQPrice.toString(),
+        assets: globalQData.totalAssets.toString(),
+        supply: globalQData.totalSupply.toString(),
+    });
 
     if (isDebug) console.log("Global data refreshed successfully")
 }

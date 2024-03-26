@@ -153,7 +153,7 @@ export function fromGlobalState(): Record<string,any> {
         return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
-    const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
+    // const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
     
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
@@ -195,10 +195,10 @@ export function fromGlobalState(): Record<string,any> {
         stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
-        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
-        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
-        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
-        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
+        q_3_day_apy: computeRollingApy(globalPersistentData.qPrices, 3, true),
+        q_7_day_apy: computeRollingApy(globalPersistentData.qPrices, 7, true),
+        q_15_day_apy: computeRollingApy(globalPersistentData.qPrices, 15, true),
+        q_30_day_apy: computeRollingApy(globalPersistentData.qPrices, 30, true),
     }
 
     const output: Record<string, string|number> = snap

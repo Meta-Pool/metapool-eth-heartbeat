@@ -7,7 +7,7 @@ import { ascDateSorter } from "./timeUtils";
  * it is what computeRollingApy requires, even though it doesn't use params assets and supply
  */
 export function groupQBalancesSortedByDate(): PriceData[] {
-    const data = globalPersistentData.qBalances
+    const data = globalPersistentData.qBalancesByAddress
 
     const balancesByDate: Record<string, bigint> = {}
     Object.keys(data).forEach((pubkey: string) => {
