@@ -817,6 +817,8 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
     if (!globalPersistentData.lastContractUpdateISO) globalPersistentData.lastContractUpdateISO = "2024-03-08"
 
+    if (!globalPersistentData.qPrices) globalPersistentData.qPrices = []
+
     if (isDebug) console.log("Global state initialized successfully")
 }
 

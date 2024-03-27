@@ -195,10 +195,10 @@ export function fromGlobalState(): Record<string,any> {
         stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
-        q_3_day_apy: computeRollingApy(globalPersistentData.qPrices, 3, true),
-        q_7_day_apy: computeRollingApy(globalPersistentData.qPrices, 7, true),
-        q_15_day_apy: computeRollingApy(globalPersistentData.qPrices, 15, true),
-        q_30_day_apy: computeRollingApy(globalPersistentData.qPrices, 30, true),
+        q_3_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 3, true).toFixed(2)),
+        q_7_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 7, true).toFixed(2)),
+        q_15_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 15, true).toFixed(2)),
+        q_30_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 30, true).toFixed(2)),
     }
 
     const output: Record<string, string|number> = snap
@@ -269,10 +269,10 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
-        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
-        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
-        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
-        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
+        q_3_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 3, true).toFixed(2)),
+        q_7_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 7, true).toFixed(2)),
+        q_15_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 15, true).toFixed(2)),
+        q_30_day_apy: Number(computeRollingApy(globalPersistentData.qPrices, 30, true).toFixed(2)),
         
         nodesBalances,
         validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,
