@@ -124,7 +124,7 @@ export interface PersistentData {
     mpethPrice: string
     estimatedMpEthPrice: string
     lpPrice: string
-    qPrices: PriceData[]
+    stQPrices: PriceData[]
 
     // Historical data
     stakingBalances: BalanceData[]
@@ -817,7 +817,7 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
     if (!globalPersistentData.lastContractUpdateISO) globalPersistentData.lastContractUpdateISO = "2024-03-08"
 
-    if (!globalPersistentData.qPrices) globalPersistentData.qPrices = []
+    if (!globalPersistentData.stQPrices) globalPersistentData.stQPrices = []
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -892,7 +892,7 @@ function updateDailyGlobalData(currentDateISO: string) {
         })
     })
 
-    globalPersistentData.qPrices.push({
+    globalPersistentData.stQPrices.push({
         dateISO: currentDateISO,
         price: globalQData.stQPrice.toString(),
         assets: globalQData.totalAssets.toString(),
