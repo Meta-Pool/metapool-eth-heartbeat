@@ -73,7 +73,7 @@ export const MS_IN_SECOND = 1000
 export const MS_IN_MINUTES = 60 * MS_IN_SECOND
 export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
-const INTERVAL = 30 * MS_IN_MINUTES
+const INTERVAL = 5 * MS_IN_MINUTES
 
 const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
 
