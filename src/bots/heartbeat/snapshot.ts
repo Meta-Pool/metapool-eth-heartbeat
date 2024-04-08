@@ -55,6 +55,7 @@ export type Snapshot = {
     mp_eth_7_day_apy: number
     mp_eth_15_day_apy: number
     mp_eth_30_day_apy: number
+    mp_eth_180_day_apy: number
     lp_3_day_apy: number
     lp_7_day_apy: number
     lp_15_day_apy: number
@@ -106,6 +107,7 @@ export type SnapshotHR = {
     mp_eth_7_day_apy: number
     mp_eth_15_day_apy: number
     mp_eth_30_day_apy: number
+    mp_eth_180_day_apy: number
     lp_3_day_apy: number
     lp_7_day_apy: number
     lp_15_day_apy: number
@@ -152,8 +154,6 @@ export function fromGlobalState(): Record<string,any> {
     const nodesBalanceSum = globalBeaconChainData.validatorsData.reduce((acc: bigint, v: ValidatorData) => {
         return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
-
-    // const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
     
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
@@ -163,6 +163,7 @@ export function fromGlobalState(): Record<string,any> {
         mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
         mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
         mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
+        mp_eth_180_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 180, true),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
@@ -195,10 +196,10 @@ export function fromGlobalState(): Record<string,any> {
         stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
-        q_3_day_apy: computeRollingApy(globalPersistentData.qPrices, 3, true),
-        q_7_day_apy: computeRollingApy(globalPersistentData.qPrices, 7, true),
-        q_15_day_apy: computeRollingApy(globalPersistentData.qPrices, 15, true),
-        q_30_day_apy: computeRollingApy(globalPersistentData.qPrices, 30, true),
+        q_3_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 3, true).toFixed(2)),
+        q_7_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 7, true).toFixed(2)),
+        q_15_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 15, true).toFixed(2)),
+        q_30_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 30, true).toFixed(2)),
     }
 
     const output: Record<string, string|number> = snap
@@ -227,8 +228,6 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         nodesBalances[v.pubkey] = wtoe(v.balance + ZEROS_9)
     })
 
-    const groupedQBalancesSortedByDate = groupQBalancesSortedByDate()
-
 
     let snap: SnapshotHR = {
         mpethPrice: wtoe(globalPersistentData.mpethPrice),
@@ -243,6 +242,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
         mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
         mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
+        mp_eth_180_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 180, true),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
@@ -269,10 +269,10 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         stQPrice: wtoe(globalQData.stQPrice),
         qTotalAssets: wtoe(globalQData.totalAssets),
         qTotalSupply: wtoe(globalQData.totalSupply),
-        q_3_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 3, true),
-        q_7_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 7, true),
-        q_15_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 15, true),
-        q_30_day_apy: computeRollingApy(groupedQBalancesSortedByDate, 30, true),
+        q_3_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 3, true).toFixed(2)),
+        q_7_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 7, true).toFixed(2)),
+        q_15_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 15, true).toFixed(2)),
+        q_30_day_apy: Number(computeRollingApy(globalPersistentData.stQPrices, 30, true).toFixed(2)),
         
         nodesBalances,
         validatorsTypesQty: globalBeaconChainData.validatorsStatusesQty,

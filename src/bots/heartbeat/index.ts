@@ -73,7 +73,7 @@ export const MS_IN_SECOND = 1000
 export const MS_IN_MINUTES = 60 * MS_IN_SECOND
 export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
-const INTERVAL = 30 * MS_IN_MINUTES
+const INTERVAL = 5 * MS_IN_MINUTES
 
 const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
 
@@ -124,7 +124,7 @@ export interface PersistentData {
     mpethPrice: string
     estimatedMpEthPrice: string
     lpPrice: string
-    qPrices: PriceData[]
+    stQPrices: PriceData[]
 
     // Historical data
     stakingBalances: BalanceData[]
@@ -817,6 +817,8 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.blacklistedValidators) globalPersistentData.blacklistedValidators = []
     if (!globalPersistentData.lastContractUpdateISO) globalPersistentData.lastContractUpdateISO = "2024-03-08"
 
+    if (!globalPersistentData.stQPrices) globalPersistentData.stQPrices = []
+
     if (isDebug) console.log("Global state initialized successfully")
 }
 
@@ -890,7 +892,7 @@ function updateDailyGlobalData(currentDateISO: string) {
         })
     })
 
-    globalPersistentData.qPrices.push({
+    globalPersistentData.stQPrices.push({
         dateISO: currentDateISO,
         price: globalQData.stQPrice.toString(),
         assets: globalQData.totalAssets.toString(),
