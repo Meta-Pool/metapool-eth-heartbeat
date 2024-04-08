@@ -13,6 +13,7 @@
     "utils": "npx tsc && cd dist/ && node occasionalUtils.js",
     "utils:disassemble": "npx tsc && cd dist/ && node occasionalUtils.js disassemble",
     "utils:apy": "npx tsc && cd dist/ && node occasionalUtils.js apy",
+    "utils:donationFile": "npx tsc && cd dist/ && node occasionalUtils.js donationFile",
     "debug": "npm run build && cd dist/ && node index.js --debug",
     "tester": "npm run build && cd dist/ && node testerHelper.js",
     "save:metrics": "npm run build && node dist/index.js",

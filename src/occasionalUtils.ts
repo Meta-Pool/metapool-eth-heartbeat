@@ -42,13 +42,13 @@ function testOperatorsRunway() {
 }
 
 async function createDonationFile() {
-    const weeklyDonationsInETH = 0.45
+    const weeklyDonationsInETH = 0.1
     const dailyDonationsInETH = weeklyDonationsInETH / 7
     const hourlyDonationsInETH = dailyDonationsInETH / 24
-    const hourlyDonationsInWei = etow(hourlyDonationsInETH)
+    const hourlyDonationsInWei = etow(hourlyDonationsInETH.toFixed(18))
 
     const now = Date.now()
-    const from = "2023/09/21 19:17:00"
+    const from = "2024/04/08 16:30:00"
     const fromDate = new Date(from)
     const msLeftUntilFromDateEpoch = fromDate.getTime() - now
     if(msLeftUntilFromDateEpoch < 0) throw new Error(`From date is previous than now ${fromDate.getMilliseconds()}, ${now}`)
@@ -91,7 +91,11 @@ async function createDonationFile() {
         )
     }
     console.log("Total donation", donationTotal)
+    console.log("Final donation date", toDate.toISOString())
     writeFileSync(`./db/donations_${fromDate.toISOString().slice(0, 10)}_${toDate.toISOString().slice(0, 10)}.json`, JSON.stringify(output))
+
+    
+
 }
 
 async function createDonationFileUntilDonationAmount() {
@@ -181,6 +185,9 @@ async function run() {
         case "apy": 
             await calculateAproxRewardsData()
             await calculateExactAPYData()
+            break
+        case "donationFile": 
+            createDonationFile()
             break
         default:
             throw new Error(`Function ${fn} not found`)
