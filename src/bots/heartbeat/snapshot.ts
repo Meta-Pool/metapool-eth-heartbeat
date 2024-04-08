@@ -55,6 +55,7 @@ export type Snapshot = {
     mp_eth_7_day_apy: number
     mp_eth_15_day_apy: number
     mp_eth_30_day_apy: number
+    mp_eth_180_day_apy: number
     lp_3_day_apy: number
     lp_7_day_apy: number
     lp_15_day_apy: number
@@ -106,6 +107,7 @@ export type SnapshotHR = {
     mp_eth_7_day_apy: number
     mp_eth_15_day_apy: number
     mp_eth_30_day_apy: number
+    mp_eth_180_day_apy: number
     lp_3_day_apy: number
     lp_7_day_apy: number
     lp_15_day_apy: number
@@ -161,6 +163,7 @@ export function fromGlobalState(): Record<string,any> {
         mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
         mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
         mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
+        mp_eth_180_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 180, true),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
@@ -239,6 +242,7 @@ export function fromGlobalStateForHuman(): Record<string,any> {
         mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
         mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
         mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
+        mp_eth_180_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 180, true),
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
