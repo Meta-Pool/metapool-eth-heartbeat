@@ -21,7 +21,7 @@ export class StakingManagerContract extends AurContract {
     }
 
     getDepositorsLength() {
-        return this.call("getDepositorsLength")
+        return this.contract.getDepositorsLength()
     }
 }
 
