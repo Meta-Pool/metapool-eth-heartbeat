@@ -77,8 +77,10 @@ export function alertCreateValidators(): IMailReportHelper {
 export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper> {
     const functionName = "getDeactivateValidatorsReport"
     try {
+        console.log("Running", functionName)
         const withdrawContract = new WithdrawContract()
         const currentEpoch = await withdrawContract.getEpoch()
+        console.log("Current epoch", currentEpoch)
 
         const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName }
         const balances: Balances = await getBalances()
@@ -91,6 +93,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         `
         // Epoch hasn't change, so there is nothing to do
         if (currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
+            console.log("Epoch hasn't changed")
             return {
                 ...output,
                 ok: true,
@@ -102,6 +105,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         // Epoch went backwards. This error should never happen
         if (currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
+            console.error("SEVERE: Epoch went backwards")
             return {
                 ...output,
                 ok: false,
@@ -111,6 +115,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             }
         }
         // Update epoch
+        console.log("Updating epoch")
         const previousEpoch = globalPersistentData.delayedUnstakeEpoch
         globalPersistentData.delayedUnstakeEpoch = currentEpoch
 
@@ -131,6 +136,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw + exitedValidatorsBalance
         if (withdrawAvailableEthForValidators > 0) {            
+            console.log("Withdraw balance is enough to cover")
             return {
                 ...output,
                 ok: true,
@@ -144,6 +150,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance + exitedValidatorsBalance)
         const neededEth = Number(ethers.formatEther(neededWei.toString()))
         if (neededEth <= 0) {
+            console.log("Staking with withdraw balance is enough to cover")
+            console.log("")
             return {
                 ...output,
                 ok: true,
@@ -156,6 +164,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const liqAvailableEthForValidators = Number(ethers.formatEther(balances.liqAvailableEthForValidators.toString()))
         if (liqAvailableEthForValidators >= neededEth) {
+            console.log("Staking with liquidity and withdraw balance is enough to cover. Transferring from liquidity to stake")
             try {
                 await stakingContract.requestEthFromLiquidPoolToWithdrawal(neededWei)
                 return {

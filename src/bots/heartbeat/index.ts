@@ -10,7 +10,7 @@ import { StakingContract } from "../../crypto/stakingContract";
 import { LiquidityContract } from "../../crypto/liquidity";
 import { ZEROS_9 } from "../nodesBalance";
 import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, getDeactivateValidatorsReport as getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
+import { alertCreateValidators, getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
 import { getEnv } from "../../entities/env";
 import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
 import { WithdrawContract } from "../../crypto/withdraw";
