@@ -1,5 +1,5 @@
 import { Report } from "../../entities/staking"
-import { IBalanceHistoryData, ValidatorData, getBeaconChainEpoch, getValidatorsData } from "../../services/beaconcha/beaconcha"
+import { IBalanceHistoryData, ValidatorData, getBeaconChainEpoch } from "../../services/beaconcha/beaconcha"
 import { IEpochResponse } from "../../services/beaconcha/entities"
 import { sendEmail } from "../../utils/mailUtils"
 import { max } from "../../utils/numberUtils"
@@ -7,84 +7,6 @@ import { globalBeaconChainData } from "../heartbeat"
 
 export const ZEROS_9 = "0".repeat(9)
 
-/**
- * Updates nodes balance in the contract. Since validators transfer rewards automatically, there might be a 
- * concurrence issue. Hence, we check there was no transfer validating ethRemaining is the same before
- * and after getting the nodesBalance.
- * @returns An array with 4 values, telling whether has been any error, a sujested topic for an email and a body to append, and the error severity
- */
-// export async function updateNodesBalance(): Promise<IMailReportHelper> {
-//     const functionName = "updateNodesBalance"
-//     console.log("Updating mpeth price")
-//     let retries = 5
-//     const withdrawContract: WithdrawContract = new WithdrawContract()
-//     const stakingContract: StakingContract = new StakingContract()
-//     let initialEthRemaining: bigint = -1n
-//     let totalBalanceBigInt: string = "-1"
-
-//     try {
-//         // let finishingEthRemaining: bigint = await withdrawContract.ethRemaining()
-//         let finishingEthRemaining: bigint = BigInt(globalPersistentData.withdrawAvailableEthForValidators)
-
-//         while (retries > 0 && initialEthRemaining !== finishingEthRemaining) {
-//             retries--
-//             initialEthRemaining = finishingEthRemaining
-
-//             totalBalanceBigInt = await getNodesBalance()
-//             const withdrawBalance = await withdrawContract.getWalletBalance(withdrawContract.address)
-//             const totalPendingWithdraw = await withdrawContract.totalPendingWithdraw()
-//             finishingEthRemaining = withdrawBalance - totalPendingWithdraw
-//         }
-
-//         if (initialEthRemaining !== finishingEthRemaining && retries === 0) {
-//             throw new Error(`Error getting nodes balances. Eth remaining changed after 5 retries`)
-//         }
-
-//         if (initialEthRemaining === -1n || totalBalanceBigInt === "-1") {
-//             throw new Error(`Unexpected value after getting nodes balance. initialEthRemaining: ${initialEthRemaining}. totalBalanceBigInt: ${totalBalanceBigInt}`)
-//         }
-
-
-//         await stakingContract.updateNodesBalance(totalBalanceBigInt, BigInt("1000000000000"))
-//         console.log("MpEth price updated")
-//         return {
-//             ok: true,
-//             function: functionName,
-//             subject: "",
-//             body: "MpEth price updated successfully",
-//             severity: Severity.OK
-//         }
-//     } catch (err: any) {
-//         console.error(`Error updating mpeth price ${err.message}`)
-
-//         const subject = "Update nodes balance"
-//         const body = err.message
-//         // sendEmail(subject, body)
-//         return {
-//             ok: false,
-//             function: functionName,
-//             subject,
-//             body,
-//             severity: Severity.ERROR
-//         }
-//     }
-// }
-
-export async function getNodesBalance(reloadNodesData: boolean = false): Promise<string> {
-    if(reloadNodesData) {
-        globalBeaconChainData.validatorsData = await getValidatorsData()
-    }
-    const validatorDataArray: ValidatorData[] = globalBeaconChainData.validatorsData
-
-    const balances: number[] = validatorDataArray.map((v: ValidatorData) => v.balance)
-    console.log("Validators balances", balances)
-    const totalBalance = balances.reduce((p: number, c: number) => p + c, 0)
-
-    // Total balance comes with 9 decimals, so we add 9 zeros
-    const totalBalanceBigInt: bigint = BigInt(totalBalance) * BigInt(1 + ZEROS_9) 
-    console.log("Total balance", totalBalanceBigInt)
-    return totalBalanceBigInt.toString()
-}
 
 export async function checkValidatorsPenalization() {
     console.log("Checking if a validator was penalized")

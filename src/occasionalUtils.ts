@@ -295,25 +295,6 @@ async function calculateExactAPYData() {
     if(refetch || !existsSync(filename)) {
         await storeAllValidatorsIDH(filename)
     }
-
-    // const idhArray: IIncomeDetailHistoryData[] = JSON.parse(readFileSync(filename).toString()).data
-    // const idhGrouped: Record<number, IIncomeData[]> = {}
-    // idhArray.forEach((idh: IIncomeDetailHistoryData) => {
-    //     if(!idhGrouped[idh.validatorindex]) {
-    //         idhGrouped[idh.validatorindex] = []
-    //     }
-    //     idhGrouped[idh.validatorindex].push(idh.income)
-    // })
-    // const indexRewards: [number, bigint][] = Object.keys(idhGrouped).map((validatorIndexStr: string) => {
-    //     const validatorIndex = Number(validatorIndexStr)
-    //     const idh = idhGrouped[validatorIndex]
-    //     const totalRewards = idh.reduce((acc: bigint, curr: IIncomeData) => {
-    //         return acc + sumRewards(curr) - sumPenalties(curr)
-    //     }, 0n)
-    //     return [validatorIndex, totalRewards]
-    // })
-
-    // console.log("Index exact rewards", indexRewards)
 }
 
 async function calculateAproxRewardsData() {
