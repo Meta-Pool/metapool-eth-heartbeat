@@ -75,7 +75,9 @@ export interface IBalanceHistoryData {
 export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}`)
-    
+    if(!validatorsDataResponse.ok) {
+        throw new Error(`Error fetching validators data. Status: ${validatorsDataResponse.status}. ${validatorsDataResponse.statusText}`)
+    }
     const validatorData: DeployerDataResponse|BeaconChainDataError = await validatorsDataResponse.json()
     
     if(validatorData && 'message' in validatorData) {

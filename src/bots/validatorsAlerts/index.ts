@@ -242,7 +242,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             ok: false,
             function: functionName,
             subject: "Disassemble validator error",
-            body: `There was an error checking if a validator should be disassembled: ${err.message}`,
+            body: `There was an error checking if a validator should be disassembled: ${err.message}
+                ${err.stack}`,
             severity: Severity.ERROR
         }
     }
