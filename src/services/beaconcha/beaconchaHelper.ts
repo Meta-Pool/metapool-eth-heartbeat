@@ -6,7 +6,7 @@ import { Report } from "../../entities/staking";
 import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
-const SKIP_REFRESH_TIMES = 10
+const SKIP_REFRESH_TIMES = 3
 let currentSkippedTimes = 0
 let shouldSkipRefresh = false
 

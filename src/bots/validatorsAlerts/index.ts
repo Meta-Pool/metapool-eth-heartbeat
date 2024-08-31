@@ -77,20 +77,14 @@ export function alertCreateValidators(): IMailReportHelper {
 export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper> {
     const functionName = "getDeactivateValidatorsReport"
     const previousEpoch = globalPersistentData.delayedUnstakeEpoch
-    const balances: Balances = await getBalances()
-    const balancesBody = `
-            Staking balance: ${ethers.formatEther(balances.staking)} ETH
-            Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
-            Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
-            Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
-        `
+    let balancesBody: string|undefined
     let wasDisassembleApiCalled = false
     try {
         console.log("Running", functionName)
         const withdrawContract = new WithdrawContract()
         const currentEpoch = await withdrawContract.getEpoch()
         console.log("Current epoch", currentEpoch)
-
+        
         const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName }
         
         // Epoch hasn't change, so there is nothing to do
@@ -99,12 +93,11 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             return {
                 ...output,
                 ok: true,
-                body: `Epoch hasn't changed so there is nothing to do
-            ${balancesBody}`,
+                body: `Epoch hasn't changed so there is nothing to do`,
                 severity: Severity.OK
             }
         }
-
+        
         // Epoch went backwards. This error should never happen
         if (currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
             console.error("SEVERE: Epoch went backwards")
@@ -116,6 +109,13 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 severity: Severity.ERROR
             }
         }
+        const balances = await getBalances()
+        const balancesBody = `
+                Staking balance: ${ethers.formatEther(balances.staking)} ETH
+                Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
+                Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
+                Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
+            `
         // Update epoch
         console.log("Updating epoch")
         globalPersistentData.delayedUnstakeEpoch = currentEpoch
@@ -251,8 +251,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             subject: "Disassemble validator error",
             body: `There was an error checking if a validator should be disassembled: ${err.message}
                 ${err.stack}
-                Check following for quick manual check. ${wasDisassembleApiCalled ? '' : "This validation will be called again"}
-                ${balancesBody}
+                Check following for quick manual check. ${wasDisassembleApiCalled ? 'Already tried to call the api, so make a manual check' : "This validation will be called again"}
+                ${balancesBody ?? ''}
                 `,
             severity: Severity.ERROR
         }
