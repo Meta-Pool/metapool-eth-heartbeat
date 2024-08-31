@@ -6,10 +6,21 @@ import { Report } from "../../entities/staking";
 import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
-
+const SKIP_REFRESH_TIMES = 10
+let currentSkippedTimes = 0
+let shouldSkipRefresh = false
 
 export async function refreshBeaconChainData() {
     try {
+        // When "Too many requests" error comes, skip a couple of calls
+        if(shouldSkipRefresh) {
+            currentSkippedTimes++
+            console.log("Skipping beacon chain refresh", currentSkippedTimes, "/", SKIP_REFRESH_TIMES)
+            if(currentSkippedTimes >= SKIP_REFRESH_TIMES) {
+                shouldSkipRefresh = false
+            }
+            return
+        }
         globalBeaconChainData.validatorsData = await getValidatorsData()
         globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
             if (!curr.status) return acc
@@ -40,6 +51,11 @@ export async function refreshBeaconChainData() {
     } catch(err: any) {
         console.error(err.message)
         console.error(err.stack)
+        const isErrTooManyRequest = err.message.includes("Status: 429")
+        if(isErrTooManyRequest) {
+            shouldSkipRefresh = true
+            currentSkippedTimes = 0
+        }
     }
 
 }
