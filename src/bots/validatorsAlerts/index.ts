@@ -76,33 +76,28 @@ export function alertCreateValidators(): IMailReportHelper {
 
 export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper> {
     const functionName = "getDeactivateValidatorsReport"
+    const previousEpoch = globalPersistentData.delayedUnstakeEpoch
+    let balancesBody: string|undefined
+    let wasDisassembleApiCalled = false
     try {
         console.log("Running", functionName)
         const withdrawContract = new WithdrawContract()
         const currentEpoch = await withdrawContract.getEpoch()
         console.log("Current epoch", currentEpoch)
-
+        
         const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName }
-        const balances: Balances = await getBalances()
-
-        const balancesBody = `
-            Staking balance: ${ethers.formatEther(balances.staking)} ETH
-            Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
-            Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
-            Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
-        `
+        
         // Epoch hasn't change, so there is nothing to do
         if (currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
             console.log("Epoch hasn't changed")
             return {
                 ...output,
                 ok: true,
-                body: `Epoch hasn't changed so there is nothing to do
-            ${balancesBody}`,
+                body: `Epoch hasn't changed so there is nothing to do`,
                 severity: Severity.OK
             }
         }
-
+        
         // Epoch went backwards. This error should never happen
         if (currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
             console.error("SEVERE: Epoch went backwards")
@@ -114,9 +109,15 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 severity: Severity.ERROR
             }
         }
+        const balances = await getBalances()
+        const balancesBody = `
+                Staking balance: ${ethers.formatEther(balances.staking)} ETH
+                Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
+                Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
+                Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
+            `
         // Update epoch
         console.log("Updating epoch")
-        const previousEpoch = globalPersistentData.delayedUnstakeEpoch
         globalPersistentData.delayedUnstakeEpoch = currentEpoch
 
         const epochInfoBody = `
@@ -208,6 +209,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDisassemble)
         
+        wasDisassembleApiCalled = true
         const disassembleApiResponse = await callDisassembleApi(vIndexes)
 
         ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
@@ -238,12 +240,20 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         }
     } catch (err: any) {
         console.error("ERROR", err.message, err.stack)
+        if(!wasDisassembleApiCalled) {
+            // Reset to previous epoch if error ocurrs and haven't called api. It might not be related to this, but it still needs to be rechecked
+            globalPersistentData.delayedUnstakeEpoch = previousEpoch
+        }
+        
         return {
             ok: false,
             function: functionName,
             subject: "Disassemble validator error",
             body: `There was an error checking if a validator should be disassembled: ${err.message}
-                ${err.stack}`,
+                ${err.stack}
+                Check following for quick manual check. ${wasDisassembleApiCalled ? 'Already tried to call the api, so make a manual check' : "This validation will be called again"}
+                ${balancesBody ?? ''}
+                `,
             severity: Severity.ERROR
         }
     }
