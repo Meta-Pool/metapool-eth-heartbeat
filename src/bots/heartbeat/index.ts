@@ -77,13 +77,9 @@ const INTERVAL = 5 * MS_IN_MINUTES
 
 const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
 
-const TotalCalls = {
+export const TotalCalls = {
     beats: 0,
-    stake: 0,
-    unstake: 0,
-    ping: 0,
-    distribute_rewards: 0,
-    retrieve: 0
+    beaconChainApiCallsOnBeat: 0,
 }
 
 export interface PriceData {
@@ -927,6 +923,7 @@ async function registerValidatorsProposals() {
 
 async function beat() {
     TotalCalls.beats++;
+    TotalCalls.beaconChainApiCallsOnBeat = 0
     console.log("-".repeat(80))
     console.log(new Date().toString());
     console.log(`BEAT ${TotalCalls.beats} (${globalPersistentData.beatCount ?? 0})`);
@@ -1016,6 +1013,8 @@ async function beat() {
     //END OF BEAT
     globalPersistentData.beatCount++;
     saveGlobalPersistentData()
+
+    console.log("Beacon chains API calls on beat", TotalCalls.beaconChainApiCallsOnBeat)
 }
 
 function saveGlobalPersistentData() {
