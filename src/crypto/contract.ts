@@ -44,8 +44,8 @@ export abstract class GenericContract {
     }
     
     getWalletBalance(address: string) {
+        console.log("Getting wallet balance from address", address)
         return this.getProvider(this.network, this.getInfuraApiKey()).getBalance(address)
-        // return this.getProvider(this.network, API_KEY).getBalance(address)
     }
     
     getWallet(privateKey: string) {

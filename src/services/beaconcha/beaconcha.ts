@@ -75,10 +75,12 @@ export interface IBalanceHistoryData {
 export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     TotalCalls.beaconChainApiCallsOnBeat++
+    console.log("Fetching from", `${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`)
     const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`)
     if(!validatorsDataResponse.ok) {
         throw new Error(`Error fetching validators data. Status: ${validatorsDataResponse.status}. ${validatorsDataResponse.statusText}`)
     }
+    console.log("Response:", validatorsDataResponse)
     const validatorData: DeployerDataResponse|BeaconChainDataError = await validatorsDataResponse.json()
     
     if(validatorData && 'message' in validatorData) {
@@ -103,10 +105,12 @@ export function getActiveValidatorsData(): ValidatorData[] {
 }
 
 export async function fetchValidatorsData(validatorIds: (number|string)[]): Promise<ValidatorData[]> {
+    console.log("Fetching validators data")
     const chunkSize = 100
     let output: ValidatorData[] = []
     for(let i = 0; i < validatorIds.length; i += chunkSize) {
         const ids = validatorIds.slice(i, i + chunkSize)
+        console.log("Fetching ids:", ids)
         const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
         const validatorsData = validatorsDataResponse.data
         if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
