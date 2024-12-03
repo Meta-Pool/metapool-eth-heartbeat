@@ -1006,9 +1006,9 @@ async function beat() {
     // console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForOldContract)
 
     //refresh contract state
-    console.log("Refresh metrics")
-    await refreshMetrics();
-    console.log("Metrics refreshed successfully")
+    // console.log("Refresh metrics")
+    // await refreshMetrics();
+    // console.log("Metrics refreshed successfully")
 
     //END OF BEAT
     globalPersistentData.beatCount++;
