@@ -35,7 +35,7 @@ export function getDepositData() {
     return isTestnet ? testnetDepositData : mainnetDepositData
 }
 
-export async function activateValidator(): Promise<IMailReportHelper> {    
+export async function activateValidator(): Promise<IMailReportHelper> {
     let wasValidatorCreated = false
     const functionName = activateValidator.name
     try {
@@ -44,8 +44,8 @@ export async function activateValidator(): Promise<IMailReportHelper> {
         const balances: Balances = await getBalances()
         const balanceForValidators = balances.staking + balances.withdrawBalance + balances.liqAvailableEthForValidators - balances.totalPendingWithdraw
         const validatorsToCreate = Math.max(0, Math.floor(wtoe(balanceForValidators) / 32))
-        
-        if(validatorsToCreate > 0) {
+
+        if (validatorsToCreate > 0) {
             console.log("Creating", validatorsToCreate, "validators")
             const totalNecessaryWei = BigInt(validatorsToCreate) * ETH_32
             const weiFromLiq = max(0n, min(totalNecessaryWei - balances.staking, balances.liqAvailableEthForValidators))
@@ -55,7 +55,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             console.log("ETH from staking", wtoe(balances.staking))
             console.log("ETH from liq", wtoe(weiFromLiq))
             console.log("ETH from withdraw", wtoe(weiFromWithdraw))
-            if(totalNecessaryWei != balances.staking + weiFromLiq + weiFromWithdraw) {
+            if (totalNecessaryWei != balances.staking + weiFromLiq + weiFromWithdraw) {
                 console.error("Inconsistency when activating validator. Needed wei don't match balances")
                 throw new Error(`Inconsistency when activating validator. Needed wei don't match balances
                     Trying to activate ${validatorsToCreate}
@@ -73,11 +73,11 @@ export async function activateValidator(): Promise<IMailReportHelper> {
 
             const body = `
                 Validators created: ${validatorsToCreate}
-                Keys: ${nodes.map((node: Node) => node.pubkey).join("                \n")}
+                Keys: ${nodes.map((node: Node) => `https://beaconcha.in/validator/${node.pubkey}`).join("                \n")}
             `
 
             return {
-                ok: true, 
+                ok: true,
                 function: functionName,
                 subject: "Activate validator",
                 body,
@@ -87,7 +87,7 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             console.log(`Not enough balance. Current balance for creating validators: ${wtoe(balanceForValidators)}`)
 
             return {
-                ok: true, 
+                ok: true,
                 function: functionName,
                 subject: "Activate validator",
                 body: `Validators created: ${validatorsToCreate}`,
@@ -95,20 +95,20 @@ export async function activateValidator(): Promise<IMailReportHelper> {
             }
         }
 
-        
-    } catch(err: any) {
+
+    } catch (err: any) {
         console.error("There was a problem activating a validator", err.message)
-        const body = "Error: " + err.message 
+        const body = "Error: " + err.message
         // sendEmail(subject, body)
         return {
-            ok: false, 
+            ok: false,
             function: functionName,
             subject: "Activating validator error",
             body,
             severity: Severity.ERROR
         }
-    } 
-    
+    }
+
 }
 
 function getValidatorsToActivate(): any[] {
@@ -149,28 +149,19 @@ async function getNextNodesToActivate(qty: number): Promise<Node[]> {
             // withdrawCredentials: "0x" + node.withdrawal_credentials,
             signature: "0x" + node.signature,
             depositDataRoot: "0x" + node.deposit_data_root
-        } 
+        }
     })
 }
 
 export async function getBalances(): Promise<Balances> {
     const config: EthConfig = getConfig()
-    
-    const [
-        stakingBalance,
-        liqBalance,
-        liqMpEthBalance,
-        liqAvailableEthForValidators,
-        withdrawBalance,
-        totalPendingWithdraw,
-    ] = await Promise.all([
-        stakingContract.getWalletBalance(config.stakingContractAddress),
-        stakingContract.getWalletBalance(config.liquidityContractAddress),
-        stakingContract.balanceOf(config.liquidityContractAddress),
-        liquidityContract.getAvailableEthForValidator(),
-        stakingContract.getWalletBalance(config.withdrawContractAddress),
-        withdrawContract.totalPendingWithdraw()
-    ])
+
+    const stakingBalance = await stakingContract.getWalletBalance(config.stakingContractAddress)
+    const liqBalance = await stakingContract.getWalletBalance(config.liquidityContractAddress)
+    const liqMpEthBalance = await stakingContract.balanceOf(config.liquidityContractAddress)
+    const liqAvailableEthForValidators = await liquidityContract.getAvailableEthForValidator()
+    const withdrawBalance = await stakingContract.getWalletBalance(config.withdrawContractAddress)
+    const totalPendingWithdraw = await withdrawContract.totalPendingWithdraw()
 
     return {
         staking: stakingBalance,

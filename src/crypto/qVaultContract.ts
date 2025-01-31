@@ -11,6 +11,14 @@ export class QVaultContract extends QContract {
     getDelegationsList(address: string): Promise<any[]> {
         return this.contract.getDelegationsList(address)
     }
+
+    balanceOf(address: string): Promise<bigint> {
+        return this.contract.balanceOf(address)
+    }
+
+    totalSupply(): Promise<bigint> {
+        return this.contract.totalSupply()
+    }
 }
 
 

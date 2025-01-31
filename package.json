@@ -8,10 +8,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && cp -rf public_html/ dist/",
+    "build": "tsc && cp -rf public_html/ dist/",
     "start": "npm run build && pm2 start ecosystem.config.js",
-    "utils": "npx tsc && cd dist/ && node occasionalUtils.js",
-    "utils:disassemble": "npx tsc && cd dist/ && node occasionalUtils.js disassemble",
+    "utils": "tsc && cd dist/ && node occasionalUtils.js",
+    "utils:disassemble": "tsc && cd dist/ && node occasionalUtils.js disassemble",
+    "utils:apy": "tsc && cd dist/ && node occasionalUtils.js apy",
+    "utils:donationFile": "tsc && cd dist/ && node occasionalUtils.js donationFile",
     "debug": "npm run build && cd dist/ && node index.js --debug",
     "tester": "npm run build && cd dist/ && node testerHelper.js",
     "save:metrics": "npm run build && node dist/index.js",
@@ -28,6 +30,7 @@
     "ethers": "^6.6.0",
     "fs": "^0.0.1-security",
     "nodemailer": "^6.9.1",
+    "secp256k1": "^5.0.1",
     "web3": "^4.0.3"
   }
 }

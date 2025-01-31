@@ -1,4 +1,4 @@
-import { MS_IN_MINUTES, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
+import { MS_IN_MINUTES, buildAndSendMailForError, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
@@ -6,10 +6,21 @@ import { Report } from "../../entities/staking";
 import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
-
+const SKIP_REFRESH_TIMES = 3
+let currentSkippedTimes = 0
+let shouldSkipRefresh = false
 
 export async function refreshBeaconChainData() {
     try {
+        // When "Too many requests" error comes, skip a couple of calls
+        if(shouldSkipRefresh) {
+            currentSkippedTimes++
+            console.log("Skipping beacon chain refresh", currentSkippedTimes, "/", SKIP_REFRESH_TIMES)
+            if(currentSkippedTimes >= SKIP_REFRESH_TIMES) {
+                shouldSkipRefresh = false
+            }
+            return
+        }
         globalBeaconChainData.validatorsData = await getValidatorsData()
         globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
             if (!curr.status) return acc
@@ -40,6 +51,11 @@ export async function refreshBeaconChainData() {
     } catch(err: any) {
         console.error(err.message)
         console.error(err.stack)
+        const isErrTooManyRequest = err.message.includes("Status: 429")
+        if(isErrTooManyRequest) {
+            shouldSkipRefresh = true
+            currentSkippedTimes = 0
+        }
     }
 
 }
@@ -214,6 +230,7 @@ export async function setIncomeDetailHistory() {
         
     } catch (err: any) {
         console.error("ERROR reporting income detail", err.message, err.stack)
+        buildAndSendMailForError(err)
     }
 }
 

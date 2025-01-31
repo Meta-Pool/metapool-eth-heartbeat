@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { ValidatorData, getProposalLuck, getValidatorsData } from '../../services/beaconcha/beaconcha'
+import { ValidatorData, getActiveValidatorsData, getProposalLuck, getValidatorsData } from '../../services/beaconcha/beaconcha'
 import depositData from '../../validator_data/deposit_data-1677016004.json'
 import { Balances, getBalances, getDepositData } from '../activateValidator'
 import { EMPTY_MAIL_REPORT, IMailReportHelper as IMailReportHelper, Severity } from '../../entities/emailUtils'
@@ -76,32 +76,31 @@ export function alertCreateValidators(): IMailReportHelper {
 
 export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper> {
     const functionName = "getDeactivateValidatorsReport"
+    const previousEpoch = globalPersistentData.delayedUnstakeEpoch
+    let balancesBody: string|undefined
+    let wasDisassembleApiCalled = false
     try {
+        console.log("Running", functionName)
         const withdrawContract = new WithdrawContract()
         const currentEpoch = await withdrawContract.getEpoch()
-
+        console.log("Current epoch", currentEpoch)
+        
         const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName }
-        const balances: Balances = await getBalances()
-
-        const balancesBody = `
-            Staking balance: ${ethers.formatEther(balances.staking)} ETH
-            Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
-            Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
-            Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
-        `
+        
         // Epoch hasn't change, so there is nothing to do
         if (currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
+            console.log("Epoch hasn't changed")
             return {
                 ...output,
                 ok: true,
-                body: `Epoch hasn't changed so there is nothing to do
-            ${balancesBody}`,
+                body: `Epoch hasn't changed so there is nothing to do`,
                 severity: Severity.OK
             }
         }
-
+        
         // Epoch went backwards. This error should never happen
         if (currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
+            console.error("SEVERE: Epoch went backwards")
             return {
                 ...output,
                 ok: false,
@@ -110,8 +109,15 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 severity: Severity.ERROR
             }
         }
+        const balances = await getBalances()
+        const balancesBody = `
+                Staking balance: ${ethers.formatEther(balances.staking)} ETH
+                Withdraw balance: ${ethers.formatEther(balances.withdrawBalance)} ETH
+                Liq available balance: ${ethers.formatEther(balances.liqAvailableEthForValidators)} ETH
+                Total pending withdraw: ${ethers.formatEther(balances.totalPendingWithdraw)} ETH
+            `
         // Update epoch
-        const previousEpoch = globalPersistentData.delayedUnstakeEpoch
+        console.log("Updating epoch")
         globalPersistentData.delayedUnstakeEpoch = currentEpoch
 
         const epochInfoBody = `
@@ -131,6 +137,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw + exitedValidatorsBalance
         if (withdrawAvailableEthForValidators > 0) {            
+            console.log("Withdraw balance is enough to cover")
             return {
                 ...output,
                 ok: true,
@@ -144,6 +151,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance + exitedValidatorsBalance)
         const neededEth = Number(ethers.formatEther(neededWei.toString()))
         if (neededEth <= 0) {
+            console.log("Staking with withdraw balance is enough to cover")
+            console.log("")
             return {
                 ...output,
                 ok: true,
@@ -156,6 +165,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const liqAvailableEthForValidators = Number(ethers.formatEther(balances.liqAvailableEthForValidators.toString()))
         if (liqAvailableEthForValidators >= neededEth) {
+            console.log("Staking with liquidity and withdraw balance is enough to cover. Transferring from liquidity to stake")
             try {
                 await stakingContract.requestEthFromLiquidPoolToWithdrawal(neededWei)
                 return {
@@ -191,6 +201,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             validatorsToDisassemble++
             ethToTransferFromLiq -= 32
         }
+        console.log("Disassembling", validatorsToDisassemble, "validators")
 
         if (ethToTransferFromLiq > 0) {
             await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
@@ -198,6 +209,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
 
         const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDisassemble)
         
+        wasDisassembleApiCalled = true
         const disassembleApiResponse = await callDisassembleApi(vIndexes)
 
         ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
@@ -228,11 +240,20 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         }
     } catch (err: any) {
         console.error("ERROR", err.message, err.stack)
+        if(!wasDisassembleApiCalled) {
+            // Reset to previous epoch if error ocurrs and haven't called api. It might not be related to this, but it still needs to be rechecked
+            globalPersistentData.delayedUnstakeEpoch = previousEpoch
+        }
+        
         return {
             ok: false,
             function: functionName,
             subject: "Disassemble validator error",
-            body: `There was an error checking if a validator should be disassembled: ${err.message}`,
+            body: `There was an error checking if a validator should be disassembled: ${err.message}
+                ${err.stack}
+                Check following for quick manual check. ${wasDisassembleApiCalled ? 'Already tried to call the api, so make a manual check' : "This validation will be called again"}
+                ${balancesBody ?? ''}
+                `,
             severity: Severity.ERROR
         }
     }
@@ -274,45 +295,50 @@ export async function callDisassembleApi(vIndexes: string[]) {
     }
 }
 
-export async function getValidatorsRecommendedToBeDisassembled(amount: number): Promise<string[]> {
-    const validatorsProposalsArray: [string, number][] = Object.keys(globalPersistentData.validatorsLatestProposal).map((validatorIndex: string) => {
-        return [validatorIndex, globalPersistentData.validatorsLatestProposal[Number(validatorIndex)]]
+function getSenseiActiveValidatorsData(): ValidatorData[] {
+    const activatedSenseiValidatorsPubKeys = [
+        "0xafb05b66a8bed736084542f85e6ff692a04ecd043feff5ab1b380bb798768253a9fde77f6b2f1d4d654a9039f11017c6",
+        "0x87e57cf6e9f0629ba87d923c233f468770f495f744327a1c4ba35a42a3eb707f14eb9a6454da921269f1d8924affe0c3",
+        "0x96138fb23f13df39d13917f9bef5849bbe999f99e0da27ca56e6c0e1c2809c4886efb1edf27ba77adfe2d87423220129",
+        "0x8d45e58cb392af0f7533ce50e6774031e9d141ec134dbf2da12634fca175e8adf4b1eb7e73c3930473de0fd96dd70996",
+        "0xae41d26cdaf5fb186063238c71c5bcb08f93544fde6e91c455331a755f74fff54e4beb10d728942f9671e12f79f5ceef",
+        "0xa49d06a3ad510dba1f13b1dbb62ccb9db9bec998048ed5f038591f57a707309d4e61cab6ead89d35becb97fe7034b8e2",
+        "0x984024c053a3b6a3f507b70f01a23a6708db79b9ff12a90cd587e2151ece43821a3773c348551d70809c79ff78ff2646",
+        "0xa6c7c72e656264a78dc11116b0eb9d3a3ec648fc0e7347271aa0de0489868f0823332134b1fa7b9dcbf28e5c15615616",
+        "0x8744f7d5cdb4f1b40e83f19880efb00c7cb911ac9f56098c8337a0e5ef35670e28c69d4592fc65f4f2c74e84c6cef1f9",
+        "0xb707ac879ce6ef3693912b0cac56e1c77589877829e89feb407378cb17b29a7e1db48510b755760c8958afb2f47d755c",
+        "0xb0260dd2d3007f08a00f9d299cff8c160c0625e7447d7a5df26206ecb4b965c3f1286ce9bdc2bdde187f04643fc9c467",
+        "0xb535a7f5222cc204660f8cc64fb0e95cb53cee62acbd33d40989cdbd4d6ffb41bd0c56d3c3118627028bc871f09a2590",
+        "0x94b19b888ee64dccfa123fdd7cc72b3580ed3dd6b05166a0563bb93c3dc6e98e0946e3d0240042424f8c9b9a3773a3af",
+        "0xb06ffd238f7632deeffc29413e182dccde94027c6a091d6e1548d2fab990e4d43cc6923927a21bf0f3996ad59c98f6bc",
+    ]
+    const activeValidatorsData = getActiveValidatorsData()
+    return activeValidatorsData.filter((validatorData: ValidatorData) => {
+        return activatedSenseiValidatorsPubKeys.includes(validatorData.pubkey)
+    })
+}
+
+export async function getValidatorsRecommendedToBeDisassembled(amount: number) {
+    if(amount === 0) return []
+
+    const activeValidatorsData = getActiveValidatorsData()
+    const senseiActiveValidators = getSenseiActiveValidatorsData()
+    const senseiActivePubKeys = senseiActiveValidators.map((v) => v.pubkey)
+    
+    activeValidatorsData.sort((first: ValidatorData, second: ValidatorData) => {
+        // First, we look to disassemble sensei validators
+        const isFirstASenseiValidatorNumber = senseiActivePubKeys.includes(first.pubkey) ? 1 : 0
+        const isSecondASenseiValidatorNumber = senseiActivePubKeys.includes(second.pubkey) ? 1 : 0
+        if(isFirstASenseiValidatorNumber - isSecondASenseiValidatorNumber !== 0) {
+            return isSecondASenseiValidatorNumber - isFirstASenseiValidatorNumber
+        }
+
+        // If both validators belong to the same provider, we try to disassemble first the one that proposed a block latest
+        // Some validators have not proposed, so we take that like they proposed a block on block 0
+        const firstValidatorLatestProposal = globalPersistentData.validatorsLatestProposal[first.validatorindex!] ?? 0
+        const secondValidatorLatestProposal = globalPersistentData.validatorsLatestProposal[second.validatorindex!] ?? 0
+        return secondValidatorLatestProposal - firstValidatorLatestProposal
     })
 
-    validatorsProposalsArray.sort((a: [string, number], b: [string, number]) => b[1] - a[1])
-    const validatorsToDisassemble = validatorsProposalsArray.map((v: [string, number]) => {
-        const index = v[0]
-        const validatorData = globalBeaconChainData.validatorsData.find((v: ValidatorData) => {
-            return v.validatorindex === Number(index)
-        })
-        if(!validatorData) {
-            throw new Error(`Validator with index ${index} not found`)
-        }
-        return validatorData?.pubkey
-    }).slice(0, amount)
-
-    let possibleValidators
-    // Fill with validators by luck
-    if (validatorsToDisassemble.length < amount) {
-        possibleValidators = globalBeaconChainData.validatorsData.filter((v: ValidatorData) => {
-            return !validatorsToDisassemble.includes(v.pubkey)
-        })
-
-        const validatorsLuck: [string, ILuckResponse][] = []
-        for (let i = 0; i < possibleValidators.length; i++) {
-            const pubkey = possibleValidators[i].pubkey
-            validatorsLuck.push([pubkey, await getProposalLuck(pubkey)])
-            await sleep(200) //To avoid `API rate limit exceeded` error
-        }
-        validatorsLuck.sort((luck1: [string, ILuckResponse], luck2: [string, ILuckResponse]) => {
-            return luck2[1].data.next_proposal_estimate_ts - luck1[1].data.next_proposal_estimate_ts
-        })
-
-        const validatorQtyToAppend = amount - validatorsToDisassemble.length
-        const validatorsToAppend = validatorsLuck.map((luck: [string, ILuckResponse]) => {
-            return luck[0]
-        }).slice(0, validatorQtyToAppend)
-        validatorsToDisassemble.push(...validatorsToAppend)
-    }
-    return validatorsToDisassemble
+    return activeValidatorsData.slice(0, amount).map((v) => v.validatorindex!.toString())
 }

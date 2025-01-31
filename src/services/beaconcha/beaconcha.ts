@@ -3,6 +3,7 @@ import { ILuckResponse } from "../../entities/beaconcha/validator"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../crypto/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
+import { globalBeaconChainData, TotalCalls } from "../../bots/heartbeat"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
@@ -14,8 +15,8 @@ const BASE_URL = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL : TESTNET_BASE
 
 const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
-const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory"
-const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}"
+const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory?apikey=" + process.env.BEACON_CHAIN_API_KEY
+const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}&apikey=" + process.env.BEACON_CHAIN_API_KEY
 
 const QUEUE_URL = BASE_URL + "validators/queue"
 
@@ -53,6 +54,7 @@ export interface ValidatorData {
     validatorindex?: number
     withdrawableepoch?: number
     withdrawalcredentials?: string
+    total_withdrawals?: number
 }
 
 export interface BalanceHistory {
@@ -72,8 +74,13 @@ export interface IBalanceHistoryData {
 
 export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
-    const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}`)
-    
+    TotalCalls.beaconChainApiCallsOnBeat++
+    console.log("Fetching from", `${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`)
+    const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`)
+    if(!validatorsDataResponse.ok) {
+        throw new Error(`Error fetching validators data. Status: ${validatorsDataResponse.status}. ${validatorsDataResponse.statusText}`)
+    }
+    console.log("Response:", validatorsDataResponse)
     const validatorData: DeployerDataResponse|BeaconChainDataError = await validatorsDataResponse.json()
     
     if(validatorData && 'message' in validatorData) {
@@ -90,11 +97,20 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     return validatorsData
 }
 
+export function getActiveValidatorsData(): ValidatorData[] {
+    const validatorsData = globalBeaconChainData.validatorsData
+    return validatorsData.filter((validatorData: ValidatorData) => {
+        return validatorData.status !== "exited" && validatorData.status !== "exiting"
+    })
+}
+
 export async function fetchValidatorsData(validatorIds: (number|string)[]): Promise<ValidatorData[]> {
+    console.log("Fetching validators data")
     const chunkSize = 100
     let output: ValidatorData[] = []
     for(let i = 0; i < validatorIds.length; i += chunkSize) {
         const ids = validatorIds.slice(i, i + chunkSize)
+        console.log("Fetching ids:", ids)
         const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
         const validatorsData = validatorsDataResponse.data
         if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
@@ -110,6 +126,7 @@ export async function fetchValidatorsData(validatorIds: (number|string)[]): Prom
 
 export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
     if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
+    TotalCalls.beaconChainApiCallsOnBeat++
     const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
     return responses.json()
 }
@@ -128,6 +145,7 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
 
 export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistoryData[]> {
     const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
+    TotalCalls.beaconChainApiCallsOnBeat++
     return fetch(url).then(r => r.json().then(json => json.data))
 }
 
@@ -162,7 +180,15 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
         .replace("{indexes}", indexes.join(","))
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
         .replace("{latest_epoch}", lastEpoch.toString())
-    return (await fetch(validatorsUrl)).json()
+    TotalCalls.beaconChainApiCallsOnBeat++
+    return (await fetch(validatorsUrl)).json().then((json: any) => {
+        console.log("IDH from", firstEpoch, lastEpoch)
+        if(json.message && json.message === "API rate limit exceeded") {
+            console.error(json.message, firstEpoch, lastEpoch)
+            process.exit()
+        }
+        return json
+    })
 
 }
 
@@ -182,6 +208,7 @@ export async function  getValidatorsIncomeDetailHistory(indexes: number[], first
     while(queryEpoch > firstEpoch) {
         const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
         console.log("Getting IDH", epochIDHUrl)
+        TotalCalls.beaconChainApiCallsOnBeat++
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
         output = await processIDHResponse(output, idhResponse, firstEpoch)
         queryEpoch -= 100
@@ -199,6 +226,7 @@ export async function getValidatorsIncomeDetailHistoryCount(indexes: number[], f
 
     let queryEpoch = lastEpoch
     while(queryEpoch > firstEpoch) {
+        TotalCalls.beaconChainApiCallsOnBeat++
         const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetch(epochIDHUrl)).json()
         penaltiesAmount = await countTotalPenalties(penaltiesAmount, idhResponse, firstEpoch)
