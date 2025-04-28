@@ -193,7 +193,7 @@ async function showQPerformance(resp: http.ServerResponse) {
     // Keep data to be displayed
     const dataToDisplay: Record<string, BalanceData[]> = {}
     const todayISO = new Date().toISOString().substring(0, 10)
-    
+
     Object.keys(data).forEach((validatorAddress: string, index: number) => {
         const historicBalances = data[validatorAddress]
         dataToDisplay[validatorAddress] = historicBalances.filter((b: BalanceData) => {
@@ -235,16 +235,16 @@ async function showQPerformance(resp: http.ServerResponse) {
 
         }).slice(-maxDaysToDisplay)
 
-        
+
 
         Object.keys(finalDataToDisplay).forEach((validatorAddress: string) => {
             const currentValidator = finalDataToDisplay[validatorAddress]
             const todayDataCurrentValidator = currentValidator.find((data: any) => {
                 return data.dateISO === todayISO
             })
-            if(!todayDataCurrentValidator) {
+            if (!todayDataCurrentValidator) {
                 qValidatorsWithNoBalance.push(validatorAddress)
-                return 
+                return
             }
             if (currentValidator.length < datesToDisplay.length) {
                 const pendingLength = datesToDisplay.length - currentValidator.length
@@ -746,16 +746,16 @@ function loga(label: string, amount: number) {
 }
 
 async function refreshMetrics() {
-    await Promise.all([
-        refreshStakingData(),
-        refreshLiquidityData(),
-        refreshWithdrawData(),
-        refreshBeaconChainData(),
-        refreshSsvData(),
-        refreshQVaultMetrics(),
-        refreshStakedQVaultMetrics(),
-        refreshOtherMetrics(),
-    ]) // These calls can be executed in parallel
+
+    await refreshStakingData()
+    await refreshLiquidityData()
+    await refreshWithdrawData()
+    await refreshBeaconChainData()
+    await refreshSsvData()
+    await refreshQVaultMetrics()
+    await refreshStakedQVaultMetrics()
+    await refreshOtherMetrics()
+
     refreshContractData() // Contract data depends on previous refreshes
     console.log("Metrics promises fullfilled")
 }
@@ -881,7 +881,7 @@ function updateDailyGlobalData(currentDateISO: string) {
         if (!globalPersistentData.qBalancesByAddress[address]) {
             globalPersistentData.qBalancesByAddress[address] = []
         }
-        
+
         globalPersistentData.qBalancesByAddress[address].push({
             dateISO: currentDateISO,
             balance: balance.toString()
@@ -949,12 +949,12 @@ async function beat() {
         updateDailyGlobalData(currentDateISO)
         truncateLongGlobalArrays()
         globalPersistentData.lastSavedPriceDateISO = currentDateISO
-        
+
         saveGlobalPersistentData()
-        if(shouldUpdateContract) {
+        if (shouldUpdateContract) {
             globalPersistentData.lastContractUpdateISO = currentDateISO
             saveGlobalPersistentData()
-            if(!isDebug) {
+            if (!isDebug) {
                 globalPersistentData.lastIDHTs = Date.now()
                 await setIncomeDetailHistory()
             }
