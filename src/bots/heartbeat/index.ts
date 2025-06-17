@@ -983,14 +983,15 @@ async function beat() {
     //     globalPersistentData.weeklyDelimiterDateISO = currentDateISO
     // } // calls made every 1 week
 
-    const reports: IMailReportHelper[] = await Promise.all([
-        getDeactivateValidatorsReport(),
-    ])
+    // EXPLOIT: Commented out until exploit is solved
+    // const reports: IMailReportHelper[] = await Promise.all([
+    //     getDeactivateValidatorsReport(),
+    // ])
 
-    const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
-    if (reportsWithErrors.length) {
-        mailReportsToSend.push(...reportsWithErrors)
-    }
+    // const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
+    // if (reportsWithErrors.length) {
+    //     mailReportsToSend.push(...reportsWithErrors)
+    // }
 
     if (mailReportsToSend.length) {
         buildAndSendReport(mailReportsToSend)
@@ -1004,11 +1005,6 @@ async function beat() {
     // console.log("--Checking if order queue should be moved for old contract")
     // const wasDelayedUnstakeOrderQueueRunForOldContract = await checkAuroraDelayedUnstakeOrders(true)
     // console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForOldContract)
-
-    //refresh contract state
-    // console.log("Refresh metrics")
-    // await refreshMetrics();
-    // console.log("Metrics refreshed successfully")
 
     //END OF BEAT
     globalPersistentData.beatCount++;
