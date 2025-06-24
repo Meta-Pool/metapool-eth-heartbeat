@@ -124,7 +124,7 @@ export function getClustersThatNeedDeposit(): ClusterInformation[] {
 
 /**
  * 
- * @returns A boolean representing whether everything is ok or not. If true is returned, 
+ * @returns A boolean representing whether a manual deposit is needed for ssv. If true is returned, 
  * either no deposit was needed or a deposit was made successfully. If false is returned, 
  * a deposit was needed and failed.
  */

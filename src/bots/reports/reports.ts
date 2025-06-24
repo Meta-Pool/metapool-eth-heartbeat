@@ -65,7 +65,7 @@ export function reportWalletsBalances(): IMailReportHelper {
     return output
 }
 
-export async function checkForPenalties(fromEpochAux?: number): Promise<IMailReportHelper> {
+export function checkForPenalties(fromEpochAux?: number): IMailReportHelper {
     let output: IMailReportHelper = {...EMPTY_MAIL_REPORT, function: checkForPenalties.name}
     try {
         if(globalBeaconChainData.currentEpoch === globalPersistentData.latestEpochCheckedForPenalties) {

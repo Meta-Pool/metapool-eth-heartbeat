@@ -75,8 +75,9 @@ export interface IBalanceHistoryData {
 export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     TotalCalls.beaconChainApiCallsOnBeat++
-    console.log("Fetching from", `${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`)
-    const validatorsDataResponse = await fetch(`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`)
+    const url =`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`
+    console.log("Fetching from", url)
+    const validatorsDataResponse = await fetch(url)
     if(!validatorsDataResponse.ok) {
         throw new Error(`Error fetching validators data. Status: ${validatorsDataResponse.status}. ${validatorsDataResponse.statusText}`)
     }

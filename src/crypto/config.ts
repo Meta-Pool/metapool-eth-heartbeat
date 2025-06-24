@@ -30,9 +30,11 @@ const MAINNET_CONFIG: EthConfig = {
     network: 'mainnet',
     networkId: 1,
     // Ethereum
-    stakingContractAddress: "0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710",
+    // stakingContractAddress: "0x48AFbBd342F64EF8a9Ab1C143719b63C2AD81710",
+    stakingContractAddress: "0xD06f6a56c5f599cB375B616DF306f32B7F6f4A0E",
     liquidityContractAddress: "0xdF261F967E87B2aa44e18a22f4aCE5d7f74f03Cc",
     withdrawContractAddress: "0xE55E5fDe6C25ac4AD75D867817D2d8a45836Af49",
+    // withdrawContractAddress: "0x48e5628652c3410442aA9b82E4AEb344DABc9340",
     validatorOwnerAddress: "0x52e5219EF6Af019776c0a64925370f92caB282EC",
     disassembleBotBaseUrl: "http://148.113.20.187:4001/dissasemble",
     depositContractAddress: "0x00000000219ab540356cBB839Cbe05303d7705Fa",
