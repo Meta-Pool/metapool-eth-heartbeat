@@ -81,7 +81,7 @@ export async function getValidatorsData(): Promise<ValidatorData[]> {
     if(!validatorsDataResponse.ok) {
         throw new Error(`Error fetching validators data. Status: ${validatorsDataResponse.status}. ${validatorsDataResponse.statusText}`)
     }
-    console.log("Response:", validatorsDataResponse)
+    // console.log("Response:", validatorsDataResponse)
     const validatorData: DeployerDataResponse|BeaconChainDataError = await validatorsDataResponse.json()
     
     if(validatorData && 'message' in validatorData) {

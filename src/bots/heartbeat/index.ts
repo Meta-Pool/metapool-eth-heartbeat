@@ -75,7 +75,7 @@ export const MS_IN_HOUR = 60 * MS_IN_MINUTES
 export const MS_IN_DAY = 24 * MS_IN_HOUR
 const INTERVAL = 5 * MS_IN_MINUTES
 
-const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
+const CALL_SERVICES_PERIOD = 1 * MS_IN_DAY
 
 export const TotalCalls = {
     beats: 0,
