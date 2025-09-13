@@ -983,13 +983,11 @@ async function beat() {
         getDeactivateValidatorsReport(),
     ])
 
-    // TEMPORARY DISABLED - TESTING PURPOSES
     // Pushing reports that are not OK
-    mailReportsToSend.push(...reports)
-    // const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
-    // if (reportsWithErrors.length) {
-    //     mailReportsToSend.push(...reportsWithErrors)
-    // }
+    const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
+    if (reportsWithErrors.length) {
+        mailReportsToSend.push(...reportsWithErrors)
+    }
 
     if (mailReportsToSend.length) {
         buildAndSendReport(mailReportsToSend)
