@@ -1,45 +1,41 @@
-import { BareWebServer, respond_error } from "../../bare-web-server";
-import { loadJSON, saveJSON } from "./save-load-JSON"
-import * as http from 'http';
-import * as url from 'url';
-import * as os from 'os';
-import * as snapshot from './snapshot.js';
-import { tail } from "./util/tail";
-import { LiquidityData, StakingData, WithdrawData } from "./contractData";
-import { StakingContract } from "../../crypto/stakingContract";
-import { LiquidityContract } from "../../crypto/liquidity";
-import { ZEROS_9 } from "../nodesBalance";
-import { activateValidator } from "../activateValidator";
-import { alertCreateValidators, getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
-import { getEnv } from "../../entities/env";
-import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
-import { WithdrawContract } from "../../crypto/withdraw";
-import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
-import { sendEmail } from "../../utils/mailUtils";
-import { IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IValidatorProposal } from "../../services/beaconcha/entities";
-import { calculateMpEthPrice, calculateLpPrice, calculateMpEthPriceTotalUnderlying } from "../../utils/priceUtils";
-import { getValidatorData, refreshBeaconChainData as refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
-import { alertCheckProfit } from "../profitChecker";
-import { U128String } from "./snapshot.js";
-import { checkForPenalties, reportCloseToActivateValidators, reportSsvClusterBalances, reportWalletsBalances } from "../reports/reports";
-import { StakingManagerContract } from "../../crypto/auroraStakingManager";
-import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
-import { SsvViewsContract } from "../../crypto/ssvViews";
-import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
-import { getConfig } from "../../crypto/config";
 import { readdirSync } from "fs";
-import { SsvData } from "../../entities/ssv";
-import { SsvContract } from "../../crypto/ssv";
-import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
-import { QVaultContract as QVaultContract } from "../../crypto/qVaultContract";
-import { QHeartBeatData } from "../../entities/q/q";
-import { StakedQVaultContract } from "../../crypto/q/stakedQVault";
-import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
-import { DepositContract } from "../../crypto/ethereum/depositContract";
-import { refreshContractData, refreshLiquidityData, refreshOtherMetrics, refreshQVaultMetrics, refreshStakedQVaultMetrics, refreshStakingData, refreshWithdrawData } from "../metricsRefresher";
-import { getPrice, getTokenHoldersQty } from "../../services/tokens/tokens";
+import * as http from 'http';
+import * as os from 'os';
+import * as url from 'url';
 import { StakingRewardsProvider, buildStakingRewardsProvider } from "../../api/stakingRewards";
+import { BareWebServer, respond_error } from "../../bare-web-server";
+import { getConfig } from "../../crypto/config";
+import { DepositContract } from "../../crypto/ethereum/depositContract";
+import { LiquidityContract } from "../../crypto/liquidity";
+import { StakedQVaultContract } from "../../crypto/q/stakedQVault";
+import { SsvContract } from "../../crypto/ssv";
+import { SsvViewsContract } from "../../crypto/ssvViews";
+import { StakingContract } from "../../crypto/stakingContract";
+import { WithdrawContract } from "../../crypto/withdraw";
+import { IMailReportHelper, Severity } from "../../entities/emailUtils";
+import { getEnv } from "../../entities/env";
+import { QHeartBeatData } from "../../entities/q/q";
+import { SsvData } from "../../entities/ssv";
+import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { getValidatorData, refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
+import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IValidatorProposal } from "../../services/beaconcha/entities";
+import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
+import { sendEmail } from "../../utils/mailUtils";
+import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
+import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
+import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
+import { differenceInDays, sLeftToTimeLeft } from "../../utils/timeUtils";
+import { activateValidator } from "../activateValidator";
+import { refreshContractData, refreshLiquidityData, refreshOtherMetrics, refreshQVaultMetrics, refreshStakedQVaultMetrics, refreshStakingData, refreshWithdrawData } from "../metricsRefresher";
+import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrders";
+import { alertCheckProfit } from "../profitChecker";
+import { checkForPenalties, reportCloseToActivateValidators, reportWalletsBalances } from "../reports/reports";
+import { alertCreateValidators, getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
+import { LiquidityData, StakingData, WithdrawData } from "./contractData";
+import { loadJSON, saveJSON } from "./save-load-JSON";
+import * as snapshot from './snapshot.js';
+import { U128String } from "./snapshot.js";
+import { tail } from "./util/tail";
 
 export let globalPersistentData: PersistentData
 export let globalStakingData: StakingData = {} as StakingData
@@ -983,11 +979,13 @@ async function beat() {
     //     globalPersistentData.weeklyDelimiterDateISO = currentDateISO
     // } // calls made every 1 week
 
-    // EXPLOIT: Commented out until exploit is solved
-    // const reports: IMailReportHelper[] = await Promise.all([
-    //     getDeactivateValidatorsReport(),
-    // ])
+    const reports: IMailReportHelper[] = await Promise.all([
+        getDeactivateValidatorsReport(),
+    ])
 
+    // TEMPORARY DISABLED - TESTING PURPOSES
+    // Pushing reports that are not OK
+    mailReportsToSend.push(...reports)
     // const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
     // if (reportsWithErrors.length) {
     //     mailReportsToSend.push(...reportsWithErrors)
@@ -1119,7 +1117,7 @@ export function buildAndSendMailForError(err: any) {
         ${err.message}
         ${err.stack}
     `
-    sendEmail(subject, body, ["daniel@metapool.app"])
+    sendEmail(subject, body)
 }
 
 function atLeast(a: number, b: number): number { return Math.max(a, b) }

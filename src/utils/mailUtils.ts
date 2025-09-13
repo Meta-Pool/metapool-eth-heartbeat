@@ -13,7 +13,7 @@ const MAINNET_RESPONSIBLES = [
     "agustin@metapool.app",
 ]
 
-function getResponsibles() {
+export function getResponsibles() {
     return isDebug ? DEBUG_RESPONSIBLES : MAINNET_RESPONSIBLES
 }
 
