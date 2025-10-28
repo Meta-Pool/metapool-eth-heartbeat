@@ -27,19 +27,12 @@ export async function refreshSsvData() {
         const clusterData: ClusterData = getClusterData(operatorIdsStr)
         const operatorIdsArray = operatorIdsStr.split(",").map(Number)
 
-        const [
-            liquidationThresholdPeriodInBlocks,
-            minimumLiquidationCollateralInSsv,
-            networkFee,
-            balance,
-            clusterBurnRate,
-        ] = await Promise.all([
-            ssvViewsContract.getLiquidationThresholdPeriod(),
-            ssvViewsContract.getMinimumLiquidationCollateral(),
-            ssvViewsContract.getNetworkFee(),
-            ssvViewsContract.getBalance(ownerAddress, operatorIdsArray, clusterData),
-            ssvViewsContract.getBurnRate(ownerAddress, operatorIdsArray, clusterData),
-        ]) 
+        // Avoid using Promise.all for these calls, as they may cause rate limiting issues
+        const liquidationThresholdPeriodInBlocks = await ssvViewsContract.getLiquidationThresholdPeriod()
+        const minimumLiquidationCollateralInSsv = await ssvViewsContract.getMinimumLiquidationCollateral()
+        const networkFee = await ssvViewsContract.getNetworkFee()
+        const balance = await ssvViewsContract.getBalance(ownerAddress, operatorIdsArray, clusterData)
+        const clusterBurnRate = await ssvViewsContract.getBurnRate(ownerAddress, operatorIdsArray, clusterData)
         
         globalSsvData.clusterInformationRecord[operatorIdsStr] = {
             operatorIds: operatorIdsStr,
@@ -82,9 +75,9 @@ function getNeededDepositForRunway(operatorIds: string, runway: number) {
     const burnRateInEth = wtoe(clusterBurnRate) * blocksPerYear
     
     const calculatedLiquidationCollateralForClusterInBlocks = burnRateInEth * Number(liquidationThresholdPeriodInBlocks.toString())
-    const calculatedLiquidationCollateralForCluserInDays = calculatedLiquidationCollateralForClusterInBlocks / blocksPerYear
+    const calculatedLiquidationCollateralForClusterInDays = calculatedLiquidationCollateralForClusterInBlocks / blocksPerYear
 
-    const liquidationCollateralForClusterInDays = Math.max(calculatedLiquidationCollateralForCluserInDays, wtoe(minimumLiquidationCollateralInSsv))
+    const liquidationCollateralForClusterInDays = Math.max(calculatedLiquidationCollateralForClusterInDays, wtoe(minimumLiquidationCollateralInSsv))
 
     return runway / 365 * burnRateInEth + liquidationCollateralForClusterInDays - wtoe(clusterInformation.balance)
 }
