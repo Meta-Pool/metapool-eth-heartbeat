@@ -110,18 +110,12 @@ export async function refreshStakedQVaultMetrics() {
 
 export async function refreshOtherMetrics() {
     const aurContract = new StakingManagerContract()
-    const [
-        ethBotWalletBalance,
-        aurBotWalletBalance,
-        ethPrice,
-        mpethHoldersQty,
-    ] = await Promise.all([
-        stakingContract.getWalletBalance(stakingContract.connectedWallet.address),
-        aurContract.getWalletBalance(aurContract.connectedWallet.address),
-        getPrice("ETH"),
-        getTokenHoldersQty(getConfig().stakingContractAddress)
-    ])
-
+    
+    const ethBotWalletBalance = await stakingContract.getWalletBalance(stakingContract.connectedWallet.address)
+    const aurBotWalletBalance = await aurContract.getWalletBalance(aurContract.connectedWallet.address)
+    const ethPrice = await getPrice("ETH")
+    const mpethHoldersQty = await getTokenHoldersQty(getConfig().stakingContractAddress)
+        
     globalPersistentData.ethBotBalance = ethBotWalletBalance.toString()
     globalPersistentData.aurBotBalance = aurBotWalletBalance.toString()
     globalPersistentData.ethPrice = ethPrice
