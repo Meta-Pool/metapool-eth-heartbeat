@@ -3,6 +3,7 @@ import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
+import { handleError } from "../../utils/errorUtils";
 import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
 
@@ -230,7 +231,13 @@ export async function setIncomeDetailHistory() {
         
     } catch (err: any) {
         console.error("ERROR reporting income detail", err.message, err.stack)
-        buildAndSendMailForError(err)
+        handleError({
+            err,
+            action: "Error reporting income detail history",
+            codeKey: "reportIncomeDetailHistory",
+            threshold: 1
+        })
+        // buildAndSendMailForError(err)
     }
 }
 

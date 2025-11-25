@@ -19,11 +19,8 @@ export async function checkAuroraDelayedUnstakeOrders(useOldContract: boolean): 
         console.log("Time remaining to next run", sLeftToTimeLeft(Math.floor((nextRunTimestampInMs - now) / 1000)))
         if(now >= nextRunTimestampInMs && depositorsLength > 0n) {
             console.log("Running clean orders queue")
-            // const tx = await stakingManagerContract.cleanOrdersQueue()
             const tx = await stakingManagerContract.cleanOrdersQueue()
             console.log("tx", tx)
-            // const waitResult = await tx.wait()
-            // console.log("waitResult", waitResult)
             return true
         }
     } catch(err: any) {

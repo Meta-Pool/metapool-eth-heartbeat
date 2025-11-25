@@ -973,12 +973,6 @@ async function beat() {
 
     } // Calls made every 6 hours
 
-    // if(differenceInDays(globalPersistentData.weeklyDelimiterDateISO, currentDateISO) >= 7) {
-    //     await claimQRewards()
-
-    //     globalPersistentData.weeklyDelimiterDateISO = currentDateISO
-    // } // calls made every 1 week
-
     const reports: IMailReportHelper[] = await Promise.all([
         getDeactivateValidatorsReport(),
     ])
@@ -997,10 +991,6 @@ async function beat() {
     console.log("--Checking if order queue should be moved for new contract")
     const wasDelayedUnstakeOrderQueueRunForNewContract = await checkAuroraDelayedUnstakeOrders(false)
     console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForNewContract)
-
-    // console.log("--Checking if order queue should be moved for old contract")
-    // const wasDelayedUnstakeOrderQueueRunForOldContract = await checkAuroraDelayedUnstakeOrders(true)
-    // console.log("Order queue moved?", wasDelayedUnstakeOrderQueueRunForOldContract)
 
     //END OF BEAT
     globalPersistentData.beatCount++;
