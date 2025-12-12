@@ -973,18 +973,20 @@ async function beat() {
 
     } // Calls made every 6 hours
 
-    const reports: IMailReportHelper[] = await Promise.all([
-        getDeactivateValidatorsReport(),
-    ])
+    if (new Date().getMinutes() < 5) {
+        const reports: IMailReportHelper[] = await Promise.all([
+            getDeactivateValidatorsReport(),
+        ])
 
-    // Pushing reports that are not OK
-    const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
-    if (reportsWithErrors.length) {
-        mailReportsToSend.push(...reportsWithErrors)
-    }
+        // Pushing reports that are not OK
+        const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)
+        if (reportsWithErrors.length) {
+            mailReportsToSend.push(...reportsWithErrors)
+        }
 
-    if (mailReportsToSend.length) {
-        buildAndSendReport(mailReportsToSend)
+        if (mailReportsToSend.length) {
+            buildAndSendReport(mailReportsToSend)
+        }
     }
 
     // Aurora

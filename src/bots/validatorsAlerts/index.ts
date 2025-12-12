@@ -210,7 +210,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDisassemble)
         
         wasDisassembleApiCalled = true
-        const disassembleApiResponse = await callDisassembleApi(vIndexes)
+        // const disassembleApiResponse = await callDisassembleApi(vIndexes)
 
         ethToTransferFromLiq = Math.max(0, ethToTransferFromLiq)
         const subject = "Disassemble validators"
@@ -223,14 +223,14 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             Recommended validators to disassemble: ${vIndexes.join(", ")}
         `
 
-        let severity: Severity
-        if (disassembleApiResponse.isSuccess) {
-            severity = Severity.IMPORTANT
-        } else {
-            severity = Severity.ERROR
-            body =
-                `${disassembleApiResponse.message}${body}`
-        }
+        let severity: Severity = Severity.IMPORTANT
+        // if (disassembleApiResponse.isSuccess) {
+        //     severity = Severity.IMPORTANT
+        // } else {
+        //     severity = Severity.ERROR
+        //     body =
+        //         `${disassembleApiResponse.message}${body}`
+        // }
         return {
             ...output,
             ok: false,
