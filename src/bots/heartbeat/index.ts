@@ -984,9 +984,9 @@ async function beat() {
             mailReportsToSend.push(...reportsWithErrors)
         }
 
-        if (mailReportsToSend.length) {
-            buildAndSendReport(mailReportsToSend)
-        }
+    }
+    if (mailReportsToSend.length) {
+        buildAndSendReport(mailReportsToSend)
     }
 
     // Aurora
