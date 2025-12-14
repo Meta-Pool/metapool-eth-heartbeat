@@ -129,6 +129,10 @@ export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (numb
     if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
     TotalCalls.beaconChainApiCallsOnBeat++
     const responses = await fetch(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
+    if(!responses.ok) {
+        throw new Error(`Error fetching validators data. Status: ${responses.status}. ${responses.statusText}`)
+    }
+    console.log("Validators data response", responses)
     return responses.json()
 }
 
