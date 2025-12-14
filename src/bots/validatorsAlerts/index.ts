@@ -85,7 +85,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         const currentEpoch = await withdrawContract.getEpoch()
         console.log("Current epoch", currentEpoch)
         
-        const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName }
+        const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName, step: `Checking epoch change` }
         
         // Epoch hasn't change, so there is nothing to do
         if (currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
@@ -97,7 +97,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 severity: Severity.OK
             }
         }
-        
+        output.step = `Checking epoch didn't go backwards`
         // Epoch went backwards. This error should never happen
         if (currentEpoch < globalPersistentData.delayedUnstakeEpoch) {
             console.error("SEVERE: Epoch went backwards")
@@ -109,6 +109,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 severity: Severity.ERROR
             }
         }
+        output.step = `Getting balances`
         const balances = await getBalances()
         const balancesBody = `
                 Staking balance: ${ethers.formatEther(balances.staking)} ETH
@@ -124,6 +125,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             Previous epoch: ${previousEpoch}
             Current epoch: ${currentEpoch}
         `
+        output.step = `Getting validators data`
         const validatorsData = await getValidatorsData()
         const exitedValidators = validatorsData.filter((validator: ValidatorData) => {
             return validator.status === "exited"
@@ -135,6 +137,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         }, 0n)
         console.log("Exiting validators balance", wtoe(exitedValidatorsBalance))
 
+        output.step = `Checking if withdraw available balance is enough to cover pending withdraws`
         const withdrawAvailableEthForValidators = balances.withdrawBalance - balances.totalPendingWithdraw + exitedValidatorsBalance
         if (withdrawAvailableEthForValidators > 0) {            
             console.log("Withdraw balance is enough to cover")
@@ -148,6 +151,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             }
         } // Check if withdraw balance is enough to cover
 
+        output.step = `Checking if staking with withdraw balance is enough to cover pending withdraws`
         const neededWei = balances.totalPendingWithdraw - (balances.staking + balances.withdrawBalance + exitedValidatorsBalance)
         const neededEth = Number(ethers.formatEther(neededWei.toString()))
         if (neededEth <= 0) {
@@ -163,6 +167,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             }
         } // Check if staking with withdraw are enough to cover
 
+        output.step = `Checking if staking with withdraw and liquidity balances are enough to cover pending withdraws`
         const liqAvailableEthForValidators = Number(ethers.formatEther(balances.liqAvailableEthForValidators.toString()))
         if (liqAvailableEthForValidators >= neededEth) {
             console.log("Staking with liquidity and withdraw balance is enough to cover. Transferring from liquidity to stake")
@@ -192,6 +197,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
         } // Staking with withdraw and liquidity are enough to cover
 
         // It is necessary to disassemble at least one validator
+        output.step = `Calculating validators to disassemble`
         console.log("Calculating validators to disassemble")
         console.log("Needed eth", neededEth)
         console.log("Available eth from liq", liqAvailableEthForValidators)
@@ -207,6 +213,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             await stakingContract.requestEthFromLiquidPoolToWithdrawal(ethers.parseEther(ethToTransferFromLiq.toString()))
         }
 
+        output.step = `Getting recommended validators to disassemble`
         const vIndexes: string[] = await getValidatorsRecommendedToBeDisassembled(validatorsToDisassemble)
         
         wasDisassembleApiCalled = true

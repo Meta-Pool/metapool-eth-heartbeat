@@ -10,6 +10,7 @@ export interface IMailReportHelper {
     subject: string
     body: string
     severity: Severity
+    step?: string
 }
 
 export const EMPTY_MAIL_REPORT: IMailReportHelper = {

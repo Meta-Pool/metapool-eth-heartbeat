@@ -973,7 +973,7 @@ async function beat() {
 
     } // Calls made every 6 hours
 
-    if (new Date().getMinutes() < 5) {
+    if (new Date().getMinutes() < 60) {
         const reports: IMailReportHelper[] = await Promise.all([
             getDeactivateValidatorsReport(),
         ])
@@ -1033,6 +1033,7 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
             ${"-".repeat(100)}
             Function: ${curr.function}
             Report: ${curr.body}
+            Step: ${curr.step}
         `
     }, getMetricsUrl())
 
