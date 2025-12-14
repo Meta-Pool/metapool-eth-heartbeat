@@ -79,13 +79,13 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
     const previousEpoch = globalPersistentData.delayedUnstakeEpoch
     let balancesBody: string|undefined
     let wasDisassembleApiCalled = false
+    const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName, step: `Checking epoch change` }
     try {
         console.log("Running", functionName)
         const withdrawContract = new WithdrawContract()
         const currentEpoch = await withdrawContract.getEpoch()
         console.log("Current epoch", currentEpoch)
         
-        const output: IMailReportHelper = { ...EMPTY_MAIL_REPORT, function: functionName, step: `Checking epoch change` }
         
         // Epoch hasn't change, so there is nothing to do
         if (currentEpoch === globalPersistentData.delayedUnstakeEpoch) {
@@ -261,7 +261,8 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
                 Check following for quick manual check. ${wasDisassembleApiCalled ? 'Already tried to call the api, so make a manual check' : "This validation will be called again"}
                 ${balancesBody ?? ''}
                 `,
-            severity: Severity.ERROR
+            severity: Severity.ERROR,
+            step: output.step
         }
     }
 }
