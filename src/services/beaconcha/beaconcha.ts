@@ -77,7 +77,7 @@ export interface IBalanceHistoryData {
 async function fetchConsideringRateLimit(url: string): Promise<Response> {
     const now = Date.now()
     const timeSinceLastCall = now - lastCallTimestamp
-    const maxWaitTime = 10000 // 10 seconds. Actual time is 1 second according to beaconcha rate limit, but it wasn't working
+    const maxWaitTime = 60 * 1000 // 60 seconds. Actual time is 1 second according to beaconcha rate limit, but it wasn't working
     if (timeSinceLastCall < maxWaitTime) { // wait enough to have at least 1.1 seconds between calls
         const waitTime = maxWaitTime - timeSinceLastCall
         console.log(`Waiting ${waitTime} ms to respect rate limit`)

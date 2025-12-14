@@ -973,7 +973,7 @@ async function beat() {
 
     } // Calls made every 6 hours
 
-    if (new Date().getMinutes() < 60) {
+    if (new Date().getMinutes() < 5) {
         const reports: IMailReportHelper[] = await Promise.all([
             getDeactivateValidatorsReport(),
         ])
