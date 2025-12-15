@@ -1,7 +1,7 @@
 import { StakingManagerContract } from "../../crypto/auroraStakingManager"
+import { isTestnet } from "../../globals/globalUtils"
 import { sendEmail } from "../../utils/mailUtils"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
-import { isTestnet } from "../heartbeat"
 
 /**
  * Checks whether the order queue should be cleaned or not and runs it if necessary. Sends an email report in case of error

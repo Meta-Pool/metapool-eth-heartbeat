@@ -1,5 +1,4 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
-import { PersistentData } from '.'
 
 const DB_PATH = "db/"
 

@@ -1,17 +1,13 @@
-import { SERVFAIL } from "dns";
+import { IIncomeDetailHistoryData } from "../../entities/beaconcha/beaconChainEntities";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { StakingManagerContract } from "../../crypto/auroraStakingManager";
-import { StakingContract } from "../../crypto/stakingContract";
 import { BASE_BEACON_CHAIN_URL_SITE, countPenalties } from "../../services/beaconcha/beaconcha";
-import { getValidatorsIDH } from "../../services/beaconcha/beaconchaHelper";
-import { IIncomeDetailHistoryData, MiniIDHReport } from "../../services/beaconcha/entities";
 import { wtoe } from "../../utils/numberUtils";
-import { MS_IN_DAY, globalBeaconChainData, globalPersistentData } from "../heartbeat";
-import { readdirSync } from "fs";
-import { getConfig } from "../../crypto/config";
+// import { MS_IN_DAY, globalBeaconChainData, globalPersistentData } from "../heartbeat";
+import { ClusterInformation } from "../../entities/ssvEntities";
+import { globalBeaconChainData, globalPersistentData } from "../../globals/globalMetrics";
 import { MIN_DAYS_UNTIL_SSV_RUNWAY, getClustersThatNeedDeposit, getEstimatedRunwayInDays } from "../../utils/ssvUtils";
-import { ClusterData, ClusterInformation } from "../../entities/ssv";
 import { sLeftToTimeLeft } from "../../utils/timeUtils";
+import { MS_IN_DAY } from "../../globals/globalVariables";
 
 // In ETH
 const ETH_ESTIMATED_COST_PER_DAY = 0.001

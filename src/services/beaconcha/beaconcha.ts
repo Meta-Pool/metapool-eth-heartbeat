@@ -1,9 +1,9 @@
-import { ZEROS_9 } from "../../bots/nodesBalance"
-import { ILuckResponse } from "../../entities/beaconcha/validator"
+import { ILuckResponse, ValidatorData } from "../../entities/beaconcha/beaconChainValidator"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../crypto/config"
-import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse } from "./entities"
-import { globalBeaconChainData, sleep, TotalCalls } from "../../bots/heartbeat"
+import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse, IBalanceHistoryData, ZEROS_9 } from "../../entities/beaconcha/beaconChainEntities"
+import { globalBeaconChainData, TotalCalls } from "../../globals/globalMetrics"
+import { sleep } from "../../utils/executionUtils"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
@@ -42,37 +42,12 @@ export interface ValidatorDataResponse {
     data: ValidatorData[]|ValidatorData
 }
 
-export interface ValidatorData {
-    activationeligibilityepoch?: number
-    activationepoch?: number
-    balance: number
-    effectivebalance: number
-    exitepoch?: number
-    lastattestationslot?: number
-    name?: string | null
-    pubkey: string
-    slashed?: boolean
-    status?: string
-    validatorindex?: number
-    withdrawableepoch?: number
-    withdrawalcredentials?: string
-    total_withdrawals?: number
-}
-
 export interface BalanceHistory {
     status: string
     data: IBalanceHistoryData[]
 }
 
-export interface IBalanceHistoryData {
-    balance: number
-    effectivebalance: number
-    epoch: number
-    validatorindex: number
-    week: number
-    week_start: string
-    week_end: string
-}
+
 
 async function fetchConsideringRateLimit(url: string): Promise<Response> {
     const now = Date.now()

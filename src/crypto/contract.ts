@@ -5,11 +5,11 @@ import withdrawAbi from "./abi/withdrawAbi.json"
 import ssvNetworkViewsAbi from "./abi/ssvNetworkViews.json"
 import ssvBaseNetworkViewsAbi from "./abi/ssvBaseNetworkViews.json"
 import { wtoe } from "../utils/numberUtils";
-import { isDebug } from "../bots/heartbeat";
 import { readFileSync } from "fs";
 import path from "path";
 import { homedir } from "os";
 import { getConfig } from "./config";
+import { isDebug } from "../globals/globalUtils";
 
 const abis = [
     ssvNetworkViewsAbi,

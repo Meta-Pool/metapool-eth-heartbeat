@@ -1,7 +1,8 @@
-import { globalBeaconChainData, globalPersistentData, globalStakingData } from '../bots/heartbeat';
-import { ValidatorData } from '../services/beaconcha/beaconcha';
+// import { globalBeaconChainData, globalPersistentData, globalStakingData } from '../bots/heartbeat';
 import { wtoe } from '../utils/numberUtils';
 import * as snapshot from '../bots/heartbeat/snapshot'
+import { globalBeaconChainData, globalPersistentData, globalStakingData } from '../globals/globalMetrics';
+import { ValidatorData } from '../entities/beaconcha/beaconChainValidator';
 
 // Provided docs: https://docs.stakingrewards.com/staking-data/sr-adapter/liquid-staking-lst
 export type StakingRewardsProvider = {

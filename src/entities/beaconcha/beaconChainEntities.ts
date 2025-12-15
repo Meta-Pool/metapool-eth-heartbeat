@@ -1,8 +1,20 @@
-import { IBalanceHistoryData, ValidatorData } from "./beaconcha"
+import { ValidatorData } from "./beaconChainValidator"
+
+export const ZEROS_9 = "0".repeat(9)
 
 export interface IValidatorProposal {
     data: IValidatorProposalStatus[]
     status: string
+}
+
+export interface IBalanceHistoryData {
+    balance: number
+    effectivebalance: number
+    epoch: number
+    validatorindex: number
+    week: number
+    week_start: string
+    week_end: string
 }
 
 export interface IValidatorProposalStatus {

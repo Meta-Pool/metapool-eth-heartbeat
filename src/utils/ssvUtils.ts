@@ -1,9 +1,11 @@
 import { readFileSync, readdirSync } from "fs";
-import { globalSsvData, isDebug, ssvContract, ssvViewsContract } from "../bots/heartbeat";
 import { etow, wtoe } from "./numberUtils";
 import { getConfig } from "../crypto/config";
-import { ClusterData, ClusterInformation, SsvData } from "../entities/ssv";
+import { ClusterData, ClusterInformation, SsvData } from "../entities/ssvEntities";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../entities/emailUtils";
+import { globalSsvData } from "../globals/globalMetrics";
+import { isDebug } from "../globals/globalUtils";
+import { ssvContract, ssvViewsContract } from "../globals/globalVariables";
 
 const blocksPerDay = 7160
 const blocksPerYear = blocksPerDay * 365

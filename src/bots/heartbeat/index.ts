@@ -2,24 +2,20 @@ import { readdirSync } from "fs";
 import * as http from 'http';
 import * as os from 'os';
 import * as url from 'url';
-import { StakingRewardsProvider, buildStakingRewardsProvider } from "../../api/stakingRewards";
+import { buildStakingRewardsProvider, StakingRewardsProvider } from "../../api/stakingRewards";
 import { BareWebServer, respond_error } from "../../bare-web-server";
 import { getConfig } from "../../crypto/config";
-import { DepositContract } from "../../crypto/ethereum/depositContract";
-import { LiquidityContract } from "../../crypto/liquidity";
 import { StakedQVaultContract } from "../../crypto/q/stakedQVault";
-import { SsvContract } from "../../crypto/ssv";
-import { SsvViewsContract } from "../../crypto/ssvViews";
-import { StakingContract } from "../../crypto/stakingContract";
-import { WithdrawContract } from "../../crypto/withdraw";
+import { IIncomeDetailHistoryData, IValidatorProposal } from "../../entities/beaconcha/beaconChainEntities";
+import { ValidatorData } from "../../entities/beaconcha/beaconChainValidator";
 import { IMailReportHelper, Severity } from "../../entities/emailUtils";
 import { getEnv } from "../../entities/env";
-import { QHeartBeatData } from "../../entities/q/q";
-import { SsvData } from "../../entities/ssv";
-import { BASE_BEACON_CHAIN_URL_SITE, ValidatorData, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
+import { BalanceData, globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalSsvData, globalStakingData, setGlobalBeaconChainData, setGlobalPersistentData, setGlobalSsvData, TotalCalls } from "../../globals/globalMetrics";
+import { isDebug, isTestnet, setIsDebug, setIsTestnet } from "../../globals/globalUtils";
+import { BASE_BEACON_CHAIN_URL_SITE, getValidatorProposal, sumPenalties, sumRewards } from "../../services/beaconcha/beaconcha";
 import { getValidatorData, refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
-import { ActivationData, IBeaconChainHeartBeatData, IIncomeDetailHistoryData, IValidatorProposal } from "../../services/beaconcha/entities";
 import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
+import { sleep } from "../../utils/executionUtils";
 import { sendEmail } from "../../utils/mailUtils";
 import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
@@ -31,19 +27,18 @@ import { checkAuroraDelayedUnstakeOrders } from "../moveAuroraDelayedUnstakeOrde
 import { alertCheckProfit } from "../profitChecker";
 import { checkForPenalties, reportCloseToActivateValidators, reportWalletsBalances } from "../reports/reports";
 import { alertCreateValidators, getDeactivateValidatorsReport, getValidatorsRecommendedToBeDisassembled } from "../validatorsAlerts";
-import { LiquidityData, StakingData, WithdrawData } from "./contractData";
 import { loadJSON, saveJSON } from "./save-load-JSON";
 import * as snapshot from './snapshot.js';
-import { U128String } from "./snapshot.js";
 import { tail } from "./util/tail";
+import { MS_IN_DAY, MS_IN_HOUR, MS_IN_MINUTES, MS_IN_SECOND, stakingContract } from "../../globals/globalVariables";
 
-export let globalPersistentData: PersistentData
-export let globalStakingData: StakingData = {} as StakingData
-export let globalLiquidityData: LiquidityData = {} as LiquidityData
-export let globalWithdrawData: WithdrawData = {} as WithdrawData
-export let globalBeaconChainData: IBeaconChainHeartBeatData
-export let globalSsvData: SsvData
-export let globalQData: QHeartBeatData = {} as QHeartBeatData
+// export let globalPersistentData: PersistentData
+// export let globalStakingData: StakingData = {} as StakingData
+// export let globalLiquidityData: LiquidityData = {} as LiquidityData
+// export let globalWithdrawData: WithdrawData = {} as WithdrawData
+// export let globalBeaconChainData: IBeaconChainHeartBeatData
+// export let globalSsvData: SsvData
+// export let globalQData: QHeartBeatData = {} as QHeartBeatData
 export let idhBeaconChainCopyData: Record<number, IIncomeDetailHistoryData[]>
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
@@ -52,117 +47,17 @@ let server80: BareWebServer;
 let MONITORING_PORT = 7010
 let serverStartedTimestamp: number;
 let executing: boolean = false
-export let isDebug: boolean = false
-export let isTestnet: boolean = false
+
 let loopsExecuted = 0;
 let blockedExecutionCount = 0;
 const MAX_BLOCKED_EXECUTION_COUNT = 3;
-export const stakingContract: StakingContract = new StakingContract()
-export const liquidityContract: LiquidityContract = new LiquidityContract()
-export const withdrawContract: WithdrawContract = new WithdrawContract()
-export const ssvViewsContract: SsvViewsContract = new SsvViewsContract()
-export const depositContract: DepositContract = new DepositContract()
-export const ssvContract: SsvContract = new SsvContract()
 
-//time in ms
-export const MS_IN_SECOND = 1000
-export const MS_IN_MINUTES = 60 * MS_IN_SECOND
-export const MS_IN_HOUR = 60 * MS_IN_MINUTES
-export const MS_IN_DAY = 24 * MS_IN_HOUR
 const INTERVAL = 5 * MS_IN_MINUTES
 
 const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
-
-export const TotalCalls = {
-    beats: 0,
-    beaconChainApiCallsOnBeat: 0,
-}
-
-export interface PriceData {
-    dateISO: string
-    price: string
-    assets: string
-    supply: string
-}
-
-export interface BalanceData {
-    dateISO: string
-    balance: string
-}
-
-export interface SimpleNumberRecord {
-    dateISO: string
-    number: number
-}
-
 export interface NodeBalance {
     validatorIndex: number
     balanceData: BalanceData[]
-}
-
-export interface PersistentData {
-    // Time data
-    lastSavedPriceDateISO: string
-    lastContractUpdateISO: string
-    beatCount: number
-    timestamp: number
-    delayedUnstakeEpoch: number
-    lastValidatorCheckProposalTimestamp: number
-    weeklyDelimiterDateISO: string
-
-    // Price data
-    mpEthPrices: PriceData[]
-    lpPrices: PriceData[]
-    mpethPrice: string
-    estimatedMpEthPrice: string
-    lpPrice: string
-    stQPrices: PriceData[]
-
-    // Historical data
-    stakingBalances: BalanceData[]
-    stakingTotalSupplies: BalanceData[]
-    withdrawBalances: BalanceData[]
-    liquidityBalances: BalanceData[]
-    liquidityMpEthBalances: BalanceData[]
-    liqTotalSupplies: BalanceData[]
-    historicalNodesBalances: Record<string, BalanceData[]> // Key is node pub key
-    requestedDelayedUnstakeBalances: BalanceData[]
-    historicalActiveValidators: SimpleNumberRecord[]
-    incomeDetailHistory: IIncomeDetailHistoryData[]
-    qBalancesByAddress: Record<string, BalanceData[]> // address - balanceData
-
-    // Current data
-    stakingBalance: string
-    mpTotalAssets: string
-    stakingTotalSupply: string
-    liqBalance: string
-    liqMpEthBalance: string
-    liqTotalSupply: string
-    withdrawBalance: string
-    totalPendingWithdraws: string
-    withdrawAvailableEthForValidators: string
-    activeValidatorsQty: number
-    createdValidatorsLeft: number
-    nodesBalances: Record<string, string> // Key is node pub key
-    validatorsLatestProposal: { [validatorIndex: number]: number }
-    timeRemainingToFinishMetapoolEpoch: number
-    rewardsPerSecondsInWei: string
-    lastRewards: U128String
-    lastPenalties: U128String
-    ethBotBalance: U128String
-    aurBotBalance: U128String
-    ethPrice: number
-    mpethHoldersQty: number
-
-    // Chain data
-    latestEpochCheckedForReport: number
-    latestEpochCheckedForPenalties: number
-    latestBeaconChainEpochRegistered: number
-    estimatedActivationEpochs: Record<string, ActivationData> // pubkey - data
-    blacklistedValidators: string[]
-
-    // Testnet helper data
-    lastIDHTs?: number
 }
 
 function showWho(resp: http.ServerResponse) {
@@ -732,11 +627,6 @@ async function claimQRewards() {
     }
 }
 
-//utility
-export async function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function loga(label: string, amount: number) {
     console.log(label.padEnd(26), ":", amount.toFixed(5).padStart(16))
 }
@@ -796,8 +686,13 @@ function initializeUninitializedGlobalData() {
 
     if (!globalBeaconChainData.incomeDetailHistory) globalBeaconChainData.incomeDetailHistory = []
 
-    if (!globalSsvData) globalSsvData = {
-        clusterInformationRecord: {}
+    if (!globalSsvData) {
+        setGlobalSsvData({
+            clusterInformationRecord: {}
+        })
+        // globalSsvData = {
+        //     clusterInformationRecord: {}
+        // }
     }
     if (!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {}
 
@@ -1117,7 +1012,7 @@ function processArgs() {
     for (let i = 2; i < process.argv.length; i++) {
         switch (process.argv[i]) {
             case "--debug":
-                isDebug = true
+                setIsDebug(true)
                 MONITORING_PORT = 7011
                 break
             default:
@@ -1126,7 +1021,7 @@ function processArgs() {
     }
     const network = getEnv().NETWORK
     if (network === "goerli") {
-        isTestnet = true
+        setIsTestnet(true)
         MONITORING_PORT = 7011
     }
 }
@@ -1147,8 +1042,10 @@ async function debugActions(runWhile: boolean) {
 export async function run() {
     processArgs()
 
-    globalPersistentData = loadJSON("persistent.json")
-    globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
+    setGlobalPersistentData(loadJSON("persistent.json"))
+    setGlobalBeaconChainData(loadJSON("beaconChainPersistentData.json"))
+    // globalPersistentData = loadJSON("persistent.json")
+    // globalBeaconChainData = loadJSON("beaconChainPersistentData.json")
     idhBeaconChainCopyData = loadJSON("idhBeaconChainCopyData.json")
 
     if (process.argv.includes("also-80")) {

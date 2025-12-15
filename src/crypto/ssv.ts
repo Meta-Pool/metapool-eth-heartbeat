@@ -1,5 +1,5 @@
 import { readFileSync } from "fs"
-import { ClusterData } from "../entities/ssv"
+import { ClusterData } from "../entities/ssvEntities"
 import ssvAbi from "./abi/ssvAbi.json"
 import { getConfig } from "./config"
 import { EthContract } from "./ethContracts"

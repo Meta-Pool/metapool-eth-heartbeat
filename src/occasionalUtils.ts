@@ -1,9 +1,10 @@
 import { existsSync, readFileSync, writeFileSync } from "fs"
-import { ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsData, sumPenalties, sumRewards } from "./services/beaconcha/beaconcha"
-import { IEpochResponse, IIncomeData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse } from "./services/beaconcha/entities"
+import { getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsData, sumPenalties, sumRewards } from "./services/beaconcha/beaconcha"
+import { IEpochResponse, IIncomeData, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse } from "./entities/beaconcha/beaconChainEntities"
 import { etow, wtoe } from "./utils/numberUtils"
 import { callDisassembleApi } from "./bots/validatorsAlerts"
-import { sleep } from "./bots/heartbeat"
+import { sleep } from "./utils/executionUtils"
+import { ValidatorData } from "./entities/beaconcha/beaconChainValidator"
 
 interface Donation {
     beaconEpoch: number,

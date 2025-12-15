@@ -1,12 +1,10 @@
+import { IBalanceHistoryData, IEpochResponse } from "../../entities/beaconcha/beaconChainEntities"
 import { Report } from "../../entities/staking"
-import { IBalanceHistoryData, ValidatorData, getBeaconChainEpoch } from "../../services/beaconcha/beaconcha"
-import { IEpochResponse } from "../../services/beaconcha/entities"
+import { globalBeaconChainData } from "../../globals/globalMetrics"
+import { getBeaconChainEpoch } from "../../services/beaconcha/beaconcha"
 import { sendEmail } from "../../utils/mailUtils"
 import { max } from "../../utils/numberUtils"
-import { globalBeaconChainData } from "../heartbeat"
-
-export const ZEROS_9 = "0".repeat(9)
-
+// import { globalBeaconChainData } from "../heartbeat"
 
 export async function checkValidatorsPenalization() {
     console.log("Checking if a validator was penalized")

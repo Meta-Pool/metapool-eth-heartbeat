@@ -1,6 +1,6 @@
 import { ethers } from "ethers"
-import { globalLiquidityData, globalPersistentData, globalStakingData } from "../bots/heartbeat"
 import { divide } from "./mathUtils"
+import { globalLiquidityData, globalStakingData } from "../globals/globalMetrics"
 
 /**
  * Assumes globalStakingData is always filled with data. This should never happen

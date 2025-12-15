@@ -1,11 +1,14 @@
-import { MS_IN_MINUTES, buildAndSendMailForError, globalBeaconChainData, globalPersistentData, globalStakingData, isDebug, stakingContract } from "../../bots/heartbeat";
 import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
+import { globalBeaconChainData, globalPersistentData } from "../../globals/globalMetrics";
 import { handleError } from "../../utils/errorUtils";
-import { ValidatorDataResponse, getValidatorsData, ValidatorData, getBeaconChainEpoch, getIncomeDetailHistory, getValidatorsIncomeDetailHistory, getValidatorsDataWithIndexOrPubKey, getCurrentQueue } from "./beaconcha";
-import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "./entities";
+import { ValidatorDataResponse, getBeaconChainEpoch, getCurrentQueue, getIncomeDetailHistory, getValidatorsData, getValidatorsDataWithIndexOrPubKey, getValidatorsIncomeDetailHistory } from "./beaconcha";
+import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "../../entities/beaconcha/beaconChainEntities";
+import { ValidatorData } from "../../entities/beaconcha/beaconChainValidator";
+import { isDebug } from "../../globals/globalUtils";
+import { MS_IN_MINUTES, stakingContract } from "../../globals/globalVariables";
 
 const SKIP_REFRESH_TIMES = 3
 let currentSkippedTimes = 0

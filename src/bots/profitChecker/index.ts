@@ -1,5 +1,6 @@
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../../entities/emailUtils";
-import { globalPersistentData } from "../heartbeat";
+import { globalPersistentData } from "../../globals/globalMetrics";
+// import { globalPersistentData } from "../heartbeat";
 import { wtoe } from "../../utils/numberUtils";
 
 export function alertCheckProfit(): IMailReportHelper {

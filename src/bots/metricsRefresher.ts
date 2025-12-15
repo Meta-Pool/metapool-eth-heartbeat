@@ -2,11 +2,14 @@ import { StakingManagerContract } from "../crypto/auroraStakingManager"
 import { getConfig } from "../crypto/config"
 import { StakedQVaultContract } from "../crypto/q/stakedQVault"
 import { QVaultContract } from "../crypto/qVaultContract"
-import { ValidatorData } from "../services/beaconcha/beaconcha"
+import { ZEROS_9 } from "../entities/beaconcha/beaconChainEntities"
+import { ValidatorData } from "../entities/beaconcha/beaconChainValidator"
+import { liquidityContract, stakingContract, withdrawContract } from "../globals/globalVariables"
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData } from "../globals/globalMetrics"
+import { isDebug } from "../globals/globalUtils"
 import { getPrice, getTokenHoldersQty } from "../services/tokens/tokens"
 import { calculateLpPrice, calculateMpEthPrice, calculateMpEthPriceTotalUnderlying } from "../utils/priceUtils"
-import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, isDebug, liquidityContract, stakingContract, withdrawContract } from "./heartbeat"
-import { ZEROS_9 } from "./nodesBalance"
+// import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, isDebug, liquidityContract, stakingContract, withdrawContract } from "./heartbeat"
 
 /**
  * Metrics are brought one by one since infura has a limit for calling too often in one second. See https://docs.infura.io/api/networks/ethereum/how-to/avoid-rate-limiting

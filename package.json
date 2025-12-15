@@ -18,7 +18,8 @@
     "tester": "npm run build && cd dist/ && node testerHelper.js",
     "save:metrics": "npm run build && node dist/index.js",
     "restart": "npm run build && pm2 restart ecosystem.config.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check-circular": "npx madge --circular --extensions ts,mjs,cjs ./"
   },
   "author": "",
   "license": "ISC",

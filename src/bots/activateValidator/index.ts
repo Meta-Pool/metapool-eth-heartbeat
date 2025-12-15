@@ -1,18 +1,18 @@
 import { ethers } from "ethers"
-import { existsSync, readFileSync, writeFileSync } from "fs"
-import { Node, StakingContract } from "../../crypto/stakingContract"
-import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
-import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
 import { EthConfig, getConfig } from "../../crypto/config"
-import { ValidatorData, fetchValidatorsData } from '../../services/beaconcha/beaconcha'
+import { LiquidityContract } from "../../crypto/liquidity"
+import { Node, StakingContract } from "../../crypto/stakingContract"
 import { WithdrawContract } from "../../crypto/withdraw"
-import { sendEmail } from "../../utils/mailUtils"
+import { ValidatorData } from "../../entities/beaconcha/beaconChainValidator"
+import { IMailReportHelper, Severity } from "../../entities/emailUtils"
+import { globalBeaconChainData, globalPersistentData } from "../../globals/globalMetrics"
+import { fetchValidatorsData } from '../../services/beaconcha/beaconcha'
 import { convertMpEthToEth } from "../../utils/convert"
 import { max, min, wtoe } from "../../utils/numberUtils"
-import { MS_IN_DAY, MS_IN_HOUR, MS_IN_SECOND, depositContract, globalBeaconChainData, globalPersistentData, isDebug, isTestnet } from "../heartbeat"
-import { sLeftToTimeLeft } from "../../utils/timeUtils"
-import { LiquidityContract } from "../../crypto/liquidity"
-import { IMailReportHelper, Severity } from "../../entities/emailUtils"
+import testnetDepositData from "../../validator_data/deposit_data-1677016004.json"
+import mainnetDepositData from "../../validator_data/mainnet_deposit_data-1689287540.json"
+import { isTestnet } from "../../globals/globalUtils"
+import { depositContract } from "../../globals/globalVariables"
 
 export const ETH_32 = ethers.parseEther("32")
 const liqLastUsageFilename = __dirname + "/lastUsage.txt"

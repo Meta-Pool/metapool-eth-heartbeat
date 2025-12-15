@@ -1,11 +1,11 @@
-import { U128String } from "../bots/heartbeat/snapshot"
+import { U128String } from "./basicCryptoEntities"
 
 export interface ClusterData {
     validatorCount: number, 
     networkFeeIndex: number, 
     index: number, 
     active: boolean, 
-    balance: U128String 
+    balance: U128String
 }
 
 export interface SsvData {

@@ -1,5 +1,4 @@
-import { MS_IN_HOUR, MS_IN_SECOND, globalLiquidityData, globalPersistentData, globalStakingData } from "../bots/heartbeat";
-import { ZEROS_9 } from "../bots/nodesBalance";
+import { globalLiquidityData, globalPersistentData, globalStakingData } from "../globals/globalMetrics";
 import { etow, wtoe } from "./numberUtils";
 
 export function getEstimatedMpEthPrice(): bigint {

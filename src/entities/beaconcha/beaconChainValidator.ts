@@ -24,3 +24,20 @@ export interface ILuckData {
     proposal_luck: number,
     time_frame_name: string
 }
+
+export interface ValidatorData {
+    activationeligibilityepoch?: number
+    activationepoch?: number
+    balance: number
+    effectivebalance: number
+    exitepoch?: number
+    lastattestationslot?: number
+    name?: string | null
+    pubkey: string
+    slashed?: boolean
+    status?: string
+    validatorindex?: number
+    withdrawableepoch?: number
+    withdrawalcredentials?: string
+    total_withdrawals?: number
+}

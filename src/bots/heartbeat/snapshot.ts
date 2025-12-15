@@ -1,14 +1,11 @@
 import { ethers } from "ethers";
-import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, MS_IN_SECOND, PriceData } from "./index"
-import { sLeftToTimeLeft } from "../../utils/timeUtils";
-import { etow, wtoe } from "../../utils/numberUtils";
-import { ValidatorData } from "../../services/beaconcha/beaconcha";
-import { ZEROS_9 } from "../nodesBalance";
-import { ETH_32 } from "../activateValidator";
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, PriceData } from "../../globals/globalMetrics";
 import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
-import { groupQBalancesSortedByDate } from "../../utils/qUtils";
-
-export type U128String = string
+import { etow, wtoe } from "../../utils/numberUtils";
+import { sLeftToTimeLeft } from "../../utils/timeUtils";
+import { U128String } from "../../entities/basicCryptoEntities";
+import { ValidatorData } from "../../entities/beaconcha/beaconChainValidator";
+import { ZEROS_9 } from "../../entities/beaconcha/beaconChainEntities";
 
 export function mpEthPromotionApy(): number {
     if(globalStakingData.totalAssets === 0n) return (((64 + 0.75 / 7 * 365) / 64) - 1) * 100 // 61.1

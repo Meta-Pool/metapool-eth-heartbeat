@@ -1,7 +1,7 @@
 import { createTransport, SentMessageInfo } from "nodemailer"
 import { MailOptions } from "nodemailer/lib/json-transport"
-import { isDebug } from "../bots/heartbeat"
 import { ENV, getEnv } from "../entities/env"
+import { isDebug } from "../globals/globalUtils"
 
 const DEBUG_RESPONSIBLES = [
     "daniel@metapool.app",
