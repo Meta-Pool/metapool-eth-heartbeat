@@ -32,13 +32,6 @@ import * as snapshot from './snapshot.js';
 import { tail } from "./util/tail";
 import { MS_IN_DAY, MS_IN_HOUR, MS_IN_MINUTES, MS_IN_SECOND, stakingContract } from "../../globals/globalVariables";
 
-// export let globalPersistentData: PersistentData
-// export let globalStakingData: StakingData = {} as StakingData
-// export let globalLiquidityData: LiquidityData = {} as LiquidityData
-// export let globalWithdrawData: WithdrawData = {} as WithdrawData
-// export let globalBeaconChainData: IBeaconChainHeartBeatData
-// export let globalSsvData: SsvData
-// export let globalQData: QHeartBeatData = {} as QHeartBeatData
 export let idhBeaconChainCopyData: Record<number, IIncomeDetailHistoryData[]>
 const NETWORK = getEnv().NETWORK
 const hostname = os.hostname()
