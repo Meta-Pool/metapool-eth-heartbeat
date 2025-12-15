@@ -10,7 +10,7 @@ import { ValidatorData } from "../../entities/beaconcha/beaconChainValidator";
 import { isDebug } from "../../globals/globalUtils";
 import { MS_IN_MINUTES, stakingContract } from "../../globals/globalVariables";
 
-const SKIP_REFRESH_TIMES = 3
+const SKIP_REFRESH_TIMES = 5
 let currentSkippedTimes = 0
 let shouldSkipRefresh = false
 

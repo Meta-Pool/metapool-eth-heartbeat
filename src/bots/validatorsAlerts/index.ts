@@ -125,7 +125,7 @@ export async function getDeactivateValidatorsReport(): Promise<IMailReportHelper
             Current epoch: ${currentEpoch}
         `
         output.step = `Getting validators data`
-        const validatorsData = await getValidatorsData()
+        const validatorsData = globalBeaconChainData.validatorsData
         const exitedValidators = validatorsData.filter((validator: ValidatorData) => {
             return validator.status === "exited"
         })
