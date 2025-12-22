@@ -8,6 +8,7 @@ import { sleep } from "../../utils/executionUtils"
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
 export const BASE_BEACON_CHAIN_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
+const apiKey = process.env.BEACON_CHAIN_API_KEY
 
 const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
 const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
@@ -15,7 +16,7 @@ const BASE_URL = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL : TESTNET_BASE
 
 const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
-const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory?apikey=" + process.env.BEACON_CHAIN_API_KEY
+const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory?apikey=" + apiKey
 const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}&apikey=" + process.env.BEACON_CHAIN_API_KEY
 
 const QUEUE_URL = BASE_URL + "validators/queue"
@@ -50,6 +51,7 @@ export interface BalanceHistory {
 
 
 async function fetchConsideringRateLimit(url: string): Promise<Response> {
+    console.log("Fetching from beacon chain", url)
     const now = Date.now()
     const timeSinceLastCall = now - lastCallTimestamp
     const maxWaitTime = 2 * 60 * 1000 // 2 minutes. Actual time is 60 seconds according to beacon chain rate limit, but it wasn't working
@@ -66,7 +68,7 @@ async function fetchConsideringRateLimit(url: string): Promise<Response> {
 export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     TotalCalls.beaconChainApiCallsOnBeat++
-    const url =`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${process.env.BEACON_CHAIN_API_KEY}`
+    const url =`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${apiKey}`
     console.log("Fetching from", url)
     const validatorsDataResponse = await fetchConsideringRateLimit(url)
     if(!validatorsDataResponse.ok) {
@@ -119,7 +121,7 @@ export async function fetchValidatorsData(validatorIds: (number|string)[]): Prom
 export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
     if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
     TotalCalls.beaconChainApiCallsOnBeat++
-    const responses = await fetchConsideringRateLimit(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}`)
+    const responses = await fetchConsideringRateLimit(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}?apikey=${}`)
     if(!responses.ok) {
         throw new Error(`Error fetching validators data. Status: ${responses.status}. ${responses.statusText}`)
     }
