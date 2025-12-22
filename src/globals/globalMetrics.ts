@@ -31,6 +31,7 @@ export interface PersistentData {
     delayedUnstakeEpoch: number
     lastValidatorCheckProposalTimestamp: number
     weeklyDelimiterDateISO: string
+    last8HourExecutionTimestamp: number // To avoid multiple executions in the same 8 hour period
 
     // Price data
     mpEthPrices: PriceData[]

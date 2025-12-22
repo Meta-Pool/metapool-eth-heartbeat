@@ -60,7 +60,7 @@ async function fetchConsideringRateLimit(url: string): Promise<Response> {
     console.log("Fetching from beacon chain", u.toString())
     const now = Date.now()
     const timeSinceLastCall = now - lastCallTimestamp
-    const maxWaitTime = 2 * 60 * 1000 // 2 minutes. Actual time is 60 seconds according to beacon chain rate limit, but it wasn't working
+    const maxWaitTime = 30 * 1000 // 30 seconds. Actual time is 60 seconds according to beacon chain rate limit, but it wasn't working
     console.log("Time since last call:", timeSinceLastCall)
     if (timeSinceLastCall < maxWaitTime) {
         const waitTime = maxWaitTime - timeSinceLastCall

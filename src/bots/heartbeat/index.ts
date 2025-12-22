@@ -620,16 +620,14 @@ async function claimQRewards() {
     }
 }
 
-function loga(label: string, amount: number) {
-    console.log(label.padEnd(26), ":", amount.toFixed(5).padStart(16))
-}
-
+/**
+ * Refresh all metrics in sequence. Beacon chain is excluded since it has a separate refresh process due to api rate limit
+ */
 async function refreshMetrics() {
 
     await refreshStakingData()
     await refreshLiquidityData()
     await refreshWithdrawData()
-    await refreshBeaconChainData()
     await refreshSsvData()
     await refreshQVaultMetrics()
     await refreshStakedQVaultMetrics()
@@ -683,9 +681,6 @@ function initializeUninitializedGlobalData() {
         setGlobalSsvData({
             clusterInformationRecord: {}
         })
-        // globalSsvData = {
-        //     clusterInformationRecord: {}
-        // }
     }
     if (!globalPersistentData.estimatedActivationEpochs) globalPersistentData.estimatedActivationEpochs = {}
 
@@ -698,6 +693,8 @@ function initializeUninitializedGlobalData() {
     if (!globalPersistentData.lastContractUpdateISO) globalPersistentData.lastContractUpdateISO = "2024-03-08"
 
     if (!globalPersistentData.stQPrices) globalPersistentData.stQPrices = []
+
+    if (!globalPersistentData.last8HourExecutionTimestamp) globalPersistentData.last8HourExecutionTimestamp = 0
 
     if (isDebug) console.log("Global state initialized successfully")
 }
@@ -858,8 +855,13 @@ async function beat() {
             return report.severity !== Severity.OK
         })
         mailReportsToSend.push(...reportsMadeEvery6Hours)
-
     } // Calls made every 6 hours
+
+    if (Date.now() - globalPersistentData.last8HourExecutionTimestamp >= 8 * MS_IN_HOUR) { 
+        console.log("Sending report - 8 hours")
+        await refreshBeaconChainData()
+        globalPersistentData.last8HourExecutionTimestamp = Date.now()
+    } // Calls made every 8 hours
 
     if (new Date().getMinutes() < 5) {
         const reports: IMailReportHelper[] = await Promise.all([
