@@ -121,7 +121,7 @@ export async function fetchValidatorsData(validatorIds: (number|string)[]): Prom
 export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
     if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
     TotalCalls.beaconChainApiCallsOnBeat++
-    const responses = await fetchConsideringRateLimit(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}?apikey=${}`)
+    const responses = await fetchConsideringRateLimit(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}?apikey=${apiKey}`)
     if(!responses.ok) {
         throw new Error(`Error fetching validators data. Status: ${responses.status}. ${responses.statusText}`)
     }
