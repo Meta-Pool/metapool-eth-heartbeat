@@ -13,10 +13,12 @@ import { MS_IN_MINUTES, stakingContract } from "../../globals/globalVariables";
 const SKIP_REFRESH_TIMES = 5
 let currentSkippedTimes = 0
 let shouldSkipRefresh = false
+let isRefreshing = false
 
 export async function refreshBeaconChainData() {
     try {
         // When "Too many requests" error comes, skip a couple of calls
+        if(isRefreshing) return
         if(shouldSkipRefresh) {
             currentSkippedTimes++
             console.log("Skipping beacon chain refresh", currentSkippedTimes, "/", SKIP_REFRESH_TIMES)
@@ -25,6 +27,7 @@ export async function refreshBeaconChainData() {
             }
             return
         }
+        isRefreshing = true
         globalBeaconChainData.validatorsData = await getValidatorsData()
         globalBeaconChainData.validatorsStatusesQty = globalBeaconChainData.validatorsData.reduce((acc: Record<string, number>, curr: ValidatorData) => {
             if (!curr.status) return acc
@@ -60,6 +63,8 @@ export async function refreshBeaconChainData() {
             shouldSkipRefresh = true
             currentSkippedTimes = 0
         }
+    } finally {
+        isRefreshing = false
     }
 
 }

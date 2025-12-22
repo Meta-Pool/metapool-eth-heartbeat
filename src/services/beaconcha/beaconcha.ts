@@ -52,7 +52,7 @@ export interface BalanceHistory {
 async function fetchConsideringRateLimit(url: string): Promise<Response> {
     const now = Date.now()
     const timeSinceLastCall = now - lastCallTimestamp
-    const maxWaitTime = 65 * 1000 // 65 seconds. Actual time is 60 seconds according to beaconcha rate limit, but it wasn't working
+    const maxWaitTime = 2 * 60 * 1000 // 2 minutes. Actual time is 60 seconds according to beacon chain rate limit, but it wasn't working
     console.log("Time since last call:", timeSinceLastCall)
     if (timeSinceLastCall < maxWaitTime) {
         const waitTime = maxWaitTime - timeSinceLastCall
