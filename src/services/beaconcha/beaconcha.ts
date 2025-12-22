@@ -4,11 +4,15 @@ import { getConfig } from "../../crypto/config"
 import { IEpochResponse, IIncomeData, INCOME_DATA_KEYS as INCOME_DATA_KEYS, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, IValidatorProposal, MiniIDHReport, QueueResponse, IBalanceHistoryData, ZEROS_9 } from "../../entities/beaconcha/beaconChainEntities"
 import { globalBeaconChainData, TotalCalls } from "../../globals/globalMetrics"
 import { sleep } from "../../utils/executionUtils"
+import { URL } from "url"
 
 const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
 export const BASE_BEACON_CHAIN_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
 const apiKey = process.env.BEACON_CHAIN_API_KEY
+if(!apiKey) {
+    throw new Error("No beacon chain api key found")
+}
 
 const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
 const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
@@ -51,7 +55,9 @@ export interface BalanceHistory {
 
 
 async function fetchConsideringRateLimit(url: string): Promise<Response> {
-    console.log("Fetching from beacon chain", url)
+    const u = new URL(url)
+    u.searchParams.set("apikey", apiKey || "")
+    console.log("Fetching from beacon chain", u.toString())
     const now = Date.now()
     const timeSinceLastCall = now - lastCallTimestamp
     const maxWaitTime = 2 * 60 * 1000 // 2 minutes. Actual time is 60 seconds according to beacon chain rate limit, but it wasn't working
@@ -62,7 +68,7 @@ async function fetchConsideringRateLimit(url: string): Promise<Response> {
         await sleep(waitTime)
     }
     lastCallTimestamp = Date.now()
-    return fetch(url)
+    return fetch(u.toString())
 }
 
 export async function getValidatorsData(): Promise<ValidatorData[]> {
@@ -125,7 +131,6 @@ export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (numb
     if(!responses.ok) {
         throw new Error(`Error fetching validators data. Status: ${responses.status}. ${responses.statusText}`)
     }
-    console.log("Validators data response", responses)
     return responses.json()
 }
 
