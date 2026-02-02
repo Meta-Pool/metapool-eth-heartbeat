@@ -10,7 +10,7 @@ const MAINNET_BASE_URL_SITE = "https://beaconcha.in/validator/"
 const TESTNET_BASE_URL_SITE = "https://prater.beaconcha.in/validator/"
 export const BASE_BEACON_CHAIN_URL_SITE = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL_SITE : TESTNET_BASE_URL_SITE
 const apiKey = process.env.BEACON_CHAIN_API_KEY
-if(!apiKey) {
+if (!apiKey) {
     throw new Error("No beacon chain api key found")
 }
 
@@ -18,6 +18,7 @@ const MAINNET_BASE_URL = "https://beaconcha.in/api/v1/"
 const TESTNET_BASE_URL = "https://prater.beaconcha.in/api/v1/"
 const BASE_URL = getEnv().NETWORK == "mainnet" ? MAINNET_BASE_URL : TESTNET_BASE_URL
 
+// cSpell:words balancehistory incomedetailhistory apikey
 const VALIDATOR_DATA_BASE_URL = BASE_URL + "validator/"
 const VALIDATOR_ID_FINDER_BASE_URL = VALIDATOR_DATA_BASE_URL + "eth1/"
 const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balancehistory?apikey=" + apiKey
@@ -44,7 +45,7 @@ export interface ValidatorBasicData {
 
 export interface ValidatorDataResponse {
     status: string
-    data: ValidatorData[]|ValidatorData
+    data: ValidatorData[] | ValidatorData
 }
 
 export interface BalanceHistory {
@@ -74,22 +75,22 @@ async function fetchConsideringRateLimit(url: string): Promise<Response> {
 export async function getValidatorsData(): Promise<ValidatorData[]> {
     const validatorOwnerAddress = getConfig().validatorOwnerAddress
     TotalCalls.beaconChainApiCallsOnBeat++
-    const url =`${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${apiKey}`
+    const url = `${VALIDATOR_ID_FINDER_BASE_URL}${validatorOwnerAddress}?apikey=${apiKey}`
     console.log("Fetching from", url)
     const validatorsDataResponse = await fetchConsideringRateLimit(url)
-    if(!validatorsDataResponse.ok) {
+    if (!validatorsDataResponse.ok) {
         throw new Error(`Error fetching validators data. Status: ${validatorsDataResponse.status}. ${validatorsDataResponse.statusText}`)
     }
     // console.log("Response:", validatorsDataResponse)
-    const validatorData: DeployerDataResponse|BeaconChainDataError = await validatorsDataResponse.json()
-    
-    if(validatorData && 'message' in validatorData) {
+    const validatorData: DeployerDataResponse | BeaconChainDataError = await validatorsDataResponse.json()
+
+    if (validatorData && 'message' in validatorData) {
         throw new Error(validatorData.message)
     }
     // When a validator is getting activated, the validator id is temporary null, so it has the 32 ETH
     const nonNullValidatorIds: number[] = validatorData.data.map((v: ValidatorBasicData) => v.validatorindex).filter(id => id != null)
     const nullValidatorsDataResponse: ValidatorDataResponse[] = validatorData.data.filter((v: ValidatorBasicData) => v.validatorindex == null).map((v: ValidatorBasicData) => generateValidatorDataForActivatingValidators(v))
-    
+
     const nonNullValidatorsData = await fetchValidatorsData(nonNullValidatorIds)
     const nullValidatorsData = nullValidatorsDataResponse.map((v: ValidatorDataResponse) => v.data as ValidatorData)
     const validatorsData = nonNullValidatorsData.concat(nullValidatorsData)
@@ -104,31 +105,31 @@ export function getActiveValidatorsData(): ValidatorData[] {
     })
 }
 
-export async function fetchValidatorsData(validatorIds: (number|string)[]): Promise<ValidatorData[]> {
+export async function fetchValidatorsData(validatorIds: (number | string)[]): Promise<ValidatorData[]> {
     console.log("Fetching validators data")
     const chunkSize = 100
     let output: ValidatorData[] = []
-    for(let i = 0; i < validatorIds.length; i += chunkSize) {
+    for (let i = 0; i < validatorIds.length; i += chunkSize) {
         const ids = validatorIds.slice(i, i + chunkSize)
         console.log("Fetching ids:", ids)
         const validatorsDataResponse = await getValidatorsDataWithIndexOrPubKey(ids)
         const validatorsData = validatorsDataResponse.data
-        if(Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
+        if (Array.isArray(validatorsData)) { // Beacon chain returns an object if ids is just one id and an array if it is at least 2
             output = output.concat(validatorsData)
-        } else if(validatorsData !== null) {
+        } else if (validatorsData !== null) {
             output.push(validatorsData)
         }
     }
-    
+
     return output
 }
 
 
-export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number|string)[]): Promise<ValidatorDataResponse> {
-    if(indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
+export async function getValidatorsDataWithIndexOrPubKey(indexesOrPubKeys: (number | string)[]): Promise<ValidatorDataResponse> {
+    if (indexesOrPubKeys.length > 100) throw new Error(`Can't get validators data for more than 100 validators. Trying to get ${indexesOrPubKeys.length} validators`)
     TotalCalls.beaconChainApiCallsOnBeat++
     const responses = await fetchConsideringRateLimit(`${VALIDATOR_DATA_BASE_URL}${indexesOrPubKeys.join(",")}?apikey=${apiKey}`)
-    if(!responses.ok) {
+    if (!responses.ok) {
         throw new Error(`Error fetching validators data. Status: ${responses.status}. ${responses.statusText}`)
     }
     return responses.json()
@@ -146,14 +147,14 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
     }
 }
 
-export function getValidatorBalanceHistory(indexOrPubkey: string|number): Promise<IBalanceHistoryData[]> {
+export function getValidatorBalanceHistory(indexOrPubkey: string | number): Promise<IBalanceHistoryData[]> {
     const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
     TotalCalls.beaconChainApiCallsOnBeat++
     return fetchConsideringRateLimit(url).then(r => r.json().then(json => json.data))
 }
 
 /**
- * 
+ *
  * @param epoch Epoch number, the string latest or the string finalized
  */
 export function getBeaconChainEpoch(epoch: string = "finalized"): Promise<IEpochResponse> {
@@ -166,19 +167,20 @@ export function getValidatorProposal(validatorIndex: number): Promise<IValidator
     return fetchConsideringRateLimit(url).then(r => r.json())
 }
 
+// cSpell:words getValidatorWithrawalInEpoch
 /**
- * 
- * @param indexOrPubKey 
+ *
+ * @param indexOrPubKey
  * @param epoch If no epoch is sent, assumes latest epoch
- * @returns 
+ * @returns
  */
-export function getValidatorWithrawalInEpoch(indexOrPubKey: string|number, epoch?: number) {
+export function getValidatorWithrawalInEpoch(indexOrPubKey: string | number, epoch?: number) {
     const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + epoch ? `?epoch=${epoch}` : ""
     return fetchConsideringRateLimit(url).then(r => r.json())
 }
 
 export async function getIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<IIncomeDetailHistoryResponse> {
-    if(lastEpoch - firstEpoch > 100) throw new Error("Max limit is 100")
+    if (lastEpoch - firstEpoch > 100) throw new Error("Max limit is 100")
     const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL
         .replace("{indexes}", indexes.join(","))
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
@@ -186,7 +188,7 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
     TotalCalls.beaconChainApiCallsOnBeat++
     return (await fetchConsideringRateLimit(validatorsUrl)).json().then((json: any) => {
         console.log("IDH from", firstEpoch, lastEpoch)
-        if(json.message && json.message === "API rate limit exceeded") {
+        if (json.message && json.message === "API rate limit exceeded") {
             console.error(json.message, firstEpoch, lastEpoch)
             process.exit()
         }
@@ -195,7 +197,7 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
 
 }
 
-export async function  getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
+export async function getValidatorsIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<Record<number, MiniIDHReport>> {
     const validatorsUrl = VALIDATOR_INCOME_DETAIL_HISTORY_URL.replace("{indexes}", indexes.join(",")).replace("{limit}", "100")
     let output: Record<number, MiniIDHReport> = {}
     indexes.forEach((index: number) => {
@@ -208,7 +210,7 @@ export async function  getValidatorsIncomeDetailHistory(indexes: number[], first
     })
 
     let queryEpoch = lastEpoch
-    while(queryEpoch > firstEpoch) {
+    while (queryEpoch > firstEpoch) {
         const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
         console.log("Getting IDH", epochIDHUrl)
         TotalCalls.beaconChainApiCallsOnBeat++
@@ -228,7 +230,7 @@ export async function getValidatorsIncomeDetailHistoryCount(indexes: number[], f
     })
 
     let queryEpoch = lastEpoch
-    while(queryEpoch > firstEpoch) {
+    while (queryEpoch > firstEpoch) {
         TotalCalls.beaconChainApiCallsOnBeat++
         const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetchConsideringRateLimit(epochIDHUrl)).json()
@@ -239,17 +241,17 @@ export async function getValidatorsIncomeDetailHistoryCount(indexes: number[], f
     return penaltiesAmount
 }
 
-async function processIDHResponse(output: Record<string|number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, MiniIDHReport>> {
-    if(idhResponse.data === null) throw new Error(idhResponse.status)
-    if(!idhResponse || !idhResponse.data) return output // If you request epochs which wasn't validating returns empty array
+async function processIDHResponse(output: Record<string | number, MiniIDHReport>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string | number, MiniIDHReport>> {
+    if (idhResponse.data === null) throw new Error(idhResponse.status)
+    if (!idhResponse || !idhResponse.data) return output // If you request epochs which wasn't validating returns empty array
     const errorMessages: string[] = []
     idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
-        if(data.epoch < firstEpoch) return
+        if (data.epoch < firstEpoch) return
         const validatorIDH = output[data.validatorindex]
 
         const incomeResponseProperties = Object.keys(data.income)
         const isIncluded = incomeResponseProperties.some((e: string) => INCOME_DATA_KEYS.includes(e))
-        if(!isIncluded && incomeResponseProperties.length > 0) {
+        if (!isIncluded && incomeResponseProperties.length > 0) {
             const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked. Expected keys:${INCOME_DATA_KEYS}. Response: ${incomeResponseProperties}`
             errorMessages.push(message)
             throw new Error(message)
@@ -259,21 +261,21 @@ async function processIDHResponse(output: Record<string|number, MiniIDHReport>, 
         validatorIDH.penalties += sumPenalties(data.income)
         validatorIDH.penaltiesCount += countPenalties(data.income)
 
-        output[data.validatorindex] = {...validatorIDH}
+        output[data.validatorindex] = { ...validatorIDH }
     })
     return output
 }
 
-async function countTotalPenalties(output: Record<string|number, number>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string|number, any>> {
-    if(!idhResponse || !idhResponse.data) return output
+async function countTotalPenalties(output: Record<string | number, number>, idhResponse: IIncomeDetailHistoryResponse, firstEpoch: number): Promise<Record<string | number, any>> {
+    if (!idhResponse || !idhResponse.data) return output
     const errorMessages: string[] = []
     idhResponse.data.forEach((data: IIncomeDetailHistoryData) => {
-        if(data.epoch < firstEpoch) return
+        if (data.epoch < firstEpoch) return
         const validatorIDH = output[data.validatorindex]
 
         const incomeResponseProperties = Object.keys(data.income)
         const isIncluded = incomeResponseProperties.some((e: string) => INCOME_DATA_KEYS.includes(e))
-        if(!isIncluded && incomeResponseProperties.length > 0) {
+        if (!isIncluded && incomeResponseProperties.length > 0) {
             const message = `Response contains keys not managed by bot. Either a reward or a penalty may be overlooked. Expected keys:${INCOME_DATA_KEYS}. Response: ${incomeResponseProperties}`
             errorMessages.push(message)
             throw new Error(message)
@@ -286,14 +288,14 @@ async function countTotalPenalties(output: Record<string|number, number>, idhRes
 }
 
 export function sumRewards(data: IIncomeData): bigint {
-    return BigInt((data.attestation_head_reward|| 0) + ZEROS_9)
-        + BigInt((data.attestation_source_reward|| 0) + ZEROS_9)
-        + BigInt((data.attestation_target_reward|| 0) + ZEROS_9)
-        + BigInt((data.proposer_attestation_inclusion_reward|| 0) + ZEROS_9)
-        + BigInt((data.proposer_slashing_inclusion_reward|| 0) + ZEROS_9)
-        + BigInt((data.proposer_sync_inclusion_reward|| 0) + ZEROS_9)
-        + BigInt((data.slashing_reward|| 0) + ZEROS_9)
-        + BigInt((data.sync_committee_reward|| 0) + ZEROS_9)
+    return BigInt((data.attestation_head_reward || 0) + ZEROS_9)
+        + BigInt((data.attestation_source_reward || 0) + ZEROS_9)
+        + BigInt((data.attestation_target_reward || 0) + ZEROS_9)
+        + BigInt((data.proposer_attestation_inclusion_reward || 0) + ZEROS_9)
+        + BigInt((data.proposer_slashing_inclusion_reward || 0) + ZEROS_9)
+        + BigInt((data.proposer_sync_inclusion_reward || 0) + ZEROS_9)
+        + BigInt((data.slashing_reward || 0) + ZEROS_9)
+        + BigInt((data.sync_committee_reward || 0) + ZEROS_9)
         + BigInt(data.tx_fee_reward_wei || 0)
 }
 
@@ -307,12 +309,12 @@ export function sumPenalties(data: IIncomeData): bigint {
 
 export function countPenalties(data: IIncomeData): number {
     let penalties = 0
-    if(data.attestation_source_penalty) penalties++
-    if(data.attestation_target_penalty) penalties++
-    if(data.finality_delay_penalty) penalties++
-    if(data.proposals_missed) penalties++
-    if(data.slashing_penalty) penalties++
-    if(data.sync_committee_penalty) penalties++
+    if (data.attestation_source_penalty) penalties++
+    if (data.attestation_target_penalty) penalties++
+    if (data.finality_delay_penalty) penalties++
+    if (data.proposals_missed) penalties++
+    if (data.slashing_penalty) penalties++
+    if (data.sync_committee_penalty) penalties++
     return penalties
 }
 
@@ -321,8 +323,8 @@ export async function getCurrentQueue(): Promise<QueueResponse> {
 }
 
 /**
- * 
- * @param validators 
+ *
+ * @param validators
  * @returns The luck data of all the validators provided, not individually, but as a whole
  */
 export async function getProposalLuck(validators: string): Promise<ILuckResponse> {

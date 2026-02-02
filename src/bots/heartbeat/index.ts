@@ -417,9 +417,9 @@ function showPoolPerformance(resp: http.ServerResponse, jsonOnly?: boolean) {
                             clearInterval(intervalId)
                         }
                     }, 1000)
-                    
+
                 })
-                
+
                 const sLeftToTimeLeft = ${sLeftToTimeLeft}
                 </script>
             `);
@@ -634,7 +634,7 @@ async function refreshMetrics() {
     await refreshOtherMetrics()
 
     refreshContractData() // Contract data depends on previous refreshes
-    console.log("Metrics promises fullfilled")
+    console.log("Metrics promises fulfilled")
 }
 
 function initializeUninitializedGlobalData() {
@@ -702,7 +702,6 @@ function initializeUninitializedGlobalData() {
 function updateDailyGlobalData(currentDateISO: string) {
     globalPersistentData.lpPrices.push({
         dateISO: currentDateISO,
-        // price: globalContractState.nslp_share_price,
         price: calculateLpPrice().toString(),
         assets: globalLiquidityData.totalAssets.toString(),
         supply: globalLiquidityData.totalSupply.toString(),
@@ -857,7 +856,7 @@ async function beat() {
         mailReportsToSend.push(...reportsMadeEvery6Hours)
     } // Calls made every 6 hours
 
-    if (Date.now() - globalPersistentData.last8HourExecutionTimestamp >= 8 * MS_IN_HOUR) { 
+    if (Date.now() - globalPersistentData.last8HourExecutionTimestamp >= 8 * MS_IN_HOUR) {
         console.log("Sending report - 8 hours")
         await refreshBeaconChainData()
         globalPersistentData.last8HourExecutionTimestamp = Date.now()
@@ -1062,7 +1061,7 @@ export async function run() {
         return
     }
 
-    //start loop calling heartbeat 
+    //start loop calling heartbeat
     serverStartedTimestamp = Date.now();
     heartLoop();
 }
