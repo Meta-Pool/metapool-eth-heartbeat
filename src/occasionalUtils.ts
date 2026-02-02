@@ -5,6 +5,8 @@ import { etow, wtoe } from "./utils/numberUtils"
 import { callDisassembleApi } from "./bots/validatorsAlerts"
 import { sleep } from "./utils/executionUtils"
 import { ValidatorData } from "./entities/beaconcha/beaconChainValidator"
+import { computeRollingApy } from "./bots/heartbeat/snapshot"
+import { cwd } from "process"
 
 interface Donation {
     beaconEpoch: number,
@@ -18,16 +20,16 @@ function testOperatorsRunway() {
             balance: 8.56,
             validatorsCount: 4,
             expectedDays: 230,
-            operatorsFees: [1,1,1,0]
+            operatorsFees: [1, 1, 1, 0]
         },
         {
             balance: 3.91,
             validatorsCount: 1,
             expectedDays: 354,
-            operatorsFees: [1,0,0,2]
+            operatorsFees: [1, 0, 0, 2]
         },
     ]
-    
+
     const networkFee = 0
     const LTP = 214800
     // const minimumLCC = 1000000000000000000
@@ -39,7 +41,7 @@ function testOperatorsRunway() {
     const clusterSplitted = file.split("cluster")
     const cluster = clusterSplitted[clusterSplitted.length - 1].substring(2).split("}")[0]
     console.log(JSON.parse(cluster))
-    
+
 }
 
 async function createDonationFile() {
@@ -52,26 +54,26 @@ async function createDonationFile() {
     const from = "2024/04/08 16:30:00"
     const fromDate = new Date(from)
     const msLeftUntilFromDateEpoch = fromDate.getTime() - now
-    if(msLeftUntilFromDateEpoch < 0) throw new Error(`From date is previous than now ${fromDate.getMilliseconds()}, ${now}`)
+    if (msLeftUntilFromDateEpoch < 0) throw new Error(`From date is previous than now ${fromDate.getMilliseconds()}, ${now}`)
 
     const days = 60
     let to: string = ""
     let toDate = new Date(to || from)
 
-    if(to === "" && days <= 0) throw new Error("Set either 'days' or 'to'")
-    if(to === "") {
+    if (to === "" && days <= 0) throw new Error("Set either 'days' or 'to'")
+    if (to === "") {
         toDate.setDate(toDate.getDate() + days)
     }
 
     const msBetweenFromAndTo = toDate.getTime() - fromDate.getTime()
-    if(msBetweenFromAndTo < 0) throw new Error("From date is previous than to date")
-    
+    if (msBetweenFromAndTo < 0) throw new Error("From date is previous than to date")
+
     const currentBeaconChainEpochData: IEpochResponse = await getBeaconChainEpoch()
     const currentBeaconChainEpoch: number = currentBeaconChainEpochData.data.epoch
-    
+
     const epochsUntilStart = Math.round(msLeftUntilFromDateEpoch / 1000 / 60 / 6.4)
     const startEpoch = currentBeaconChainEpoch + epochsUntilStart
-    
+
     const donationsEpochLength = Math.round(msBetweenFromAndTo / 1000 / 60 / 6.4)
     const finishEpoch = startEpoch + donationsEpochLength
     console.log(1, currentBeaconChainEpoch, startEpoch, finishEpoch)
@@ -80,7 +82,7 @@ async function createDonationFile() {
     const output = []
     let epochIndex = startEpoch
     let donationTotal = 0
-    while(epochIndex < finishEpoch) {
+    while (epochIndex < finishEpoch) {
         epochIndex += epochsInHour
         donationTotal += hourlyDonationsInETH
         output.push(
@@ -95,7 +97,7 @@ async function createDonationFile() {
     console.log("Final donation date", toDate.toISOString())
     writeFileSync(`./db/donations_${fromDate.toISOString().slice(0, 10)}_${toDate.toISOString().slice(0, 10)}.json`, JSON.stringify(output))
 
-    
+
 
 }
 
@@ -111,24 +113,24 @@ async function createDonationFileUntilDonationAmount() {
     const from = donationsInfo.lastDonationDate
     const fromDate = new Date(from)
     const msLeftUntilFromDateEpoch = fromDate.getTime() - now
-    if(msLeftUntilFromDateEpoch < 0) throw new Error(`From date is previous than now ${fromDate.getMilliseconds()}, ${now}`)
+    if (msLeftUntilFromDateEpoch < 0) throw new Error(`From date is previous than now ${fromDate.getMilliseconds()}, ${now}`)
 
     const finalDonationsETH = 15
-    
+
     const currentBeaconChainEpochData: IEpochResponse = await getBeaconChainEpoch()
     const currentBeaconChainEpoch: number = currentBeaconChainEpochData.data.epoch
 
     const startEpoch = donationsInfo.lastDonation.beaconEpoch + 1
-    
+
     const epochsInHour = 60 / 6.4
     const output = []
     let epochIndex = startEpoch
     let donationTotal = 0
     const neededDonations = finalDonationsETH - donationsInfo.totalDonations
-    while(donationTotal < neededDonations) {
+    while (donationTotal < neededDonations) {
         epochIndex += epochsInHour
         const newDonations = Math.min(hourlyDonationsInETH, neededDonations - donationTotal)
-        const newDonationsCeil = (Math.floor(newDonations * 10**18) + 1) / 10 ** 18
+        const newDonationsCeil = (Math.floor(newDonations * 10 ** 18) + 1) / 10 ** 18
         donationTotal += newDonationsCeil
         output.push(
             {
@@ -144,7 +146,7 @@ async function createDonationFileUntilDonationAmount() {
 
 async function getDonationsInfo() {
     const donationsFile: Donation[] = JSON.parse(readFileSync(`./db/donations.json`).toString())
-    
+
     const totalDonations = donationsFile.reduce((sum: number, donation: Donation) => {
         return sum + wtoe(donation.depositAmountWei)
     }, 0)
@@ -173,34 +175,47 @@ async function getDonationsInfo() {
 
 }
 
-
+// cSpell:words Aprox
 async function run() {
     const args = process.argv
-    if(args.length < 3) throw new Error("Use npm run utils --args ${method}")
+    if (args.length < 3) throw new Error("Use npm run utils --args ${method}")
     const fn = args[2]
-    switch(fn) {
+    switch (fn) {
         case "disassemble":
             console.log("Calling disassemble")
             callDisassembleValidators()
             break
-        case "apy": 
+        case "apy":
             await calculateAproxRewardsData()
             await calculateExactAPYData()
             break
-        case "donationFile": 
+        case "donationFile":
             createDonationFile()
+            break
+        case "price-apy":
+            console.log(cwd())
+            const fileContent = readFileSync("db/persistent.json").toString()
+            // console.log(fileContent)
+            const globalPersistentData = JSON.parse(fileContent)
+            // console.log(globalPersistentData.mpEthPrices.slice(0, 20))
+            console.log("3 day rolling apy:", computeRollingApy(globalPersistentData.mpEthPrices, 3, true))
+            console.log("7 day rolling apy:", computeRollingApy(globalPersistentData.mpEthPrices, 7, true))
+            console.log("15 day rolling apy:", computeRollingApy(globalPersistentData.mpEthPrices, 15, true))
+            console.log("30 day rolling apy:", computeRollingApy(globalPersistentData.mpEthPrices, 30, true))
+            console.log("60 day rolling apy:", computeRollingApy(globalPersistentData.mpEthPrices, 60, true))
+            console.log("90 day rolling apy:", computeRollingApy(globalPersistentData.mpEthPrices, 90, true))
             break
         default:
             throw new Error(`Function ${fn} not found`)
     }
-    
+
 }
 
 function callDisassembleValidators() {
     const args = process.argv
-    if(args.length < 4) throw new Error("Use npm run utils --args disassemble validatorsPubKey1 ... validatorsPubKeyN")
+    if (args.length < 4) throw new Error("Use npm run utils --args disassemble validatorsPubKey1 ... validatorsPubKeyN")
     const validatorsPubKeys: string[] = []
-    for(let i = 3; i < args.length; i++) {
+    for (let i = 3; i < args.length; i++) {
         validatorsPubKeys.push(args[i])
     }
     callDisassembleApi(validatorsPubKeys)
@@ -223,12 +238,12 @@ function joinMultipleIDH(idhArray: IIncomeDetailHistoryResponse[]) {
         data: []
     }
     idhArray.forEach((idh: IIncomeDetailHistoryResponse) => {
-        if(idh.status !== "OK") {
+        if (idh.status !== "OK") {
             finalIDH.status = idh.status
         }
         try {
             finalIDH.data.push(...idh.data)
-        } catch(err) {
+        } catch (err) {
             console.error("Error appending idh", idh)
             throw err
         }
@@ -238,7 +253,7 @@ function joinMultipleIDH(idhArray: IIncomeDetailHistoryResponse[]) {
 
 function sortIDH(idh: IIncomeDetailHistoryResponse) {
     idh.data.sort((data1: IIncomeDetailHistoryData, data2: IIncomeDetailHistoryData) => {
-        if(data1.epoch === data2.epoch) {
+        if (data1.epoch === data2.epoch) {
             return data1.validatorindex - data2.validatorindex
         }
         return data1.epoch - data2.epoch
@@ -248,7 +263,7 @@ function sortIDH(idh: IIncomeDetailHistoryResponse) {
 
 async function getAllValidatorsIDH(validatorsData: ValidatorData[], fromEpoch: number, toEpoch: number): Promise<IIncomeDetailHistoryResponse> {
     console.log("Getting validators IDH from", fromEpoch, "to", toEpoch)
-    if(fromEpoch === toEpoch) return {status: "OK", data: []}
+    if (fromEpoch === toEpoch) return { status: "OK", data: [] }
     const validatorIndexes: number[] = validatorsData
         .map((v: ValidatorData) => v.validatorindex)
         .filter((index: number | undefined) => index !== undefined) as number[]// If it's undefined, it hasn't been fully activated yet
@@ -256,25 +271,25 @@ async function getAllValidatorsIDH(validatorsData: ValidatorData[], fromEpoch: n
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
     const validatorsGroups = getValidatorsGroups(validatorIndexes)
     const validatorsIDHArray: IIncomeDetailHistoryResponse[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
-        const limits: number[] = [ fromEpoch ]
+        const limits: number[] = [fromEpoch]
         let auxFrom = fromEpoch
-        while(auxFrom < toEpoch) {
+        while (auxFrom < toEpoch) {
             auxFrom = Math.min(toEpoch, auxFrom + 100)
             limits.push(auxFrom)
         }
-        
+
         const idhResponses: IIncomeDetailHistoryResponse[] = (await Promise.all(limits.map(async (limitFrom: number, index: number) => {
-            if(index + 1 === limits.length) return undefined
+            if (index + 1 === limits.length) return undefined
             const limitTo = limits[index + 1]
             await sleep(index * 800)
             return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
-        }))).filter((idh: IIncomeDetailHistoryResponse|undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
+        }))).filter((idh: IIncomeDetailHistoryResponse | undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
         return joinMultipleIDH(idhResponses as IIncomeDetailHistoryResponse[])
     }))
 
 
     const unsortedIDHs: IIncomeDetailHistoryResponse = joinMultipleIDH(validatorsIDHArray)
-    const sortedIDH  = sortIDH(unsortedIDHs)
+    const sortedIDH = sortIDH(unsortedIDHs)
     return sortedIDH
 }
 
@@ -293,7 +308,7 @@ async function storeAllValidatorsIDH(filename: string) {
 async function calculateExactAPYData() {
     const refetch = true
     const filename = "delete_me_idh"
-    if(refetch || !existsSync(filename)) {
+    if (refetch || !existsSync(filename)) {
         await storeAllValidatorsIDH(filename)
     }
 }

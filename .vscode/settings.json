@@ -3,13 +3,21 @@
         "activationeligibilityepoch",
         "activationepoch",
         "beaconcha",
+        "deleteme",
         "effectivebalance",
+        "etow",
         "exitepoch",
+        "IDHTs",
         "lastattestationslot",
         "Metapool",
+        "mpeth",
+        "narwallets",
+        "stnear",
         "Unstake",
         "validatorindex",
         "withdrawableepoch",
-        "withdrawalcredentials"
+        "withdrawalcredentials",
+        "wtoe",
+        "yton"
     ]
 }

@@ -13,6 +13,7 @@
     "utils": "tsc && cd dist/ && node occasionalUtils.js",
     "utils:disassemble": "tsc && cd dist/ && node occasionalUtils.js disassemble",
     "utils:apy": "tsc && cd dist/ && node occasionalUtils.js apy",
+    "utils:price-apy": "tsc && cd dist/ && node occasionalUtils.js price-apy",
     "utils:donationFile": "tsc && cd dist/ && node occasionalUtils.js donationFile",
     "debug": "npm run build && cd dist/ && node index.js --debug",
     "tester": "npm run build && cd dist/ && node testerHelper.js",
