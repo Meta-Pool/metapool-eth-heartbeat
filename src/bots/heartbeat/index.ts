@@ -824,6 +824,7 @@ async function beat() {
     const currentDateTimestamp = new Date(currentDateISO).getTime()
     const shouldUpdateContract = currentDateTimestamp - CALL_SERVICES_PERIOD >= lastContractUpdateTimestamp
     console.log("Should update contract?", shouldUpdateContract)
+    console.log("Last contract update", globalPersistentData.lastContractUpdateISO)
     const isFirstCallOfTheDay: boolean = globalPersistentData.lastSavedPriceDateISO != currentDateISO
     if (isFirstCallOfTheDay) {
         updateDailyGlobalData(currentDateISO)

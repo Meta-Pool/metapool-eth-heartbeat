@@ -35,7 +35,7 @@ export async function refreshStakingData() {
     globalStakingData.submitReportTimelock = Number(await stakingContract.submitReportTimelock())
     globalStakingData.minDeposit = await stakingContract.minDeposit()
 
-    if (isDebug) console.log("Staking data refreshed")
+    console.log("Staking data refreshed")
 }
 
 /**
@@ -56,7 +56,7 @@ export async function refreshLiquidityData() {
     if(!globalLiquidityData.maxFee) globalLiquidityData.maxFee = Number(await liquidityContract.maxFee())
 
     globalPersistentData.lpPrice = calculateLpPrice().toString()
-    if (isDebug) console.log("Liq data refreshed")
+    console.log("Liq data refreshed")
 }
 
 /**
@@ -72,7 +72,7 @@ export async function refreshWithdrawData() {
     globalWithdrawData.withdrawalsStartEpoch = Number(await withdrawContract.withdrawalsStartEpoch())
     globalWithdrawData.validatorsDisassembleTime = await withdrawContract.validatorsDisassembleTime()
 
-    if (isDebug) console.log("Withdraw data refreshed")
+    console.log("Withdraw data refreshed")
 }
 
 export async function refreshQVaultMetrics() {
