@@ -1,3 +1,4 @@
+import { saveJSON, loadJSON } from "../../bots/heartbeat/save-load-JSON"
 import { ILuckResponse, ValidatorData } from "../../entities/beaconcha/beaconChainValidator"
 import { getEnv } from "../../entities/env"
 import { getConfig } from "../../crypto/config"
@@ -25,6 +26,7 @@ const VALIDATOR_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{index_or_pubkey}/balan
 const VALIDATOR_INCOME_DETAIL_HISTORY_URL = VALIDATOR_DATA_BASE_URL + "{indexes}/incomedetailhistory?latest_epoch={latest_epoch}&limit={limit}&apikey=" + process.env.BEACON_CHAIN_API_KEY
 
 const QUEUE_URL = BASE_URL + "validators/queue"
+export const IDH_CHECKPOINT_FILENAME = "idh_checkpoint.json"
 
 let lastCallTimestamp = 0; // api rate limit allows only 1 call per second
 
@@ -51,6 +53,12 @@ export interface ValidatorDataResponse {
 export interface BalanceHistory {
     status: string
     data: IBalanceHistoryData[]
+}
+
+export interface CheckpointData {
+    firstEpoch: number
+    lastCheckedEpoch: number
+    validators: Record<string, { lastCheckedEpoch: number, rewards: string, penalties: string, penaltiesCount: number }>
 }
 
 
@@ -202,21 +210,34 @@ export async function getValidatorsIncomeDetailHistory(indexes: number[], firstE
     let output: Record<number, MiniIDHReport> = {}
     indexes.forEach((index: number) => {
         output[index] = {
-            lastCheckedEpoch: lastEpoch + 1,
+            lastCheckedEpoch: firstEpoch - 1,
             rewards: 0n,
             penalties: 0n,
             penaltiesCount: 0,
         }
     })
 
-    let queryEpoch = lastEpoch
-    while (queryEpoch > firstEpoch) {
+    const checkpointFilename = IDH_CHECKPOINT_FILENAME
+
+    const checkpoint = loadJSON<CheckpointData>(checkpointFilename)
+    let queryEpoch = firstEpoch
+    if (checkpoint.firstEpoch === firstEpoch && checkpoint.lastCheckedEpoch) {
+        queryEpoch = checkpoint.lastCheckedEpoch
+        console.log(`Resuming IDH from checkpoint at epoch ${queryEpoch}`)
+        Object.entries(checkpoint.validators).forEach(([k, v]) => {
+            output[Number(k)] = { ...v, rewards: BigInt(v.rewards), penalties: BigInt(v.penalties) }
+        })
+    }
+
+    while (queryEpoch < lastEpoch) {
+        queryEpoch = Math.min(queryEpoch + 100, lastEpoch)
         const epochIDHUrl = validatorsUrl.replace("{latest_epoch}", queryEpoch.toString())
         console.log("Getting IDH", epochIDHUrl)
         TotalCalls.beaconChainApiCallsOnBeat++
         const idhResponse: IIncomeDetailHistoryResponse = await (await fetchConsideringRateLimit(epochIDHUrl)).json()
         output = await processIDHResponse(output, idhResponse, firstEpoch)
-        queryEpoch -= 100
+        const serializable = { firstEpoch, lastCheckedEpoch: queryEpoch, validators: Object.fromEntries(Object.entries(output).map(([k, v]) => [k, { ...v, rewards: v.rewards.toString(), penalties: v.penalties.toString() }])) }
+        saveJSON(serializable, checkpointFilename)
     }
 
     return output
@@ -256,7 +277,7 @@ async function processIDHResponse(output: Record<string | number, MiniIDHReport>
             errorMessages.push(message)
             throw new Error(message)
         }
-        validatorIDH.lastCheckedEpoch--
+        validatorIDH.lastCheckedEpoch++
         validatorIDH.rewards += sumRewards(data.income)
         validatorIDH.penalties += sumPenalties(data.income)
         validatorIDH.penaltiesCount += countPenalties(data.income)
