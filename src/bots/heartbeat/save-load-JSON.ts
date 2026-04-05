@@ -1,9 +1,16 @@
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from 'fs'
 
 const DB_PATH = "db/"
 
 export function saveJSON<T>(data: T, filename: string): void {
     writeFileSync(DB_PATH + filename, JSON.stringify(data))
+}
+
+export function removeJSON(filename: string): void {
+    const path = DB_PATH + filename
+    if (existsSync(path)) {
+        unlinkSync(path)
+    }
 }
 
 export function loadJSON<T>(filename: string, isArray: boolean = false): T {
