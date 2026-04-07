@@ -47,7 +47,7 @@ const MAX_BLOCKED_EXECUTION_COUNT = 3;
 
 const INTERVAL = 5 * MS_IN_MINUTES
 
-const CALL_SERVICES_PERIOD = 3 * MS_IN_DAY
+const CALL_SERVICES_PERIOD = 1 * MS_IN_DAY
 export interface NodeBalance {
     validatorIndex: number
     balanceData: BalanceData[]
