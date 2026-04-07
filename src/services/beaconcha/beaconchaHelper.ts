@@ -1,10 +1,11 @@
-import { loadJSON, saveJSON } from "../../bots/heartbeat/save-load-JSON";
+import { loadJSON, saveJSON, removeJSON } from "../../bots/heartbeat/save-load-JSON";
+
 import { getEstimatedRewardsPerSecond } from "../../bots/nodesBalance";
 import { EpochData, IncomeReport } from "../../entities/incomeReport";
 import { Report } from "../../entities/staking";
 import { globalBeaconChainData, globalPersistentData } from "../../globals/globalMetrics";
 import { handleError } from "../../utils/errorUtils";
-import { ValidatorDataResponse, getBeaconChainEpoch, getCurrentQueue, getIncomeDetailHistory, getValidatorsData, getValidatorsDataWithIndexOrPubKey, getValidatorsIncomeDetailHistory } from "./beaconcha";
+import { ValidatorDataResponse, getBeaconChainEpoch, getCurrentQueue, getIncomeDetailHistory, getValidatorsData, getValidatorsDataWithIndexOrPubKey, getValidatorsIncomeDetailHistory, IDH_CHECKPOINT_FILENAME } from "./beaconcha";
 import { Donations as Donation, IEpochResponse, IIncomeDetailHistoryData, IIncomeDetailHistoryResponse, MiniIDHReport, QueueData, QueueResponse } from "../../entities/beaconcha/beaconChainEntities";
 import { ValidatorData } from "../../entities/beaconcha/beaconChainValidator";
 import { isDebug } from "../../globals/globalUtils";
@@ -166,13 +167,14 @@ export async function getValidatorsIDH(fromEpoch: number, toEpoch: number): Prom
 
 export async function setIncomeDetailHistory() {
     try {
-        const toEpoch: number = (await getBeaconChainEpoch()).data.epoch
+        let fromEpoch = Number(await stakingContract.lastEpochReported()) + 1
+        const currentBeaconChainEpoch: number = (await getBeaconChainEpoch()).data.epoch
+        const toEpoch = Math.min(currentBeaconChainEpoch, fromEpoch + 1000) // 1000 epochs is around 4 days, so it's a good range to avoid too much data and not report for too long 
         const filename = "income_detail_history.json"
         // When coming from file, it's not the class, but the structure.
         const incomeDetailHistory: Record<number, IncomeReport> = {}
         loadJSON<IncomeReport[]>(filename, true).forEach((e: IncomeReport) => incomeDetailHistory[e.index] = new IncomeReport(e.index, e.atEpoch, e.prevAtEpoch))
         console.log("Income report file read successfully")
-        let fromEpoch = Number(await stakingContract.lastEpochReported()) + 1
         console.log("Getting IDH from epoch", fromEpoch, "to epoch", toEpoch)
         if(fromEpoch >= toEpoch) {
             throw new Error("From epoch is higher or equal than toEpoch")
@@ -209,6 +211,8 @@ export async function setIncomeDetailHistory() {
             console.log("Reporting epochs to contract")
             await stakingContract.reportEpochs(report, rewardsPerSecond)
             console.log("Epochs reported successfully")
+            removeJSON(IDH_CHECKPOINT_FILENAME)
+            console.log("IDH checkpoint file removed")
         }
         // Setting new data for saving file
         Object.keys(validatorsIDH).forEach((index: string) => {

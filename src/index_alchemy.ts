@@ -9,7 +9,7 @@ async function run() {
     const alchemy = new Alchemy(settings);
     
     // Get the latest block
-    const latestBlock = alchemy.core.getBlockNumber();
+    // const latestBlock = await alchemy.core.getBlockNumber();
     
     // Get all outbound transfers for a provided address
     alchemy.core

@@ -790,14 +790,14 @@ function truncateLongGlobalArrays() {
 async function registerValidatorsProposals() {
     globalPersistentData.lastValidatorCheckProposalTimestamp = Date.now()
     const validatorsData: ValidatorData[] = globalBeaconChainData.validatorsData
-    validatorsData.map(async (v: ValidatorData) => {
+    for(let v of validatorsData) {
         const index = v.validatorindex
-        if (!index || v.status !== "active_online") return
+        if (!index || v.status !== "active_online") continue
         const proposalData: IValidatorProposal = await getValidatorProposal(index)
         if (proposalData.data && proposalData.data.length > 0) {
             globalPersistentData.validatorsLatestProposal[index] = proposalData.data[0].epoch
         }
-    })
+    }
     saveGlobalPersistentData()
 }
 
@@ -943,7 +943,14 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
     sendEmail(subject, body)
 }
 
-function heartLoop() {
+async function heartLoop() {
+    if (executing) {
+        blockedExecutionCount++
+        console.error("*".repeat(80))
+        console.error("heartLoop, executing=true, missing await")
+        console.error("*".repeat(80))
+        return; // in case there's a missing `await`
+    }
     console.log("Running heartLoop")
     if (Date.now() >= serverStartedTimestamp + 2 * MS_IN_HOUR || blockedExecutionCount >= MAX_BLOCKED_EXECUTION_COUNT) {
         // 2 hs loops cycle finished- gracefully end process, pm2 will restart it
@@ -963,29 +970,25 @@ function heartLoop() {
         return;
     }
 
-    let nextBeatIn = atLeast(20 * MS_IN_SECOND, INTERVAL);
-    console.log("next beat in", Math.trunc(nextBeatIn / MS_IN_SECOND), "seconds")
-    setTimeout(heartLoop, nextBeatIn)
-
-    if (executing) {
-        blockedExecutionCount++
-        console.error("heartLoop, executing=true, missing await")
-        return; // in case there's a missing `await`
-    }
+    
     blockedExecutionCount = 0
     const beatStartMs = Date.now();
     executing = true;
-    beat().catch((ex: any) => {
+    try {
+        await beat()
+    } catch(ex: any) {
         buildAndSendMailForError(ex)
         console.error("ERR", ex.message)
         console.error("ERR", ex.stack)
-        // console.error("ERR", JSON.stringify(ex))
-    }).finally(() => {
-        executing = false;
-        const elapsedMs = Date.now() - beatStartMs
-        console.log("Beat finished after", elapsedMs, "ms")
-        loopsExecuted++;
-    })
+    }
+
+    executing = false;
+    const elapsedMs = Date.now() - beatStartMs
+    console.log("Beat finished after", elapsedMs, "ms")
+    loopsExecuted++;
+    let nextBeatIn = atLeast(20 * MS_IN_SECOND, INTERVAL - elapsedMs);
+    console.log("next beat in", Math.trunc(nextBeatIn / MS_IN_SECOND), "seconds")
+    setTimeout(heartLoop, nextBeatIn)
 }
 
 export function buildAndSendMailForError(err: any) {
@@ -1064,7 +1067,7 @@ export async function run() {
 
     //start loop calling heartbeat
     serverStartedTimestamp = Date.now();
-    heartLoop();
+    await heartLoop();
 }
 
 // run()//.catch((reason: any) => console.error("Main err", reason.message, reason.stack));
