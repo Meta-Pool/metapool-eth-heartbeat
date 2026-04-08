@@ -169,7 +169,7 @@ export async function setIncomeDetailHistory() {
     try {
         let fromEpoch = Number(await stakingContract.lastEpochReported()) + 1
         const currentBeaconChainEpoch: number = (await getBeaconChainEpoch()).data.epoch
-        const toEpoch = Math.min(currentBeaconChainEpoch, fromEpoch + 1000) // 1000 epochs is around 4 days, so it's a good range to avoid too much data and not report for too long 
+        const toEpoch = Math.min(currentBeaconChainEpoch, fromEpoch + 2000) // 2000 epochs is around 4 days, so it's a good range to avoid too much data and not report for too long 
         const filename = "income_detail_history.json"
         // When coming from file, it's not the class, but the structure.
         const incomeDetailHistory: Record<number, IncomeReport> = {}
