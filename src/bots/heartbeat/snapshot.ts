@@ -166,15 +166,17 @@ export function fromGlobalState(): Record<string, any> {
         return acc + BigInt(v.balance + ZEROS_9)
     }, 0n)
 
+    const TEMP_SANITATION_MAX_APY = 2.1
+
     let snap: Snapshot = {
         mpethPrice: Number(ethers.formatEther(globalPersistentData.mpethPrice)),
         rewardsPerSecondInWei: globalPersistentData.rewardsPerSecondsInWei,
         lpPrice: Number(ethers.formatEther(globalPersistentData.lpPrice)),
-        mp_eth_3_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 3, true),
-        mp_eth_7_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 7, true),
-        mp_eth_15_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 15, true),
-        mp_eth_30_day_apy: computeRollingApy(globalPersistentData.mpEthPrices, 30, true),
-        mp_eth_180_day_apy: Math.max(2, computeRollingApy(globalPersistentData.mpEthPrices, 180, true)), // TODO remove max when it normalizes
+        mp_eth_3_day_apy: Math.min(TEMP_SANITATION_MAX_APY,computeRollingApy(globalPersistentData.mpEthPrices, 3, true)),
+        mp_eth_7_day_apy: Math.min(TEMP_SANITATION_MAX_APY,computeRollingApy(globalPersistentData.mpEthPrices, 7, true)),
+        mp_eth_15_day_apy: Math.min(TEMP_SANITATION_MAX_APY,computeRollingApy(globalPersistentData.mpEthPrices, 15, true)),
+        mp_eth_30_day_apy: Math.min(TEMP_SANITATION_MAX_APY,computeRollingApy(globalPersistentData.mpEthPrices, 30, true)),
+        mp_eth_180_day_apy: Math.min(TEMP_SANITATION_MAX_APY, computeRollingApy(globalPersistentData.mpEthPrices, 180, true)), // TODO remove max when it normalizes
         lp_3_day_apy: computeRollingApy(globalPersistentData.lpPrices, 3),
         lp_7_day_apy: computeRollingApy(globalPersistentData.lpPrices, 7),
         lp_15_day_apy: computeRollingApy(globalPersistentData.lpPrices, 15),
