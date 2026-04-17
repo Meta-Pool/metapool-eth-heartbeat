@@ -65,6 +65,34 @@ export interface CheckpointData {
 }
 
 
+async function parseBeaconChainJson<T>(response: Response, context: string, url: string): Promise<T> {
+    console.log(`[BeaconChain] ${context} response`, {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+    })
+    if (!response.ok) {
+        console.error(`[BeaconChain] ${context} non-ok response`, {
+            status: response.status,
+            statusText: response.statusText,
+            url,
+        })
+    }
+
+    try {
+        return await response.json() as T
+    } catch (error) {
+        console.error(`[BeaconChain] ${context} failed to parse JSON`, {
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            error,
+        })
+        throw error
+    }
+}
+
+
 
 async function fetchConsideringRateLimit(url: string): Promise<Response> {
     const now = Date.now()
@@ -167,24 +195,28 @@ function generateValidatorDataForActivatingValidators(basicData: ValidatorBasicD
     }
 }
 
-export function getValidatorBalanceHistory(indexOrPubkey: string | number): Promise<IBalanceHistoryData[]> {
+export async function getValidatorBalanceHistory(indexOrPubkey: string | number): Promise<IBalanceHistoryData[]> {
     const url = VALIDATOR_HISTORY_URL.replace("{index_or_pubkey}", indexOrPubkey.toString())
     TotalCalls.beaconChainApiCallsOnBeat++
-    return fetchConsideringRateLimit(url).then(r => r.json().then(json => json.data))
+    const response = await fetchConsideringRateLimit(url)
+    const json = await parseBeaconChainJson<BalanceHistory>(response, "getValidatorBalanceHistory", url)
+    return json.data
 }
 
 /**
  *
  * @param epoch Epoch number, the string latest or the string finalized
  */
-export function getBeaconChainEpoch(epoch: string = "finalized"): Promise<IEpochResponse> {
+export async function getBeaconChainEpoch(epoch: string = "finalized"): Promise<IEpochResponse> {
     const url = BASE_URL + "epoch/" + epoch
-    return fetchConsideringRateLimit(url).then(r => r.json().then(json => json))
+    const response = await fetchConsideringRateLimit(url)
+    return await parseBeaconChainJson<IEpochResponse>(response, "getBeaconChainEpoch", url)
 }
 
-export function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
+export async function getValidatorProposal(validatorIndex: number): Promise<IValidatorProposal> {
     const url = BASE_URL + `validator/${validatorIndex}/proposals`
-    return fetchConsideringRateLimit(url).then(r => r.json())
+    const response = await fetchConsideringRateLimit(url)
+    return await parseBeaconChainJson<IValidatorProposal>(response, "getValidatorProposal", url)
 }
 
 // cSpell:words getValidatorWithrawalInEpoch
@@ -194,9 +226,10 @@ export function getValidatorProposal(validatorIndex: number): Promise<IValidator
  * @param epoch If no epoch is sent, assumes latest epoch
  * @returns
  */
-export function getValidatorWithrawalInEpoch(indexOrPubKey: string | number, epoch?: number) {
-    const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + epoch ? `?epoch=${epoch}` : ""
-    return fetchConsideringRateLimit(url).then(r => r.json())
+export async function getValidatorWithrawalInEpoch(indexOrPubKey: string | number, epoch?: number) {
+    const url = BASE_URL + `validator/${indexOrPubKey}/withdrawals` + (epoch ? `?epoch=${epoch}` : "")
+    const response = await fetchConsideringRateLimit(url)
+    return await parseBeaconChainJson(response, "getValidatorWithrawalInEpoch", url)
 }
 
 export async function getIncomeDetailHistory(indexes: number[], firstEpoch: number, lastEpoch: number): Promise<IIncomeDetailHistoryResponse> {
@@ -206,14 +239,14 @@ export async function getIncomeDetailHistory(indexes: number[], firstEpoch: numb
         .replace("{limit}", (lastEpoch - firstEpoch).toString())
         .replace("{latest_epoch}", lastEpoch.toString())
     TotalCalls.beaconChainApiCallsOnBeat++
-    return (await fetchConsideringRateLimit(validatorsUrl)).json().then((json: any) => {
-        console.log("IDH from", firstEpoch, lastEpoch)
-        if (json.message && json.message === "API rate limit exceeded") {
-            console.error(json.message, firstEpoch, lastEpoch)
-            process.exit()
-        }
-        return json
-    })
+    const response = await fetchConsideringRateLimit(validatorsUrl)
+    const json = await parseBeaconChainJson<IIncomeDetailHistoryResponse | any>(response, "getIncomeDetailHistory", validatorsUrl)
+    console.log("IDH from", firstEpoch, lastEpoch)
+    if (json.message && json.message === "API rate limit exceeded") {
+        console.error(json.message, firstEpoch, lastEpoch)
+        process.exit()
+    }
+    return json
 
 }
 
