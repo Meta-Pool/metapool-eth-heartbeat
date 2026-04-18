@@ -10,7 +10,8 @@
 #######        3 yarn
 #######   This SSV_SCANNER allows to get the data necessary to call ssv contracts
 ####### 
-
+#######   All this time, this script ran using commit from 2023-06-14 with commit hash 872355cdecfab99606cedd077d1ff61ce95f4f04. 
+#######   On 2026-04-18 a pull is being made to commit hash 8f075cd3995ea2b63355952b7f6a39626f53ed4b
 
 set -o allexport
 source .env set # Loads NETWORK
@@ -39,11 +40,9 @@ BASE_RETRY_SECONDS=15
 
 if [ "$NETWORK" = "mainnet" ]; then
     URL=https://mainnet.infura.io/v3/$INFURA_API_KEY
-    CONTRACT_ADDRESS=0xDD9BC35aE942eF0cFa76930954a156B3fF30a4E1
     OWNER_WALLET=0xDd1CD16F95e44Ef7E55CC33Ee6C1aF9AB7CEC7fC
 else
     URL=https://goerli.infura.io/v3/$INFURA_API_KEY
-    CONTRACT_ADDRESS=0xC3CD9A0aE89Fff83b71b58b6512D43F8a41f363D
     OWNER_WALLET=0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6
 fi
 
@@ -72,7 +71,7 @@ run_cluster_with_retry() {
 
     while [ "$attempt" -le "$MAX_RETRIES" ]; do
         echo "Running ssv-scanner for operators $operators (attempt $attempt/$MAX_RETRIES)"
-        cmd_output=$(yarn cli cluster -n "$URL" -ca "$CONTRACT_ADDRESS" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
+        cmd_output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
         exit_code=$?
 
         if [ "$exit_code" -eq 0 ] && ! echo "$cmd_output" | grep -qiE "429|too many requests"; then
