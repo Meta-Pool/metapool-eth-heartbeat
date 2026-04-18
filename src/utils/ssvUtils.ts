@@ -48,7 +48,8 @@ export async function refreshSsvData() {
         }
     })
 
-    await Promise.all(promises)    
+    await Promise.all(promises)
+    console.log("Ssv data refreshed")
 }
 
 export function getEstimatedRunwayInDays(operatorIds: string) {

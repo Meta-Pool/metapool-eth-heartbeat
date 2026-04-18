@@ -91,6 +91,7 @@ export async function refreshQVaultMetrics() {
         const balance = validatorData[1] + validatorData[6]
         globalQData.validatorsBalancesByAddress[address] = balance
     })
+    console.log("QVault metrics refreshed")
 }
 
 export async function refreshStakedQVaultMetrics() {
@@ -109,6 +110,8 @@ export async function refreshStakedQVaultMetrics() {
     globalQData.totalAssets = totalAssets
     globalQData.totalSupply = totalSupply
     globalQData.stQPrice = getStQPrice
+    console.log("Staked QVault metrics refreshed")
+
 }
 
 export async function refreshOtherMetrics() {
@@ -124,7 +127,7 @@ export async function refreshOtherMetrics() {
     globalPersistentData.ethPrice = ethPrice
     globalPersistentData.mpethHoldersQty = mpethHoldersQty
 
-    if (isDebug) console.log("Other metrics refreshed")
+    console.log("Other metrics refreshed")
 }
 
 export function refreshContractData() {
@@ -154,5 +157,5 @@ export function refreshContractData() {
     globalBeaconChainData.validatorsData.forEach((node: ValidatorData) => {
         globalPersistentData.nodesBalances[node.pubkey] = node.balance.toString() + ZEROS_9
     })
-    if (isDebug) console.log("Contract data refreshed")
+    console.log("Contract data refreshed")
 }

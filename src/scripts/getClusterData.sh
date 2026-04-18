@@ -22,12 +22,24 @@ echo "Loading cluster for $NETWORK"
 echo "Node path: $(which node)"
 echo "Node version $(node -v)"
 
+INFURA_API_KEY_FILE="$HOME/.config/$NETWORK/infuraApiKey.txt"
+if [ ! -f "$INFURA_API_KEY_FILE" ]; then
+    echo "Infura API key file not found: $INFURA_API_KEY_FILE"
+    exit 1
+fi
+
+INFURA_API_KEY=$(tr -d '[:space:]' < "$INFURA_API_KEY_FILE")
+if [ -z "$INFURA_API_KEY" ]; then
+    echo "Infura API key file is empty: $INFURA_API_KEY_FILE"
+    exit 1
+fi
+
 if [ "$NETWORK" = "mainnet" ]; then
-    URL=https://mainnet.infura.io/v3/9bdd9b1d1270497795af3f522ad85091
+    URL=https://mainnet.infura.io/v3/$INFURA_API_KEY
     CONTRACT_ADDRESS=0xDD9BC35aE942eF0cFa76930954a156B3fF30a4E1
     OWNER_WALLET=0xDd1CD16F95e44Ef7E55CC33Ee6C1aF9AB7CEC7fC
 else
-    URL=https://goerli.infura.io/v3/9bdd9b1d1270497795af3f522ad85091
+    URL=https://goerli.infura.io/v3/$INFURA_API_KEY
     CONTRACT_ADDRESS=0xC3CD9A0aE89Fff83b71b58b6512D43F8a41f363D
     OWNER_WALLET=0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6
 fi

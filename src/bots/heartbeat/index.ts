@@ -227,8 +227,6 @@ async function showSsvPerformance(resp: http.ServerResponse) {
             const {
                 clusterData
             } = globalSsvData.clusterInformationRecord[operatorIds]
-            // const clusterData: ClusterData = getClusterData(operatorIds)
-            // const estimatedRunway = await getEstimatedRunwayInDays(operatorIds)
 
             resp.write("<tr>")
             resp.write(`<td>${operatorIds}</td>`)
