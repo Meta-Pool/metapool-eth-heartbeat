@@ -35,9 +35,6 @@ if [ -z "$INFURA_API_KEY" ]; then
     exit 1
 fi
 
-MAX_RETRIES=5
-BASE_RETRY_SECONDS=15
-
 if [ "$NETWORK" = "mainnet" ]; then
     URL=https://mainnet.infura.io/v3/$INFURA_API_KEY
     OWNER_WALLET=0xDd1CD16F95e44Ef7E55CC33Ee6C1aF9AB7CEC7fC
@@ -62,38 +59,6 @@ if command -v curl >/dev/null 2>&1; then
     echo "RPC health check body: $rpc_response_body"
 fi
 
-run_cluster_with_retry() {
-    local operators="$1"
-    local attempt=1
-    local wait_seconds=$BASE_RETRY_SECONDS
-    local cmd_output=""
-    local exit_code=0
-
-    while [ "$attempt" -le "$MAX_RETRIES" ]; do
-        echo "Running ssv-scanner for operators $operators (attempt $attempt/$MAX_RETRIES)"
-        cmd_output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
-        exit_code=$?
-
-        if [ "$exit_code" -eq 0 ] && ! echo "$cmd_output" | grep -qiE "429|too many requests"; then
-            echo "$cmd_output"
-            return 0
-        fi
-
-        echo "ssv-scanner call failed (attempt $attempt/$MAX_RETRIES)."
-        echo "Output: $cmd_output"
-
-        if [ "$attempt" -lt "$MAX_RETRIES" ]; then
-            echo "Waiting ${wait_seconds}s before retry..."
-            sleep "$wait_seconds"
-            wait_seconds=$((wait_seconds * 2))
-        fi
-
-        attempt=$((attempt + 1))
-    done
-
-    return 1
-}
-
 dir="./dist/db/clustersDataSsv/$NETWORK"
 file_count=$(find $dir -type f | wc -l)
 echo "File count $file_count"
@@ -115,8 +80,8 @@ for f in "$dir"/*; do
     
     cd ../ssv-scanner/
     OUTPUT_PATH=../$dirName/dist/db/clustersDataSsv/$NETWORK/$operators.txt
-    output=$(run_cluster_with_retry "$operators") || {
-        echo "Failed to fetch cluster data for operators $operators after $MAX_RETRIES attempts"
+    output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1) || {
+        echo "Failed to fetch cluster data for operators $operators"
         cd ../$dirName
         exit 1
     }
