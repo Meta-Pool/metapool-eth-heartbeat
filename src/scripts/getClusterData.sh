@@ -34,6 +34,9 @@ if [ -z "$INFURA_API_KEY" ]; then
     exit 1
 fi
 
+MAX_RETRIES=5
+BASE_RETRY_SECONDS=15
+
 if [ "$NETWORK" = "mainnet" ]; then
     URL=https://mainnet.infura.io/v3/$INFURA_API_KEY
     CONTRACT_ADDRESS=0xDD9BC35aE942eF0cFa76930954a156B3fF30a4E1
@@ -43,6 +46,54 @@ else
     CONTRACT_ADDRESS=0xC3CD9A0aE89Fff83b71b58b6512D43F8a41f363D
     OWNER_WALLET=0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6
 fi
+
+if command -v curl >/dev/null 2>&1; then
+    echo "Checking RPC endpoint health..."
+    rpc_http_code=$(curl -sS -o /tmp/infura_rpc_health.$$ -w "%{http_code}" \
+        -H "Content-Type: application/json" \
+        -X POST \
+        --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+        "$URL")
+    rpc_response_body=$(cat /tmp/infura_rpc_health.$$)
+    rm -f /tmp/infura_rpc_health.$$
+    echo "RPC health check status: $rpc_http_code"
+    if [ "$rpc_http_code" = "429" ]; then
+        echo "RPC endpoint is returning 429 before cluster calls. This is usually Infura throughput throttling (requests/sec), not daily credit usage."
+    fi
+    echo "RPC health check body: $rpc_response_body"
+fi
+
+run_cluster_with_retry() {
+    local operators="$1"
+    local attempt=1
+    local wait_seconds=$BASE_RETRY_SECONDS
+    local cmd_output=""
+    local exit_code=0
+
+    while [ "$attempt" -le "$MAX_RETRIES" ]; do
+        echo "Running ssv-scanner for operators $operators (attempt $attempt/$MAX_RETRIES)"
+        cmd_output=$(yarn cli cluster -n "$URL" -ca "$CONTRACT_ADDRESS" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
+        exit_code=$?
+
+        if [ "$exit_code" -eq 0 ] && ! echo "$cmd_output" | grep -qiE "429|too many requests"; then
+            echo "$cmd_output"
+            return 0
+        fi
+
+        echo "ssv-scanner call failed (attempt $attempt/$MAX_RETRIES)."
+        echo "Output: $cmd_output"
+
+        if [ "$attempt" -lt "$MAX_RETRIES" ]; then
+            echo "Waiting ${wait_seconds}s before retry..."
+            sleep "$wait_seconds"
+            wait_seconds=$((wait_seconds * 2))
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    return 1
+}
 
 dir="./dist/db/clustersDataSsv/$NETWORK"
 file_count=$(find $dir -type f | wc -l)
@@ -65,7 +116,11 @@ for f in "$dir"/*; do
     
     cd ../ssv-scanner/
     OUTPUT_PATH=../$dirName/dist/db/clustersDataSsv/$NETWORK/$operators.txt
-    output=$(yarn cli cluster -n $URL -ca $CONTRACT_ADDRESS -oa $OWNER_WALLET -oids $operators)}
-    echo $output > $OUTPUT_PATH
+    output=$(run_cluster_with_retry "$operators") || {
+        echo "Failed to fetch cluster data for operators $operators after $MAX_RETRIES attempts"
+        cd ../$dirName
+        exit 1
+    }
+    echo "$output" > "$OUTPUT_PATH"
     cd ../$dirName
 done
