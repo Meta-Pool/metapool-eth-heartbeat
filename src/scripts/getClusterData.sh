@@ -43,22 +43,6 @@ else
     OWNER_WALLET=0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6
 fi
 
-if command -v curl >/dev/null 2>&1; then
-    echo "Checking RPC endpoint health..."
-    rpc_http_code=$(curl -sS -o /tmp/infura_rpc_health.$$ -w "%{http_code}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-        "$URL")
-    rpc_response_body=$(cat /tmp/infura_rpc_health.$$)
-    rm -f /tmp/infura_rpc_health.$$
-    echo "RPC health check status: $rpc_http_code"
-    if [ "$rpc_http_code" = "429" ]; then
-        echo "RPC endpoint is returning 429 before cluster calls. This is usually Infura throughput throttling (requests/sec), not daily credit usage."
-    fi
-    echo "RPC health check body: $rpc_response_body"
-fi
-
 dir="./dist/db/clustersDataSsv/$NETWORK"
 file_count=$(find $dir -type f | wc -l)
 echo "File count $file_count"
@@ -80,6 +64,7 @@ for f in "$dir"/*; do
     
     cd ../ssv-scanner/
     OUTPUT_PATH=../$dirName/dist/db/clustersDataSsv/$NETWORK/$operators.txt
+    echo "Calling with url $URL, network $NETWORK, owner wallet $OWNER_WALLET and operators $operators"
     output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1) || {
         echo "Failed to fetch cluster data for operators $operators"
         cd ../$dirName
