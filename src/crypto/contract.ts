@@ -10,6 +10,7 @@ import path from "path";
 import { homedir } from "os";
 import { getConfig } from "./config";
 import { isDebug } from "../globals/globalUtils";
+import { sleep } from "../utils/executionUtils";
 
 const abis = [
     ssvNetworkViewsAbi,
@@ -74,6 +75,7 @@ export abstract class GenericContract {
 
     async view(fnName: string, ...args: any[]): Promise<any> {
         try {
+            await sleep(1000) // Sleep to avoid hitting rate limits. Remove if you are sure you won't hit them
             console.log("Viewing", fnName, "with args", args)
             const tx = await this.contract[fnName](...args)            
             return tx
