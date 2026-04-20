@@ -6,6 +6,7 @@ import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../entities/emai
 import { globalSsvData } from "../globals/globalMetrics";
 import { isDebug } from "../globals/globalUtils";
 import { ssvContract, ssvViewsContract } from "../globals/globalVariables";
+import { sendEmail } from "./mailUtils";
 
 const blocksPerDay = 7160
 const blocksPerYear = blocksPerDay * 365
@@ -14,41 +15,51 @@ const MAX_DAYS_SSV_RUNWAY = 100
 
 type Result = {success: boolean, ids: string, error?: string}
 
+function handleRefreshError(functionName: string, err: any): never {
+    console.error(`Error refreshing ${functionName}`, err.message, err.stack)
+    sendEmail(`[ERR] ${functionName}`, `Error while running ${functionName}:\n${err.message}\n${err.stack}`)
+    throw err
+}
+
 
 export async function refreshSsvData() {
-    if(isDebug) return
-    const config = getConfig()
-    const network = config.network
-    const ownerAddress = config.ssvOwnerAddress
+    try {
+        if(isDebug) return
+        const config = getConfig()
+        const network = config.network
+        const ownerAddress = config.ssvOwnerAddress
 
-    const operatorsFileNames: string[] = readdirSync(`./db/clustersDataSsv/${network}`)
+        const operatorsFileNames: string[] = readdirSync(`./db/clustersDataSsv/${network}`)
 
-    for(let operatorsFileName of operatorsFileNames) {
-        const operatorIdsStr: string = operatorsFileName.split(".")[0]
+        for(let operatorsFileName of operatorsFileNames) {
+            const operatorIdsStr: string = operatorsFileName.split(".")[0]
 
-        const clusterData: ClusterData = getClusterData(operatorIdsStr)
-        const operatorIdsArray = operatorIdsStr.split(",").map(Number)
+            const clusterData: ClusterData = getClusterData(operatorIdsStr)
+            const operatorIdsArray = operatorIdsStr.split(",").map(Number)
 
-        // Avoid using Promise.all for these calls, as they may cause rate limiting issues
-        const liquidationThresholdPeriodInBlocks = await ssvViewsContract.getLiquidationThresholdPeriod()
-        const minimumLiquidationCollateralInSsv = await ssvViewsContract.getMinimumLiquidationCollateral()
-        const networkFee = await ssvViewsContract.getNetworkFee()
-        const balance = await ssvViewsContract.getBalance(ownerAddress, operatorIdsArray, clusterData)
-        const clusterBurnRate = await ssvViewsContract.getBurnRate(ownerAddress, operatorIdsArray, clusterData)
-        
-        globalSsvData.clusterInformationRecord[operatorIdsStr] = {
-            operatorIds: operatorIdsStr,
-            clusterData,
+            // Avoid using Promise.all for these calls, as they may cause rate limiting issues
+            const liquidationThresholdPeriodInBlocks = await ssvViewsContract.getLiquidationThresholdPeriod()
+            const minimumLiquidationCollateralInSsv = await ssvViewsContract.getMinimumLiquidationCollateral()
+            const networkFee = await ssvViewsContract.getNetworkFee()
+            const balance = await ssvViewsContract.getBalance(ownerAddress, operatorIdsArray, clusterData)
+            const clusterBurnRate = await ssvViewsContract.getBurnRate(ownerAddress, operatorIdsArray, clusterData)
+            
+            globalSsvData.clusterInformationRecord[operatorIdsStr] = {
+                operatorIds: operatorIdsStr,
+                clusterData,
 
-            liquidationThresholdPeriodInBlocks,
-            minimumLiquidationCollateralInSsv,
-            networkFee,
-            balance,
-            clusterBurnRate,
+                liquidationThresholdPeriodInBlocks,
+                minimumLiquidationCollateralInSsv,
+                networkFee,
+                balance,
+                clusterBurnRate,
+            }
         }
+        
+        console.log("Ssv data refreshed")
+    } catch (err: any) {
+        handleRefreshError(refreshSsvData.name, err)
     }
-    
-    console.log("Ssv data refreshed")
 }
 
 export function getEstimatedRunwayInDays(operatorIds: string) {
