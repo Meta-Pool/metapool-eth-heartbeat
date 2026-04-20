@@ -95,6 +95,7 @@ export abstract class GenericContract {
             return new Promise(() => {})
         }
         try {
+            console.log("Calling", fnName, "with args", args)
             const tx = await this.contract[fnName](...args)
             const gasInWei: bigint = 100000000n
             const walletBalance = await this.getWalletBalance(this.connectedWallet.address)

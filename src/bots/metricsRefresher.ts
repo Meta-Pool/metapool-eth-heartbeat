@@ -79,11 +79,7 @@ export async function refreshQVaultMetrics() {
     const account = getConfig().qStakeDelegatedAccount
 
     const qVaultContract = new QVaultContract()
-    const [
-        delegationsList,
-    ] = await Promise.all([
-        qVaultContract.getDelegationsList(account),
-    ])
+    const delegationsList = await qVaultContract.getDelegationsList(account)
 
     delegationsList.forEach((validatorData: any[]) => {
         const address = validatorData[0]
@@ -97,15 +93,9 @@ export async function refreshQVaultMetrics() {
 export async function refreshStakedQVaultMetrics() {
 
     const stakedQVaultContract = new StakedQVaultContract()
-    const [
-        totalAssets,
-        totalSupply,
-        getStQPrice,
-    ] = await Promise.all([
-        stakedQVaultContract.totalAssets(),
-        stakedQVaultContract.totalSupply(),
-        stakedQVaultContract.getStQPrice(),
-    ])
+    const totalAssets = await stakedQVaultContract.totalAssets()
+    const totalSupply = await stakedQVaultContract.totalSupply()
+    const getStQPrice = await stakedQVaultContract.getStQPrice()
 
     globalQData.totalAssets = totalAssets
     globalQData.totalSupply = totalSupply

@@ -270,7 +270,10 @@ async function getAllValidatorsIDH(validatorsData: ValidatorData[], fromEpoch: n
 
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
     const validatorsGroups = getValidatorsGroups(validatorIndexes)
-    const validatorsIDHArray: IIncomeDetailHistoryResponse[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
+    const validatorsIDHArray: IIncomeDetailHistoryResponse[] = []
+
+    for (let groupIndex = 0; groupIndex < validatorsGroups.length; groupIndex++) {
+        const validatorsGroup = validatorsGroups[groupIndex]
         const limits: number[] = [fromEpoch]
         let auxFrom = fromEpoch
         while (auxFrom < toEpoch) {
@@ -278,14 +281,17 @@ async function getAllValidatorsIDH(validatorsData: ValidatorData[], fromEpoch: n
             limits.push(auxFrom)
         }
 
-        const idhResponses: IIncomeDetailHistoryResponse[] = (await Promise.all(limits.map(async (limitFrom: number, index: number) => {
-            if (index + 1 === limits.length) return undefined
+        const idhResponses: IIncomeDetailHistoryResponse[] = []
+        for (let index = 0; index + 1 < limits.length; index++) {
+            const limitFrom = limits[index]
             const limitTo = limits[index + 1]
             await sleep(index * 800)
-            return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
-        }))).filter((idh: IIncomeDetailHistoryResponse | undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
-        return joinMultipleIDH(idhResponses as IIncomeDetailHistoryResponse[])
-    }))
+            const idhResponse = await getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
+            idhResponses.push(idhResponse)
+        }
+
+        validatorsIDHArray.push(joinMultipleIDH(idhResponses))
+    }
 
 
     const unsortedIDHs: IIncomeDetailHistoryResponse = joinMultipleIDH(validatorsIDHArray)

@@ -23,7 +23,7 @@ export async function refreshSsvData() {
 
     const operatorsFileNames: string[] = readdirSync(`./db/clustersDataSsv/${network}`)
 
-    const promises: Promise<void>[] = operatorsFileNames.map(async (operatorsFileName: string) => {
+    for(let operatorsFileName of operatorsFileNames) {
         const operatorIdsStr: string = operatorsFileName.split(".")[0]
 
         const clusterData: ClusterData = getClusterData(operatorIdsStr)
@@ -46,9 +46,8 @@ export async function refreshSsvData() {
             balance,
             clusterBurnRate,
         }
-    })
-
-    await Promise.all(promises)
+    }
+    
     console.log("Ssv data refreshed")
 }
 
@@ -140,7 +139,8 @@ export async function checkDeposit(): Promise<IMailReportHelper> {
     }
 
     try {
-        const resultPromises: Promise<Result>[] = clustersNeedingDeposit.map(async (cluster: ClusterInformation) => {
+        const results: Result[] = []
+        for (const cluster of clustersNeedingDeposit) {
             try {
                 const clusterOwner: string = getConfig().ssvOwnerAddress
                 const operatorIds: string = cluster.operatorIds
@@ -148,14 +148,12 @@ export async function checkDeposit(): Promise<IMailReportHelper> {
                 const clusterData: ClusterData = cluster.clusterData
                 await ssvContract.deposit(clusterOwner, operatorIds, amount, clusterData)
 
-                return { success: true, ids: cluster.operatorIds }
+                results.push({ success: true, ids: cluster.operatorIds })
             } catch(err: any) {
                 console.error("ERR: Deposit for cluster with operatorIds", cluster.operatorIds, ":", err.message, err.stack)
-                return { success: false, ids: cluster.operatorIds, error: err.message }
+                results.push({ success: false, ids: cluster.operatorIds, error: err.message })
             }
-        })
-
-        const results: Result[] = await Promise.all(resultPromises)
+        }
         const resultsWithErrors = results.filter((result: Result) => result.success === false)
 
         if(resultsWithErrors.length > 0) {

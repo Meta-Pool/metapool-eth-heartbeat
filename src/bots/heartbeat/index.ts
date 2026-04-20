@@ -862,9 +862,9 @@ async function beat() {
     } // Calls made every 8 hours
 
     if (new Date().getMinutes() < 5) {
-        const reports: IMailReportHelper[] = await Promise.all([
-            getDeactivateValidatorsReport(),
-        ])
+        const deactivateValidatorsReport = await getDeactivateValidatorsReport()
+        
+        const reports: IMailReportHelper[] = [deactivateValidatorsReport]
 
         // Pushing reports that are not OK
         const reportsWithErrors = reports.filter((r: IMailReportHelper) => r.severity !== Severity.OK)

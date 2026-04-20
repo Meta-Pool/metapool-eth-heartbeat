@@ -94,21 +94,25 @@ export async function getAllValidatorsIDH(fromEpoch: number, toEpoch: number): P
 
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
     const validatorsGroups = getValidatorsGroups(validatorIndexes)
-    const validatorsIDHArray: IIncomeDetailHistoryResponse[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
+    const validatorsIDHArray: IIncomeDetailHistoryResponse[] = []
+    for (const validatorsGroup of validatorsGroups) {
         const limits: number[] = [ fromEpoch ]
         let auxFrom = fromEpoch
         while(auxFrom < toEpoch) {
             auxFrom = Math.min(toEpoch, auxFrom + 100)
             limits.push(auxFrom)
         }
-        
-        const idhResponses: IIncomeDetailHistoryResponse[] = (await Promise.all(limits.map((limitFrom: number, index: number) => {
-            if(index + 1 === limits.length) return undefined
+
+        const idhResponses: IIncomeDetailHistoryResponse[] = []
+        for (let index = 0; index + 1 < limits.length; index++) {
+            const limitFrom = limits[index]
             const limitTo = limits[index + 1]
-            return getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
-        }))).filter((idh: IIncomeDetailHistoryResponse|undefined) => idh !== undefined) as IIncomeDetailHistoryResponse[]
-        return joinMultipleIDH(idhResponses as IIncomeDetailHistoryResponse[])
-    }))
+            const idhResponse = await getIncomeDetailHistory(validatorsGroup, limitFrom, limitTo)
+            idhResponses.push(idhResponse)
+        }
+
+        validatorsIDHArray.push(joinMultipleIDH(idhResponses))
+    }
 
 
     const unsortedIDHs: IIncomeDetailHistoryResponse = joinMultipleIDH(validatorsIDHArray)
@@ -150,10 +154,12 @@ export async function getValidatorsIDH(fromEpoch: number, toEpoch: number): Prom
 
     // Splitting active validators in groups of 100 and getting IDH, since beacon chain doesn't allow more
     const validatorsGroups = getValidatorsGroups(validatorIndexes)
-    const validatorsIDHArray: Record<number, MiniIDHReport>[] = await Promise.all(validatorsGroups.map(async (validatorsGroup: number[]) => {
+    const validatorsIDHArray: Record<number, MiniIDHReport>[] = []
+    for (const validatorsGroup of validatorsGroups) {
         console.log("Getting IDH for validators", validatorsGroup)
-        return getValidatorsIncomeDetailHistory(validatorsGroup, fromEpoch, toEpoch)
-    }))
+        const validatorIDH = await getValidatorsIncomeDetailHistory(validatorsGroup, fromEpoch, toEpoch)
+        validatorsIDHArray.push(validatorIDH)
+    }
 
     // Joining IDH
     let validatorsIDH: Record<number, MiniIDHReport> = {}
