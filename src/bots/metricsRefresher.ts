@@ -12,7 +12,7 @@ import { sendEmail } from "../utils/mailUtils"
 import { calculateLpPrice, calculateMpEthPrice, calculateMpEthPriceTotalUnderlying } from "../utils/priceUtils"
 // import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, isDebug, liquidityContract, stakingContract, withdrawContract } from "./heartbeat"
 
-function handleRefreshError(functionName: string, err: any): void {
+export function handleRefreshError(functionName: string, err: any): void {
     console.error(`Error refreshing ${functionName}`, err.message, err.stack)
     sendEmail(`[ERR] ${functionName}`, `Error while running ${functionName}:\n${err.message}\n${err.stack}`)
 }

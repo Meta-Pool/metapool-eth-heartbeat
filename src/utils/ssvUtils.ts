@@ -7,6 +7,7 @@ import { globalSsvData } from "../globals/globalMetrics";
 import { isDebug } from "../globals/globalUtils";
 import { ssvContract, ssvViewsContract } from "../globals/globalVariables";
 import { sendEmail } from "./mailUtils";
+import { handleRefreshError } from "../bots/metricsRefresher";
 
 const blocksPerDay = 7160
 const blocksPerYear = blocksPerDay * 365
@@ -14,12 +15,6 @@ export const MIN_DAYS_UNTIL_SSV_RUNWAY = 30
 const MAX_DAYS_SSV_RUNWAY = 100
 
 type Result = {success: boolean, ids: string, error?: string}
-
-function handleRefreshError(functionName: string, err: any): never {
-    console.error(`Error refreshing ${functionName}`, err.message, err.stack)
-    sendEmail(`[ERR] ${functionName}`, `Error while running ${functionName}:\n${err.message}\n${err.stack}`)
-    throw err
-}
 
 
 export async function refreshSsvData() {
