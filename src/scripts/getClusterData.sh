@@ -29,17 +29,20 @@ if [ ! -f "$INFURA_API_KEY_FILE" ]; then
     exit 1
 fi
 
-INFURA_API_KEY=$(tr -d '[:space:]' < "$INFURA_API_KEY_FILE")
-if [ -z "$INFURA_API_KEY" ]; then
+INFURA_API_KEYS_RAW=$(tr -d '[:space:]' < "$INFURA_API_KEY_FILE")
+if [ -z "$INFURA_API_KEYS_RAW" ]; then
     echo "Infura API key file is empty: $INFURA_API_KEY_FILE"
     exit 1
 fi
 
+# Split comma-separated keys into an array
+IFS=',' read -ra INFURA_API_KEYS <<< "$INFURA_API_KEYS_RAW"
+
 if [ "$NETWORK" = "mainnet" ]; then
-    URL=https://mainnet.infura.io/v3/$INFURA_API_KEY
+    BASE_URL=https://mainnet.infura.io/v3
     OWNER_WALLET=0xDd1CD16F95e44Ef7E55CC33Ee6C1aF9AB7CEC7fC
 else
-    URL=https://goerli.infura.io/v3/$INFURA_API_KEY
+    BASE_URL=https://goerli.infura.io/v3
     OWNER_WALLET=0xba013e942abbeb7c6a2d597c61d65fdc14c0fee6
 fi
 
@@ -64,12 +67,25 @@ for f in "$dir"/*; do
     
     cd ../ssv-scanner/
     OUTPUT_PATH=../$dirName/dist/db/clustersDataSsv/$NETWORK/$operators.txt
-    echo "Calling with url $URL, network $NETWORK, owner wallet $OWNER_WALLET and operators $operators"
-    output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1) || {
-        echo "Failed to fetch cluster data for operators $operators"
+
+    success=false
+    for key in "${INFURA_API_KEYS[@]}"; do
+        URL="$BASE_URL/$key"
+        echo "Calling with url $URL, network $NETWORK, owner wallet $OWNER_WALLET and operators $operators"
+        output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
+        if [ $? -eq 0 ]; then
+            success=true
+            break
+        fi
+        echo "Key ending in ...${key: -4} failed, trying next key..."
+    done
+
+    if [ "$success" = false ]; then
+        echo "Failed to fetch cluster data for operators $operators with all keys"
         cd ../$dirName
         exit 1
-    }
+    fi
+
     echo "$output" > "$OUTPUT_PATH"
     cd ../$dirName
 done
