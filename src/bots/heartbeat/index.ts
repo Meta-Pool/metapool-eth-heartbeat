@@ -16,7 +16,7 @@ import { BASE_BEACON_CHAIN_URL_SITE, getValidatorProposal, sumPenalties, sumRewa
 import { getValidatorData, refreshBeaconChainData, setIncomeDetailHistory } from "../../services/beaconcha/beaconchaHelper";
 import { getEstimatedEthForCreatingValidator } from "../../utils/businessUtils";
 import { sleep } from "../../utils/executionUtils";
-import { sendEmail } from "../../utils/mailUtils";
+import { sendEmail, shouldSendEmail } from "../../utils/mailUtils";
 import { ethToGwei, weiToGWei, wtoe } from "../../utils/numberUtils";
 import { calculateLpPrice, calculateMpEthPrice } from "../../utils/priceUtils";
 import { checkDeposit, getEstimatedRunwayInDays, refreshSsvData } from "../../utils/ssvUtils";
@@ -614,7 +614,9 @@ async function claimQRewards() {
         return stakedQVaultContract.claimStakeDelegatorReward()
     } catch (err: any) {
         console.error("Error claiming Q rewards", err.message)
-        sendEmail("[ERR] Q Rewards", `Error while claiming Q rewards: \n ${err.message}`)
+        if (shouldSendEmail("[ERR] Q Rewards")) {
+            sendEmail("[ERR] Q Rewards", `Error while claiming Q rewards: \n ${err.message}`)
+        }
     }
 }
 
@@ -938,7 +940,9 @@ function buildAndSendReport(reports: IMailReportHelper[]) {
     subject = `[${Severity[severity]}] ${subject}`
     if (isTestnet || isDebug) subject = "TESTNET: " + subject
 
-    sendEmail(subject, body)
+    if (shouldSendEmail(subject)) {
+        sendEmail(subject, body)
+    }
 }
 
 async function heartLoop() {

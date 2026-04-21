@@ -1,6 +1,6 @@
 import { StakingManagerContract } from "../../crypto/auroraStakingManager"
 import { isTestnet } from "../../globals/globalUtils"
-import { sendEmail } from "../../utils/mailUtils"
+import { sendEmail, shouldSendEmail } from "../../utils/mailUtils"
 import { sLeftToTimeLeft } from "../../utils/timeUtils"
 
 /**
@@ -27,7 +27,9 @@ export async function checkAuroraDelayedUnstakeOrders(useOldContract: boolean): 
         console.error("Error", err.message)
         const subject = (isTestnet ? "[TESTNET]" : "") + "[ERR] Aurora clean orders queue"
         const body = "There was an error cleaning the aurora's orders queue: " + err.message
-        sendEmail(subject, body)
+        if (shouldSendEmail(subject)) {
+            sendEmail(subject, body)
+        }
     }
     return false
     

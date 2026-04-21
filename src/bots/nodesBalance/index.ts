@@ -2,7 +2,7 @@ import { IBalanceHistoryData, IEpochResponse } from "../../entities/beaconcha/be
 import { Report } from "../../entities/staking"
 import { globalBeaconChainData } from "../../globals/globalMetrics"
 import { getBeaconChainEpoch } from "../../services/beaconcha/beaconcha"
-import { sendEmail } from "../../utils/mailUtils"
+import { sendEmail, shouldSendEmail } from "../../utils/mailUtils"
 import { max } from "../../utils/numberUtils"
 // import { globalBeaconChainData } from "../heartbeat"
 
@@ -27,8 +27,6 @@ function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
     console.log("There are validators being penalized")
     const balancesHistory: Record<string, IBalanceHistoryData[]> = globalBeaconChainData.validatorsIncomeDetailHistory
 
-    const subject = "[ERROR] Penalized validators"
-
     const bodyDetails: string[] = penalizedValidatorsKeys.map((k: string) => {
         const v: IBalanceHistoryData[] = balancesHistory[k]
         return `
@@ -46,7 +44,10 @@ function reportPenalizedValidators(penalizedValidatorsKeys: string[]) {
             <div>${bodyDetails.join("\n")}</div>
         `
 
-    sendEmail(subject, body)
+    const subject = "Validators being penalized"
+    if (shouldSendEmail(subject)) {
+        sendEmail(subject, body)
+    }
 }
 
 export async function getEstimatedRewardsPerSecond(report: Report): Promise<bigint> {

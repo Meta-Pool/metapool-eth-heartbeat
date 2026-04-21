@@ -2,6 +2,7 @@ import { createTransport, SentMessageInfo } from "nodemailer"
 import { MailOptions } from "nodemailer/lib/json-transport"
 import { ENV, getEnv } from "../entities/env"
 import { isDebug } from "../globals/globalUtils"
+import { MS_IN_HOUR } from "../globals/globalVariables"
 
 const DEBUG_RESPONSIBLES = [
     "daniel@metapool.app",
@@ -13,8 +14,31 @@ const MAINNET_RESPONSIBLES = [
     "agustin@metapool.app",
 ]
 
+const EMAIL_THROTTLE_COOLDOWN_MS = MS_IN_HOUR
+const lastEmailTimestamps: Record<string, number> = {}
+
 export function getResponsibles() {
     return isDebug ? DEBUG_RESPONSIBLES : MAINNET_RESPONSIBLES
+}
+
+/**
+ * Check if an email with the given key should be sent based on throttling (once per hour per key).
+ * Returns true if email should be sent, false if it's being throttled.
+ * Also logs throttle information when skipping.
+ */
+export function shouldSendEmail(throttleKey: string): boolean {
+    const now = Date.now()
+    const lastEmailTime = lastEmailTimestamps[throttleKey] ?? 0
+    const timeSinceLastEmail = now - lastEmailTime
+    
+    if (timeSinceLastEmail >= EMAIL_THROTTLE_COOLDOWN_MS) {
+        lastEmailTimestamps[throttleKey] = now
+        return true
+    } else {
+        const minutesUntilNextEmail = Math.ceil((EMAIL_THROTTLE_COOLDOWN_MS - timeSinceLastEmail) / 60000)
+        console.log(`Email throttled for key "${throttleKey}" - last sent ${Math.floor(timeSinceLastEmail / 60000)} minutes ago. Next eligible in ${minutesUntilNextEmail} minutes`)
+        return false
+    }
 }
 
 export function sendEmail(subject: string, body: string, to?: string[]) {
