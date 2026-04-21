@@ -39,18 +39,43 @@ export abstract class GenericContract {
 
     abstract getProvider(network: string, apiKey: string): Provider;
 
-    getInfuraApiKey() {
+    getInfuraApiKeys(): string[] {
         const config = getConfig()
-        return readFileSync(path.join(homedir(), `.config/${config.network}/infuraApiKey.txt`)).toString().trim()
+        return readFileSync(path.join(homedir(), `.config/${config.network}/infuraApiKey.txt`))
+            .toString().trim().split(',').map(k => k.trim()).filter(k => k.length > 0)
     }
-    
-    getWalletBalance(address: string) {
+
+    private reconnectWithKey(key: string) {
+        const provider = this.getProvider(this.network, key)
+        this.connectedWallet = this.connectedWallet.connect(provider)
+        this.contract = this.contract.connect(this.connectedWallet) as Contract
+    }
+
+    private async withKeyRotation<T>(fn: () => Promise<T>): Promise<T> {
+        const keys = this.getInfuraApiKeys()
+        let lastError: any
+        for (const key of keys) {
+            try {
+                this.reconnectWithKey(key)
+                return await fn()
+            } catch(err: any) {
+                lastError = err
+                console.warn(`Infura key ending in ...${key.slice(-4)} failed: ${err.message}. Trying next key...`)
+            }
+        }
+        throw lastError
+    }
+
+    async getWalletBalance(address: string) {
         console.log("Getting wallet balance from address", address)
-        return this.getProvider(this.network, this.getInfuraApiKey()).getBalance(address)
+        return await this.withKeyRotation(async () => {
+            return await this.connectedWallet.provider!.getBalance(address)
+        })
     }
-    
+
     getWallet(privateKey: string) {
-        const provider = this.getProvider(this.network, this.getInfuraApiKey())
+        const keys = this.getInfuraApiKeys()
+        const provider = this.getProvider(this.network, keys[0])
         // const provider = this.getProvider(this.network, API_KEY)
         return new ethers.Wallet(privateKey, provider)
     }
@@ -75,13 +100,14 @@ export abstract class GenericContract {
 
     async view(fnName: string, ...args: any[]): Promise<any> {
         try {
-            await sleep(1000) // Sleep to avoid hitting rate limits. Remove if you are sure you won't hit them
-            console.log("Viewing", fnName, "with args", args)
-            const tx = await this.contract[fnName](...args)            
-            return tx
+            return await this.withKeyRotation(async () => {
+                await sleep(1000) // Sleep to avoid hitting rate limits. Remove if you are sure you won't hit them
+                console.log("Viewing", fnName, "with args", args)
+                return await this.contract[fnName](...args)
+            })
         } catch(err: any) {
             console.error("ERR viewing", fnName, err.message)
-            this.decodeError(err)   
+            this.decodeError(err)
         }
     }
     
@@ -97,19 +123,21 @@ export abstract class GenericContract {
             return new Promise(() => {})
         }
         try {
-            console.log("Calling", fnName, "with args", args)
-            const tx = await this.contract[fnName](...args)
-            const gasInWei: bigint = 100000000n
-            const walletBalance = await this.getWalletBalance(this.connectedWallet.address)
-            if(wtoe(gasInWei) > wtoe(walletBalance)) {
-                throw new Error(`Not enough balance to cover gas. Wallet balance: ${walletBalance.toString()}. Gas needed: ${gasInWei.toString()}`)
-            } else {
-                await tx.wait()
-            }
-            return tx
+            return await this.withKeyRotation(async () => {
+                console.log("Calling", fnName, "with args", args)
+                const tx = await this.contract[fnName](...args)
+                const gasInWei: bigint = 100000000n
+                const walletBalance = await this.connectedWallet.provider!.getBalance(this.connectedWallet.address)
+                if(wtoe(gasInWei) > wtoe(walletBalance)) {
+                    throw new Error(`Not enough balance to cover gas. Wallet balance: ${walletBalance.toString()}. Gas needed: ${gasInWei.toString()}`)
+                } else {
+                    await tx.wait()
+                }
+                return tx
+            })
         } catch(err: any) {
             console.error("ERR calling", fnName, err.message)
-            this.decodeError(err)   
+            this.decodeError(err)
         }
     }
     
