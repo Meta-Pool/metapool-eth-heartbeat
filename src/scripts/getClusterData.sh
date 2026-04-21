@@ -73,11 +73,17 @@ for f in "$dir"/*; do
         URL="$BASE_URL/$key"
         echo "Calling with url $URL, network $NETWORK, owner wallet $OWNER_WALLET and operators $operators"
         output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
-        if [ $? -eq 0 ]; then
-            success=true
-            break
+        echo "Output: $output"
+        if [ $? -ne 0 ]; then
+            echo "Key ending in ...${key: -4} failed (non-zero exit), trying next key..."
+            continue
         fi
-        echo "Key ending in ...${key: -4} failed, trying next key..."
+        if echo "$output" | grep -qi "Too Many Requests"; then
+            echo "Key ending in ...${key: -4} failed (429 rate limit), trying next key..."
+            continue
+        fi
+        success=true
+        break
     done
 
     if [ "$success" = false ]; then
