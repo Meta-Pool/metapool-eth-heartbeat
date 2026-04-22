@@ -36,8 +36,8 @@ export async function refreshSsvData() {
             const liquidationThresholdPeriodInBlocks = await ssvViewsContract.getLiquidationThresholdPeriod()
             const minimumLiquidationCollateralInSsv = await ssvViewsContract.getMinimumLiquidationCollateral()
             const networkFee = await ssvViewsContract.getNetworkFee()
-            const balance = await ssvViewsContract.getBalance(ownerAddress, operatorIdsArray, clusterData)
-            const clusterBurnRate = await ssvViewsContract.getBurnRate(ownerAddress, operatorIdsArray, clusterData)
+            const balance = await ssvViewsContract.getBalanceSSV(ownerAddress, operatorIdsArray, clusterData)
+            const clusterBurnRate = await ssvViewsContract.getBurnRateSSV(ownerAddress, operatorIdsArray, clusterData)
             
             globalSsvData.clusterInformationRecord[operatorIdsStr] = {
                 operatorIds: operatorIdsStr,

@@ -15,6 +15,7 @@
     "utils:apy": "tsc && cd dist/ && node occasionalUtils.js apy",
     "utils:price-apy": "tsc && cd dist/ && node occasionalUtils.js price-apy",
     "utils:donationFile": "tsc && cd dist/ && node occasionalUtils.js donationFile",
+    "test:refresh-ssv-data": "tsc && node dist/tests/refreshSsvData.test.js",
     "debug": "npm run build && cd dist/ && node index.js --debug",
     "tester": "npm run build && cd dist/ && node testerHelper.js",
     "save:metrics": "npm run build && node dist/index.js",

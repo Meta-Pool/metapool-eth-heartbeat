@@ -88,34 +88,74 @@ export abstract class GenericContract {
         return new ethers.Wallet(privateKey, provider)
     }
 
+    getErrorData(err: any): string | null {
+        return err?.data
+            ?? err?.error?.data
+            ?? err?.info?.error?.data
+            ?? err?.info?.data
+            ?? err?.revert?.data
+            ?? null
+    }
+
+    getErrorDebugMessage(err: any): string {
+        const details = {
+            message: err?.message,
+            shortMessage: err?.shortMessage,
+            code: err?.code,
+            reason: err?.reason,
+            data: this.getErrorData(err),
+            invocation: err?.invocation,
+            revert: err?.revert,
+            info: err?.info,
+        }
+
+        return JSON.stringify(details, (_, value) => {
+            if (typeof value === "bigint") {
+                return value.toString()
+            }
+            return value
+        })
+    }
+
     decodeError(err: any): any {
-        const data = err.data
-        for(let i = 0; i < abis.length; i++) {
-            const inter = new ethers.Interface(abis[i])
-            const parsedError = inter.parseError(data)
-            if(parsedError !== null) {
-                console.error(parsedError)
-                throw new Error(`
-                    Abi with index ${i}. 
-                    Name: ${parsedError.name}. 
-                    Args: ${parsedError.args}
-                `)
+        const data = this.getErrorData(err)
+        if (data) {
+            for(let i = 0; i < abis.length; i++) {
+                try {
+                    const inter = new ethers.Interface(abis[i])
+                    const parsedError = inter.parseError(data)
+                    if(parsedError !== null) {
+                        console.error(parsedError)
+                        throw new Error(`
+                            Abi with index ${i}. 
+                            Name: ${parsedError.name}. 
+                            Args: ${parsedError.args}
+                        `)
+                    }
+                } catch (parseErr: any) {
+                    if (parseErr?.message?.includes("Abi with index")) {
+                        throw parseErr
+                    }
+                }
             }
         }
-        err.message = "Unknown error"
-        throw err
+
+        throw new Error(`Unknown error. ${this.getErrorDebugMessage(err)}`)
     }
 
     tryDecodeError(err: any): Error | null {
-        if (!err?.data) {
+        if (!err) {
             return null
         }
         try {
             this.decodeError(err)
         } catch (decodedErr: any) {
-            return decodedErr
+            if (decodedErr instanceof Error) {
+                return decodedErr
+            }
+            return new Error(String(decodedErr))
         }
-        return null
+        return new Error(this.getErrorDebugMessage(err))
     }
 
     async view(fnName: string, ...args: any[]): Promise<any> {
