@@ -60,8 +60,16 @@ export abstract class GenericContract {
                 return await fn()
             } catch(err: any) {
                 lastError = err
+                const decodedErr = this.tryDecodeError(err)
+                if (decodedErr) {
+                    console.error(`Decoded error for key ending in ...${key.slice(-4)}: ${decodedErr.message}`)
+                }
                 console.warn(`Infura key ending in ...${key.slice(-4)} failed: ${err.message}. Trying next key...`)
             }
+        }
+        const decodedErr = this.tryDecodeError(lastError)
+        if (decodedErr) {
+            throw decodedErr
         }
         throw lastError
     }
@@ -98,6 +106,18 @@ export abstract class GenericContract {
         throw err
     }
 
+    tryDecodeError(err: any): Error | null {
+        if (!err?.data) {
+            return null
+        }
+        try {
+            this.decodeError(err)
+        } catch (decodedErr: any) {
+            return decodedErr
+        }
+        return null
+    }
+
     async view(fnName: string, ...args: any[]): Promise<any> {
         try {
             return await this.withKeyRotation(async () => {
@@ -107,7 +127,11 @@ export abstract class GenericContract {
             })
         } catch(err: any) {
             console.error("ERR viewing", fnName, err.message)
-            this.decodeError(err)
+            const decodedErr = this.tryDecodeError(err)
+            if (decodedErr) {
+                throw decodedErr
+            }
+            throw err
         }
     }
     
@@ -137,7 +161,11 @@ export abstract class GenericContract {
             })
         } catch(err: any) {
             console.error("ERR calling", fnName, err.message)
-            this.decodeError(err)
+            const decodedErr = this.tryDecodeError(err)
+            if (decodedErr) {
+                throw decodedErr
+            }
+            throw err
         }
     }
     

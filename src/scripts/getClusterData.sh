@@ -56,6 +56,11 @@ fi
 
 dirName=$(basename $(pwd))
 echo "Project directory name $dirName"
+
+MAX_RETRIES_PER_KEY=3
+RATE_LIMIT_BACKOFF_SECONDS=20
+SUCCESS_PACING_SECONDS=2
+
 for f in "$dir"/*; do
     echo $f
     # See above SSV_SCANNER
@@ -71,19 +76,36 @@ for f in "$dir"/*; do
     success=false
     for key in "${INFURA_API_KEYS[@]}"; do
         URL="$BASE_URL/$key"
-        echo "Calling with url $URL, network $NETWORK, owner wallet $OWNER_WALLET and operators $operators"
-        output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
-        echo "Output: $output"
-        if [ $? -ne 0 ]; then
-            echo "Key ending in ...${key: -4} failed (non-zero exit), trying next key..."
-            continue
+        for ((attempt=1; attempt<=MAX_RETRIES_PER_KEY; attempt++)); do
+            echo "Calling with url $URL, network $NETWORK, owner wallet $OWNER_WALLET and operators $operators (key ...${key: -4}, attempt $attempt/$MAX_RETRIES_PER_KEY)"
+            output=$(yarn cli cluster -n "$URL" -nw "$NETWORK" -oa "$OWNER_WALLET" -oids "$operators" 2>&1)
+            cmd_status=$?
+            echo "Output: $output"
+
+            if [ $cmd_status -eq 0 ] && ! echo "$output" | grep -Eqi "Too Many Requests|429"; then
+                success=true
+                break
+            fi
+
+            if echo "$output" | grep -Eqi "Too Many Requests|429"; then
+                if [ $attempt -lt $MAX_RETRIES_PER_KEY ]; then
+                    echo "Rate-limited for key ...${key: -4}, backing off ${RATE_LIMIT_BACKOFF_SECONDS}s before retry"
+                    sleep $RATE_LIMIT_BACKOFF_SECONDS
+                    continue
+                fi
+            fi
+
+            if [ $cmd_status -ne 0 ]; then
+                echo "Key ending in ...${key: -4} failed (non-zero exit code: $cmd_status), trying next key..."
+            else
+                echo "Key ending in ...${key: -4} failed after retries due to rate limits, trying next key..."
+            fi
+            break
+        done
+
+        if [ "$success" = true ]; then
+            break
         fi
-        if echo "$output" | grep -qi "Too Many Requests"; then
-            echo "Key ending in ...${key: -4} failed (429 rate limit), trying next key..."
-            continue
-        fi
-        success=true
-        break
     done
 
     if [ "$success" = false ]; then
@@ -93,5 +115,6 @@ for f in "$dir"/*; do
     fi
 
     echo "$output" > "$OUTPUT_PATH"
+    sleep $SUCCESS_PACING_SECONDS
     cd ../$dirName
 done
