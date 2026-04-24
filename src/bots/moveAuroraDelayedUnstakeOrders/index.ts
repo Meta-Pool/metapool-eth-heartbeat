@@ -26,7 +26,10 @@ export async function checkAuroraDelayedUnstakeOrders(useOldContract: boolean): 
     } catch(err: any) {
         console.error("Error", err.message)
         const subject = (isTestnet ? "[TESTNET]" : "") + "[ERR] Aurora clean orders queue"
-        const body = "There was an error cleaning the aurora's orders queue: " + err.message
+        let body = "There was an error cleaning the aurora's orders queue: " + err.message
+        if(err.message.includes("server response 520")) {
+            body += "\nThis error normally means the server is overloaded. This function will be called again soon. If the error persists for a long time, please check the server status."
+        }
         if (shouldSendEmail(subject)) {
             sendEmail(subject, body)
         }
