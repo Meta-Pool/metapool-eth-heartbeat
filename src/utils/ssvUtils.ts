@@ -3,7 +3,7 @@ import { etow, wtoe } from "./numberUtils";
 import { getConfig } from "../crypto/config";
 import { ClusterData, ClusterInformation, SsvData } from "../entities/ssvEntities";
 import { EMPTY_MAIL_REPORT, IMailReportHelper, Severity } from "../entities/emailUtils";
-import { globalSsvData } from "../globals/globalMetrics";
+import { globalSsvData, TotalCalls } from "../globals/globalMetrics";
 import { isDebug } from "../globals/globalUtils";
 import { ssvContract, ssvViewsContract } from "../globals/globalVariables";
 import { sendEmail } from "./mailUtils";

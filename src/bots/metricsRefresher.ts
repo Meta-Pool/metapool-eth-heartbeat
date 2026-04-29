@@ -5,7 +5,7 @@ import { QVaultContract } from "../crypto/qVaultContract"
 import { ZEROS_9 } from "../entities/beaconcha/beaconChainEntities"
 import { ValidatorData } from "../entities/beaconcha/beaconChainValidator"
 import { liquidityContract, stakingContract, withdrawContract } from "../globals/globalVariables"
-import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData } from "../globals/globalMetrics"
+import { globalBeaconChainData, globalLiquidityData, globalPersistentData, globalQData, globalStakingData, globalWithdrawData, TotalCalls } from "../globals/globalMetrics"
 import { isDebug } from "../globals/globalUtils"
 import { getPrice, getTokenHoldersQty } from "../services/tokens/tokens"
 import { sendEmail, shouldSendEmail } from "../utils/mailUtils"
@@ -14,6 +14,9 @@ import { calculateLpPrice, calculateMpEthPrice, calculateMpEthPriceTotalUnderlyi
 
 export function handleRefreshError(functionName: string, err: any): void {
     console.error(`Error refreshing ${functionName}`, err.message, err.stack)
+    if(TotalCalls.beats === 1) {
+        console.error("Error may be due first beat and not all data being refreshed yet. Data is set slowly to avoid rate limits")
+    }
     if (shouldSendEmail(functionName)) {
         sendEmail(`[ERR] ${functionName}`, `Error while running ${functionName}:\n${err.message}\n${err.stack}`)
     }
